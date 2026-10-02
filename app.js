@@ -1,0 +1,233 @@
+
+const $=id=>document.getElementById(id);
+const keys=['ecg','capno','nibp','art','pleth','temp','hemo'];
+const labels={ecg:'ECG',capno:'EtCO₂',nibp:'Pressione non invasiva',art:'Pressione invasiva ART',pleth:'SpO₂',temp:'Temperatura',hemo:'MostCare Up / PRAM'};
+let active=Object.fromEntries(keys.map(k=>[k,true]));
+let state={hr:90,etco2:38,rr:18,nibps:120,nibpd:70,sap:118,dap:68,spo2:98,temp:38.3,
+co:3.2,ci:3.1,sv:36,svi:35,svr:1800,svri:1850,ppv:8,svv:9,dpdt:950,cce:0.35,ea:2.1,cpo:0.70};
+const hemoDefs=[['co','CO','L/min'],['ci','CI','L/min/m²'],['sv','SV','mL'],['svi','SVI','mL/m²'],['svr','SVR','dyn·s/cm⁵'],['svri','SVRI','dyn·s·m²/cm⁵'],['ppv','PPV','%'],['svv','SVV','%'],['dpdt','dP/dtmax','mmHg/s'],['cce','CCE',''],['ea','Ea','mmHg/mL'],['cpo','CPO','W']];
+$('toggles').innerHTML=keys.map(k=>`<div class="toggle"><span>${labels[k]}</span><input type="checkbox" data-toggle="${k}"></div>`).join('');
+$('hemoInputs').innerHTML=hemoDefs.map(([k,l,u])=>`<label>${l} ${u?`(${u})`:''}<input id="${k}" type="number" step="any" value="${state[k]}"></label>`).join('');
+$('hemoMetrics').innerHTML=hemoDefs.map(([k,l,u])=>`<div class="metric"><small>${l}</small><b id="m_${k}">${state[k]}</b><small>${u}</small></div>`).join('');
+
+function map(){return Math.round((+state.sap+2*(+state.dap))/3)}
+function nmap(){return Math.round((+state.nibps+2*(+state.nibpd))/3)}
+function render(){
+ state.hr=+$('hr').value; $('hrOut').textContent=state.hr;
+ ['etco2','rr','nibps','nibpd','sap','dap','spo2','temp',...hemoDefs.map(x=>x[0])].forEach(k=>state[k]=+$(k).value);
+ $('vhr').textContent=state.hr;$('vet').textContent=state.etco2;$('vrr').textContent=state.rr;
+ $('vart').textContent=`${state.sap}/${state.dap}`;$('vmap').textContent=map();$('vnibp').textContent=`${state.nibps}/${state.nibpd}`;$('vnmap').textContent=nmap();
+ $('vspo2').textContent=state.spo2;$('vtemp').textContent=state.temp.toFixed(1);
+ hemoDefs.forEach(([k])=>$('m_'+k).textContent=state[k]);
+ $('studentPatient').textContent=$('name').value;$('studentWeight').textContent=$('weight').value;
+ document.querySelectorAll('[data-key]').forEach(el=>{let k=el.dataset.key;el.style.display=active[k]?'':'none'});
+ save();
+}
+function save(){localStorage.setItem('recoverCaneState',JSON.stringify({state,active,name:$('name').value,weight:$('weight').value,rhythm:$('rhythm').value,caseState:typeof caseState!=='undefined'?caseState:null,casePresentation:(typeof caseState!=='undefined'&&caseState.active)?clinicalCases[caseState.key].presentation:'',caseEvolutionText:(typeof caseState!=='undefined'&&caseState.active)?caseEvolution():''}))}
+function setActive(v){keys.forEach(k=>active[k]=v);document.querySelectorAll('[data-toggle]').forEach(x=>x.checked=v);render()}
+document.querySelectorAll('input,select').forEach(x=>x.addEventListener('input',render));
+document.querySelectorAll('[data-toggle]').forEach(x=>x.addEventListener('change',e=>{active[e.target.dataset.toggle]=e.target.checked;render()}));
+$('allOn').onclick=()=>setActive(true);$('allOff').onclick=()=>setActive(false);
+
+const presets={
+'Normale':{hr:90,etco2:38,rr:18,sap:118,dap:68,co:3.2,ci:3.1,sv:36,svr:1800,ppv:8,svv:9,dpdt:950,cce:.35,ea:2.1,cpo:.70},
+'Bradicardia':{hr:45,co:2.1,sv:47,sap:105,dap:62},
+'Tachicardia':{hr:180,co:3.5,sv:20,sap:105,dap:65},
+'PEA 80':{hr:80,sap:45,dap:25,co:.8,etco2:12,cpo:.08},
+'TV senza polso 220':{hr:220,sap:25,dap:15,co:.2,etco2:8,cpo:.02},
+'Massaggio cardiaco 120':{hr:120,sap:55,dap:25,co:1.0,etco2:12},
+'CPR EtCO₂ basso':{hr:120,etco2:8,sap:45,dap:20,co:.7},
+'CPR EtCO₂ migliore':{hr:120,etco2:18,sap:60,dap:30,co:1.2},
+'CPR ROSC imminente':{hr:120,etco2:32,sap:75,dap:40,co:1.8},
+'ROSC':{hr:105,etco2:38,sap:105,dap:60,co:2.8,ci:2.7,sv:27,ppv:10,svv:11,cpo:.55},
+'Ipovolemia':{hr:150,sap:82,dap:48,co:1.8,ci:1.8,sv:12,svr:2400,ppv:22,svv:24,dpdt:800,cce:.18,ea:3.0,cpo:.30},
+'Vasodilatazione':{hr:130,sap:75,dap:35,co:3.8,svr:750,ppv:9,svv:10,ea:1.1,cpo:.42},
+'Bassa contrattilità':{hr:120,sap:78,dap:50,co:1.6,sv:13,dpdt:420,cce:.10,cpo:.25},
+'Fluid responsive':{hr:140,sap:88,dap:50,co:2.0,sv:14,ppv:20,svv:22},
+'Dopo fluid challenge':{hr:115,sap:108,dap:62,co:3.0,sv:26,ppv:9,svv:10},
+'Dopo vasopressore':{hr:105,sap:120,dap:72,co:2.8,svr:2100,ea:2.6}
+};
+$('presets').innerHTML=Object.keys(presets).map(p=>`<button data-p="${p}">${p}</button>`).join('');
+function applyPreset(p){let o=presets[p];Object.entries(o).forEach(([k,v])=>{if($(k))$(k).value=v});if(p.includes('PEA'))$('rhythm').value='PEA / attività elettrica';else if(p.includes('TV'))$('rhythm').value='Tachicardia ventricolare';else if(p.includes('Massaggio')||p.includes('CPR'))$('rhythm').value='Artefatto massaggio cardiaco 120/min';else $('rhythm').value='Ritmo sinusale';render()}
+document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>applyPreset(b.dataset.p));
+
+
+
+const clinicalCases={
+ hemorrhagic:{
+  title:'Shock emorragico',presentation:'Cane, addome acuto post-traumatico. Mucose pallide, polso periferico debole, estremità fredde.',
+  start:{preload:55,contractility:112,vascularTone:135,compliance:95,hr:155,etco2:29,rr:30,spo2:94,temp:37.5},
+  drift:{preload:-7,contractility:-2,vascularTone:3,hr:5,etco2:-2},
+  preferred:['fluid'], harmful:['vasodilator']
+ },
+ distributive:{
+  title:'Shock distributivo / vasoplegico',presentation:'Cane con quadro infiammatorio sistemico. Polsi inizialmente ampi, mucose iperemiche, ipotensione.',
+  start:{preload:82,contractility:105,vascularTone:48,compliance:112,hr:145,etco2:31,rr:28,spo2:95,temp:39.5},
+  drift:{preload:-3,contractility:-3,vascularTone:-4,hr:3,etco2:-1},
+  preferred:['pressor','fluid'], harmful:[]
+ },
+ myocardial:{
+  title:'Depressione miocardica',presentation:'Cane debole e dispnoico. Polsi piccoli, perfusione periferica ridotta; pressione arteriosa bassa.',
+  start:{preload:115,contractility:42,vascularTone:118,compliance:90,hr:125,etco2:27,rr:32,spo2:91,temp:38.0},
+  drift:{preload:2,contractility:-5,vascularTone:2,hr:2,etco2:-2},
+  preferred:['inotrope','oxygen'], harmful:['fluid']
+ },
+ arrest:{
+  title:'Arresto cardiaco / PEA',presentation:'Paziente improvvisamente non responsivo, apnea e assenza di polso palpabile.',
+  start:{preload:65,contractility:20,vascularTone:80,compliance:100,hr:80,etco2:8,rr:0,spo2:70,temp:37.0},
+  drift:{preload:-2,contractility:-2,vascularTone:-3,hr:0,etco2:-1},
+  preferred:['cpr','pressor'], harmful:['shock']
+ }
+};
+let caseState={active:false,key:'',minute:0,score:0,actions:[],cpr:false};
+function setNum(id,v){if($(id))$(id).value=v}
+function caseApplyStart(c){
+ phys.preload=c.start.preload;phys.contractility=c.start.contractility;phys.vascularTone=c.start.vascularTone;phys.compliance=c.start.compliance;
+ ['hr','etco2','rr','spo2','temp'].forEach(k=>setNum(k,c.start[k]));
+ setPhysInputs();physiology();
+}
+function caseStatus(msg){
+ let c=clinicalCases[caseState.key];
+ $('caseInstructor').innerHTML=`<b>${c.title}</b> · minuto ${caseState.minute} · punteggio didattico <span class="case-score">${caseState.score}</span><br>${c.presentation}`;
+ $('caseFeedback').textContent=msg;
+ $('studentCaseMinute').textContent=caseState.minute;$('studentCasePresentation').textContent=c.presentation;
+ $('studentCaseEvolution').textContent=caseEvolution();
+ $('studentCaseBanner').style.display='block';
+ save();
+}
+function caseEvolution(){
+ let m=map(),co=+state.co,et=+state.etco2;
+ if(caseState.key==='arrest'&&!caseState.cpr)return 'Paziente non responsivo. Nessun polso palpabile.';
+ if(m<45||co<1)return 'Perfusione gravemente compromessa. Il paziente sta peggiorando.';
+ if(m<60||co<1.8)return 'Perfusione ridotta. Parametri ancora instabili.';
+ if(m>=65&&co>=2.2&&et>=25)return 'I parametri mostrano un miglioramento emodinamico.';
+ return 'Condizioni emodinamiche intermedie: rivalutare la risposta agli interventi.';
+}
+function startClinicalCase(){
+ let k=$('caseSelect').value;if(!k){$('caseFeedback').textContent='Seleziona prima un caso clinico.';return}
+ caseState={active:true,key:k,minute:0,score:0,actions:[],cpr:false};caseApplyStart(clinicalCases[k]);
+ if(k==='arrest')$('rhythm').value='PEA / attività elettrica'; else $('rhythm').value='Tachicardia sinusale';
+ caseStatus('Caso avviato. Diagnosi visibile solo all’istruttore.');
+}
+function advanceClinicalCase(){
+ if(!caseState.active)return;
+ let c=clinicalCases[caseState.key],d=c.drift;caseState.minute++;
+ phys.preload=clamp(phys.preload+(d.preload||0),20,180);phys.contractility=clamp(phys.contractility+(d.contractility||0),20,180);
+ phys.vascularTone=clamp(phys.vascularTone+(d.vascularTone||0),30,180);
+ if(d.hr)setNum('hr',clamp(+$('hr').value+d.hr,0,260));if(d.etco2)setNum('etco2',clamp(+$('etco2').value+d.etco2,3,60));
+ setPhysInputs();physiology();caseStatus('È trascorso 1 minuto senza un nuovo intervento.');
+}
+function caseAction(a){
+ if(!caseState.active){$('caseFeedback').textContent='Avvia prima un caso clinico.';return}
+ let c=clinicalCases[caseState.key],good=c.preferred.includes(a),bad=c.harmful.includes(a);
+ caseState.actions.push(a);caseState.score+=good?2:bad?-2:0;
+ let msg='';
+ if(a==='fluid'){phys.preload=clamp(phys.preload+22,20,180);msg='Somministrato bolo di fluidi.'}
+ if(a==='pressor'){phys.vascularTone=clamp(phys.vascularTone+30,30,180);msg='Somministrato vasopressore.'}
+ if(a==='inotrope'){phys.contractility=clamp(phys.contractility+30,20,180);msg='Somministrato inotropo.'}
+ if(a==='oxygen'){setNum('spo2',clamp(+$('spo2').value+6,0,100));setNum('etco2',clamp(+$('etco2').value+3,3,60));msg='Ottimizzata ossigenazione/ventilazione.'}
+ if(a==='cpr'){caseState.cpr=true;setNum('hr',120);$('rhythm').value='Artefatto massaggio cardiaco 120/min';phys.contractility=48;phys.preload=clamp(phys.preload+8,20,180);setNum('etco2',Math.max(12,+$('etco2').value));msg='CPR iniziata.'}
+ if(a==='shock'){msg='Defibrillazione eseguita.'; if(caseState.key==='arrest'){caseState.score-=2;msg+=' Il ritmo iniziale è PEA: rivalutare l’indicazione alla defibrillazione.'}}
+ setPhysInputs();physiology();logEvent('Caso clinico: '+msg);caseStatus(msg+(good?' Risposta emodinamica favorevole.':bad?' Risposta non favorevole.':' Rivalutare i parametri.'));
+}
+function endClinicalCase(){
+ if(!caseState.active)return;
+ let outcome=caseEvolution();$('caseFeedback').textContent=`Caso terminato — ${outcome} Punteggio didattico: ${caseState.score}.`;
+ caseState.active=false;$('studentCaseEvolution').textContent='Caso terminato.';save();
+}
+$('startCase').onclick=startClinicalCase;$('advanceCase').onclick=advanceClinicalCase;$('endCase').onclick=endClinicalCase;
+$('caseFluid').onclick=()=>caseAction('fluid');$('casePressor').onclick=()=>caseAction('pressor');$('caseInotrope').onclick=()=>caseAction('inotrope');
+$('caseOxygen').onclick=()=>caseAction('oxygen');$('caseCPR').onclick=()=>caseAction('cpr');$('caseShock').onclick=()=>caseAction('shock');
+
+let phys={preload:100,contractility:100,vascularTone:100,compliance:100};
+let eventLines=[];
+function logEvent(t){eventLines.unshift(new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+' — '+t);eventLines=eventLines.slice(0,8);$('eventLog').innerHTML=eventLines.join('<br>')}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function setPhysInputs(){
+ ['preload','contractility','vascularTone','compliance'].forEach(k=>{$(k).value=phys[k];$(k+'Out').textContent=Math.round(phys[k])+'%'})
+}
+function physiology(){
+ if(!$('autoPhys').checked)return render();
+ phys.preload=+$('preload').value;phys.contractility=+$('contractility').value;phys.vascularTone=+$('vascularTone').value;phys.compliance=+$('compliance').value;
+ let hr=Math.max(1,+$('hr').value), P=phys.preload/100, C=phys.contractility/100, V=phys.vascularTone/100, A=phys.compliance/100;
+ // Educational canine model: deliberately simplified, smooth and bounded.
+ let filling=clamp(Math.pow(P,0.72),.25,1.45);
+ let tachyPenalty=hr>150?clamp(1-(hr-150)/350,.55,1):1;
+ let bradyFill=hr<70?clamp(1+(70-hr)/250,1,1.16):1;
+ let sv=clamp(36*filling*Math.pow(C,.70)*tachyPenalty*bradyFill,5,70);
+ let co=clamp(sv*hr/1000,.25,7.5);
+ let svr=clamp(1800*V,450,3400);
+ let map=clamp(co*svr/80,20,155);
+ let pp=clamp((sv/36)*(50/A),12,85);
+ let dap=clamp(map-pp/3,12,125), sap=clamp(dap+pp,25,210);
+ let variability=clamp(8+Math.max(0,100-phys.preload)*.23+Math.max(0,hr-170)*.025,3,35);
+ let dpdt=clamp(950*C*(sap/118)*Math.pow(A,-.15),180,2200);
+ let ea=clamp((sap*.9)/Math.max(sv,5),.5,8);
+ let cce=clamp(.35*C*(co/3.2)/(V**.35),.04,.75);
+ let cpo=clamp(map*co/451,.03,2);
+ let bsa=Math.max(.25,0.101*Math.pow(+$('weight').value||25,2/3));
+ let vals={sv:Math.round(sv),svi:+(sv/bsa).toFixed(1),co:+co.toFixed(2),ci:+(co/bsa).toFixed(2),svr:Math.round(svr),svri:Math.round(svr*bsa),ppv:Math.round(variability),svv:Math.round(variability*1.08),dpdt:Math.round(dpdt),cce:+cce.toFixed(2),ea:+ea.toFixed(2),cpo:+cpo.toFixed(2),sap:Math.round(sap),dap:Math.round(dap)};
+ Object.entries(vals).forEach(([k,v])=>{if($(k))$(k).value=v});
+ $('preloadOut').textContent=Math.round(phys.preload)+'%';$('contractilityOut').textContent=Math.round(phys.contractility)+'%';$('vascularToneOut').textContent=Math.round(phys.vascularTone)+'%';$('complianceOut').textContent=Math.round(phys.compliance)+'%';
+ render();interpret();
+}
+function interpret(){
+ let P=phys.preload,C=phys.contractility,V=phys.vascularTone,m=map(),ppv=+state.ppv,co=+state.co;
+ $('iPre').textContent=P<75?'↓':P>125?'↑':'↔';
+ $('iAfter').textContent=V<75?'↓':V>125?'↑':'↔';
+ $('iContr').textContent=C<75?'↓':C>125?'↑':'↔';
+ $('iFluid').textContent=ppv>=15?'Probabile':'Bassa';
+ $('iPerf').textContent=(m<60||co<1.8)?'Ridotta':m>70&&co>=2.2?'Adeguata':'Borderline';
+ let txt=[];
+ if(P<70)txt.push('pattern compatibile con riduzione del precarico');
+ if(V<70)txt.push('basso tono vascolare');
+ if(V>135)txt.push('afterload elevato');
+ if(C<70)txt.push('ridotta contrattilità');
+ if(ppv>=15)txt.push('elevata variazione respiratoria: possibile fluid responsiveness');
+ if(m<60)txt.push('pressione di perfusione ridotta');
+ if(!txt.length)txt.push('profilo emodinamico relativamente stabile');
+ $('interpretation').textContent=txt.join(' · ')+'.';
+}
+['preload','contractility','vascularTone','compliance'].forEach(k=>$(k).addEventListener('input',physiology));
+$('autoPhys').addEventListener('change',physiology);
+$('fluid250').onclick=()=>{phys.preload=clamp(+$('preload').value+22,20,180);setPhysInputs();logEvent('Fluido 10 mL/kg: ↑ precarico');physiology()};
+$('vasopressor').onclick=()=>{phys.vascularTone=clamp(+$('vascularTone').value+28,30,180);setPhysInputs();logEvent('Vasopressore: ↑ tono vascolare/SVR');physiology()};
+$('inotrope').onclick=()=>{phys.contractility=clamp(+$('contractility').value+25,20,180);setPhysInputs();logEvent('Inotropo: ↑ contrattilità');physiology()};
+$('vasodilator').onclick=()=>{phys.vascularTone=clamp(+$('vascularTone').value-25,30,180);setPhysInputs();logEvent('Vasodilatatore: ↓ tono vascolare/SVR');physiology()};
+$('hemorrhage').onclick=()=>{phys.preload=clamp(+$('preload').value-28,20,180);setPhysInputs();logEvent('Emorragia simulata: ↓ precarico');physiology()};
+$('resetPhys').onclick=()=>{phys={preload:100,contractility:100,vascularTone:100,compliance:100};setPhysInputs();logEvent('Fisiologia ripristinata');physiology()};
+
+let scenarioStep=-1;const scenario=['Normale','PEA 80','CPR EtCO₂ basso','CPR EtCO₂ migliore','CPR ROSC imminente','ROSC'];
+function stepScenario(){scenarioStep=Math.min(scenarioStep+1,scenario.length-1);applyPreset(scenario[scenarioStep]);$('scenarioStatus').textContent=`Fase ${scenarioStep+1}/${scenario.length}: ${scenario[scenarioStep]}${scenarioStep==1?' — PAUSA: riconoscimento arresto/ritmo':''}${scenarioStep==4?' — PAUSA: ricercare segni di ROSC':''}`}
+$('startScenario').onclick=()=>{scenarioStep=-1;stepScenario()};$('nextScenario').onclick=stepScenario;$('stopScenario').onclick=()=>{$('scenarioStatus').textContent='Scenario fermato';scenarioStep=-1};
+
+$('modeBtn').onclick=()=>{document.body.classList.toggle('student');let s=document.body.classList.contains('student');$('modeTitle').textContent=s?'Monitor studenti':'Console istruttore';$('modeBtn').textContent=s?'Torna alla console':'Modalità studenti'};
+$('studentBtn').onclick=()=>{let u=new URL(location.href);u.searchParams.set('student','1');window.open(u.toString(),'_blank')};
+$('fullBtn').onclick=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();else document.exitFullscreen?.()};
+if(new URLSearchParams(location.search).get('student')==='1'){$('modeBtn').click()}
+
+window.addEventListener('storage',e=>{if(e.key==='recoverCaneState'&&document.body.classList.contains('student')){let d=JSON.parse(e.newValue);state=d.state;active=d.active;$('name').value=d.name;$('weight').value=d.weight;$('rhythm').value=d.rhythm;Object.entries(state).forEach(([k,v])=>{if($(k))$(k).value=v});document.querySelectorAll('[data-toggle]').forEach(x=>x.checked=active[x.dataset.toggle]);
+if(d.caseState&&d.caseState.active){caseState=d.caseState;$('studentCaseBanner').style.display='block';$('studentCaseMinute').textContent=caseState.minute;$('studentCasePresentation').textContent=d.casePresentation;$('studentCaseEvolution').textContent=d.caseEvolutionText}else{$('studentCaseBanner').style.display='none'}
+render()}});
+
+function canvasFit(c){let d=devicePixelRatio||1,r=c.getBoundingClientRect();if(c.width!==Math.floor(r.width*d)){c.width=Math.floor(r.width*d);c.height=Math.floor(r.height*d)}let x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);return [x,r.width,r.height]}
+let phase=0;
+function wave(){
+ phase+=.035;
+ [['ecg','#39ef8b'],['capno','#3bd6ff'],['art','#ff5364'],['pleth','#ffd34e']].forEach(([id,col])=>{
+  let c=$(id),[x,w,h]=canvasFit(c);x.clearRect(0,0,w,h);x.strokeStyle=col;x.lineWidth=2;x.beginPath();
+  let rhythm=$('rhythm').value;
+  for(let px=0;px<w;px++){let t=phase+px/w*8*Math.max(state.hr,30)/90,y=.5;
+   if(id==='ecg'){let q=t%1;y=.58-(Math.exp(-(((q-.18)/.025)**2))*.10-Math.exp(-(((q-.30)/.012)**2))*.12+Math.exp(-(((q-.33)/.014)**2))*.52-Math.exp(-(((q-.37)/.018)**2))*.16+Math.exp(-(((q-.62)/.07)**2))*.12);if(rhythm.includes('Fibrillazione'))y=.5+.12*Math.sin(t*19)+.07*Math.sin(t*31);if(rhythm==='Asistolia')y=.5+.005*Math.sin(t*3)}
+   if(id==='capno'){let q=t%(Math.max(1,state.hr/Math.max(state.rr,1)));q=q/(Math.max(1,state.hr/Math.max(state.rr,1)));y=.80-(q<.12?q/.12*.55:q<.58?.55:q<.72?.55*(1-(q-.58)/.14):0)}
+   if(id==='art'){let q=t%1;let pulse=Math.exp(-q*5)*Math.pow(Math.sin(Math.PI*Math.min(q/.72,1)),2);let notch=.10*Math.exp(-(((q-.52)/.025)**2));y=.78-.55*pulse+.10*notch}
+   if(id==='pleth'){let q=t%1;y=.75-.42*Math.exp(-q*4)*Math.pow(Math.sin(Math.PI*Math.min(q/.85,1)),2)}
+   let yy=y*h;if(px===0)x.moveTo(px,yy);else x.lineTo(px,yy)
+  }x.stroke()
+ });requestAnimationFrame(wave)
+}
+setActive(true);setPhysInputs();physiology();wave();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+}

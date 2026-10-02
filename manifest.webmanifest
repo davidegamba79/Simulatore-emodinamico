@@ -1,0 +1,11 @@
+{
+  "name": "Simulatore Emodinamico Veterinario",
+  "short_name": "Sim Emodinamico",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#071016",
+  "theme_color": "#071016",
+  "orientation": "any",
+  "description": "Simulatore didattico emodinamico veterinario con monitor istruttore e studenti."
+}

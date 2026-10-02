@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sim Emodinamico">
+<meta name="theme-color" content="#071016">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="stylesheet" href="./styles.css">
+<title>Simulatore emodinamico</title>
+</head>
+<body>
+
+<header>
+ <div><h1>SIMULATORE EMODINAMICO — <span id="modeTitle">Console istruttore</span></h1><div class="badge" id="syncBadge">Monitor locale sincronizzato</div></div>
+ <div class="row">
+  <button class="tiny instructor-only" id="studentBtn">Apri Monitor studenti</button>
+  <button class="tiny" id="modeBtn">Modalità studenti</button>
+  <button class="tiny" id="fullBtn">Schermo intero</button>
+ </div>
+</header>
+<main>
+<div class="grid">
+<aside class="controls instructor-only">
+ <section class="card"><h2>Paziente</h2><div class="cols">
+  <label>Nome paziente<input id="name" value="Paziente Cane"></label>
+  <label>Peso (kg)<input id="weight" type="number" value="25" min="1" step=".1"></label>
+ </div></section>
+
+ <section class="card"><h2>Monitoraggio attivo — istruttore</h2>
+  <div id="toggles"></div><div class="row" style="margin-top:9px"><button id="allOn">Tutto ON</button><button id="allOff">Tutto OFF</button></div>
+ </section>
+
+ <section class="card"><h2>ECG</h2>
+  <label>Ritmo<select id="rhythm"><option>Ritmo sinusale</option><option>Bradicardia sinusale</option><option>Tachicardia sinusale</option><option>Tachicardia ventricolare</option><option>Fibrillazione ventricolare</option><option>PEA / attività elettrica</option><option>Artefatto massaggio cardiaco 120/min</option><option>Asistolia</option></select></label>
+  <label>FC (bpm)<input id="hr" type="range" min="0" max="260" value="90"><span id="hrOut">90</span></label>
+ </section>
+
+ <section class="card"><h2>Capnografia</h2><div class="cols">
+  <label>EtCO₂ (mmHg)<input id="etco2" type="number" value="38"></label>
+  <label>FR (atti/min)<input id="rr" type="number" value="18"></label>
+ </div></section>
+
+ <section class="card"><h2>Pressione</h2><div class="cols">
+  <label>Sistolica NIBP<input id="nibps" type="number" value="120"></label><label>Diastolica NIBP<input id="nibpd" type="number" value="70"></label>
+  <label>SAP invasiva<input id="sap" type="number" value="118"></label><label>DAP invasiva<input id="dap" type="number" value="68"></label>
+ </div></section>
+
+ <section class="card"><h2>MostCare Up / PRAM — simulazione</h2><div class="cols" id="hemoInputs"></div></section>
+
+ <section class="card"><h2>Altri parametri</h2><div class="cols">
+  <label>SpO₂ (%)<input id="spo2" type="number" value="98"></label><label>Temperatura (°C)<input id="temp" type="number" step=".1" value="38.3"></label>
+ </div></section>
+
+ <section class="card"><h2>Modalità Caso clinico</h2>
+  <label>Caso<select id="caseSelect">
+    <option value="">— simulazione libera —</option>
+    <option value="hemorrhagic">Caso A — shock emorragico</option>
+    <option value="distributive">Caso B — shock distributivo / vasoplegico</option>
+    <option value="myocardial">Caso C — depressione miocardica</option>
+    <option value="arrest">Caso D — arresto cardiaco / PEA</option>
+  </select></label>
+  <div class="row" style="margin-top:9px"><button class="primary" id="startCase">Avvia caso</button><button id="advanceCase">+ 1 minuto</button><button class="danger" id="endCase">Termina caso</button></div>
+  <div id="caseInstructor" class="status" style="margin-top:9px">Nessun caso clinico attivo.</div>
+  <div class="case-actions">
+   <button id="caseFluid">Fluido 10 mL/kg</button><button id="casePressor">Vasopressore</button>
+   <button id="caseInotrope">Inotropo</button><button id="caseOxygen">O₂ / ventilazione</button>
+   <button id="caseCPR">Avvia CPR</button><button id="caseShock">Defibrilla</button>
+  </div>
+  <div id="caseFeedback" class="status" style="margin-top:8px">Le azioni verranno registrate e influenzeranno il paziente.</div>
+ </section>
+<section class="card"><h2>Motore fisiologico — emodinamica</h2>
+  <div class="status">Modalità dinamica: precarico, contrattilità e tono vascolare modificano simultaneamente curva ART e parametri emodinamici.</div>
+  <div class="cols" style="margin-top:10px">
+   <label>Precarico <input id="preload" type="range" min="20" max="180" value="100"><span id="preloadOut">100%</span></label>
+   <label>Contrattilità <input id="contractility" type="range" min="20" max="180" value="100"><span id="contractilityOut">100%</span></label>
+   <label>Tono vascolare / SVR <input id="vascularTone" type="range" min="30" max="180" value="100"><span id="vascularToneOut">100%</span></label>
+   <label>Compliance arteriosa <input id="compliance" type="range" min="40" max="160" value="100"><span id="complianceOut">100%</span></label>
+  </div>
+  <div class="row" style="margin-top:10px">
+   <button id="fluid250">Fluido +10 mL/kg</button>
+   <button id="vasopressor">Vasopressore</button>
+   <button id="inotrope">Inotropo</button>
+   <button id="vasodilator">Vasodilatatore</button>
+   <button id="hemorrhage" class="danger">Emorragia</button>
+   <button id="resetPhys">Reset fisiologia</button>
+  </div>
+  <label style="margin-top:9px"><span><input id="autoPhys" type="checkbox" checked style="width:auto"> Calcolo fisiologico automatico</span></label>
+ </section>
+ <section class="card"><h2>Interventi / trend</h2>
+   <div id="eventLog" class="status" style="max-height:150px;overflow:auto">Nessun intervento.</div>
+ </section>
+<section class="card"><h2>Preset manuali</h2><div class="preset" id="presets"></div></section>
+
+ <section class="card"><h2>Scenario arresto cardiaco</h2>
+  <div class="row"><button class="primary" id="startScenario">Avvia scenario</button><button class="danger" id="stopScenario">Ferma scenario</button><button id="nextScenario">Prosegui scenario</button></div>
+  <label>Velocità<select id="speed"><option value="1">1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label>
+  <div class="status" id="scenarioStatus">Pronto — Scenario non avviato</div>
+ </section>
+</aside>
+
+<section class="monitor">
+ <div class="student-only card" style="padding:8px 12px"><b id="studentPatient">Paziente Cane</b> · <span id="studentWeight">25</span> kg</div>
+ <div class="student-only case-banner" id="studentCaseBanner" style="display:none">
+   <div><b>CASO CLINICO</b> · minuto <span id="studentCaseMinute">0</span></div>
+   <div id="studentCasePresentation" style="margin-top:5px"></div>
+   <div id="studentCaseEvolution" style="margin-top:5px;color:var(--muted)">Valutare il paziente e richiedere il monitoraggio ritenuto necessario.</div>
+ </div>
+
+ <div class="wave" data-key="ecg"><span class="wlabel green">ECG</span><div class="values green"><span class="big" id="vhr">90</span><br>bpm</div><canvas id="ecg"></canvas></div>
+ <div class="wave" data-key="capno"><span class="wlabel cyan">EtCO₂</span><div class="values cyan"><span class="big" id="vet">38</span> mmHg<br><span id="vrr">18</span> /min</div><canvas id="capno"></canvas></div>
+ <div class="wave" data-key="art"><span class="wlabel red">ART — pressione invasiva</span><div class="values red"><span class="big" id="vart">118/68</span><br>MAP <span id="vmap">85</span> mmHg</div><canvas id="art"></canvas></div>
+ <div class="wave" data-key="pleth"><span class="wlabel yellow">SpO₂</span><div class="values yellow"><span class="big" id="vspo2">98</span>%</div><canvas id="pleth"></canvas></div>
+
+ <div class="card" data-key="nibp"><h2>NIBP</h2><div class="row"><span class="big" id="vnibp">120/70</span><span>MAP <b id="vnmap">87</b> mmHg</span><span>Temp <b id="vtemp">38.3</b> °C</span></div></div>
+
+ <div class="card hemo-wrap" data-key="hemo"><h2>Emodinamica avanzata — MostCare Up / PRAM (simulazione didattica)</h2><div class="hemo" id="hemoMetrics"></div></div>
+ <div class="card" data-key="hemo"><h2>Interpretazione emodinamica automatica</h2>
+   <div id="interpretation" class="status">Monitoraggio non ancora attivo.</div>
+   <div class="hemo" style="margin-top:8px">
+    <div class="metric"><small>Precarico</small><b id="iPre">—</b></div>
+    <div class="metric"><small>Afterload</small><b id="iAfter">—</b></div>
+    <div class="metric"><small>Contrattilità</small><b id="iContr">—</b></div>
+    <div class="metric"><small>Fluid responsiveness</small><b id="iFluid">—</b></div>
+    <div class="metric"><small>Perfusione</small><b id="iPerf">—</b></div>
+   </div>
+ </div>
+</section>
+</div>
+</main>
+
+<script src="./app.js"></script>
+</body>
+</html>

@@ -207,11 +207,59 @@ function v25Event(txt){let t=(performance.now()-v25.start)/1000;v25.events.push(
 function v25Toggle(btn,key,label){v25.inf[key]=!v25.inf[key];btn.classList.toggle('active-therapy',v25.inf[key]);btn.textContent=v25.inf[key]?'ATTIVA — Stop':'Avvia';v25Event(label+(v25.inf[key]?' avviata':' arrestata'));v25Status()}
 function v25Status(){let a=[];if(v25.inf.fluid)a.push('Cristalloidi '+(+$('v25FluidRate').value||0)+' mL/kg/h');if(v25.inf.dob)a.push('Dobutamina '+(+$('v25DobRate').value||0)+' µg/kg/min');if(v25.inf.nor)a.push('Noradrenalina '+(+$('v25NorRate').value||0)+' µg/kg/min');$('v25TherapyStatus').textContent=a.length?'Attive: '+a.join(' · '):'Nessuna infusione continua attiva.'}
 function v25Flash(b){b.classList.add('pulse-therapy');setTimeout(()=>b.classList.remove('pulse-therapy'),700)}
-function v25Setup(){let sel=$('v25Metric');v25Metrics.forEach(([k,l,u])=>{let o=document.createElement('option');o.value=k;o.textContent=l+(u?' ('+u+')':'');sel.appendChild(o)});sel.value='map';$('v25FluidBtn').onclick=()=>v25Toggle($('v25FluidBtn'),'fluid','Cristalloidi');$('v25DobBtn').onclick=()=>v25Toggle($('v25DobBtn'),'dob','Dobutamina');$('v25NorBtn').onclick=()=>v25Toggle($('v25NorBtn'),'nor','Noradrenalina');$('v25FluidBolus').onclick=()=>{v25.fluidBolusUntil=performance.now()+30000;v25Flash($('v25FluidBolus'));v25Event('Fluid challenge 2 mL/kg / 30 s')};$('v25AtBtn').onclick=()=>{v25.atropineUntil=performance.now()+120000;v25Flash($('v25AtBtn'));v25Event('Atropina '+(+$('v25AtDose').value||0)+' µg/kg')};$('etco2').addEventListener('change',()=>{if(!v25.applying){v25.etRef=clamp(+$('etco2').value||38,3,80);v25.etEffective=v25.etRef;v25Event('EtCO₂ riferimento '+v25.etRef+' mmHg')}});$('v25Metric').addEventListener('change',v25Draw);$('v25Window').addEventListener('change',v25Draw)}
+function v25Setup(){
+ $('v25FluidBtn').onclick=()=>v25Toggle($('v25FluidBtn'),'fluid','Cristalloidi');
+ $('v25DobBtn').onclick=()=>v25Toggle($('v25DobBtn'),'dob','Dobutamina');
+ $('v25NorBtn').onclick=()=>v25Toggle($('v25NorBtn'),'nor','Noradrenalina');
+ $('v25FluidBolus').onclick=()=>{v25.fluidBolusUntil=performance.now()+30000;v25Flash($('v25FluidBolus'));v25Event('Fluid challenge 2 mL/kg / 30 s')};
+ $('v25AtBtn').onclick=()=>{v25.atropineUntil=performance.now()+120000;v25Flash($('v25AtBtn'));v25Event('Atropina '+(+$('v25AtDose').value||0)+' µg/kg')};
+ $('etco2').addEventListener('change',()=>{if(!v25.applying){v25.etRef=clamp(+$('etco2').value||38,3,80);v25.etEffective=v25.etRef;v25Event('EtCO₂ riferimento '+v25.etRef+' mmHg')}});
+ $('v25Window').addEventListener('change',v25Draw)
+}
 function v25TherapyStep(dt,now){let pr=0,cr=0,vr=0;if(now<v25.fluidBolusUntil)pr+=.55*dt;if(v25.inf.fluid)pr+=clamp((+$('v25FluidRate').value||0)/12,0,3)*dt/60;if(v25.inf.dob){let d=clamp(+$('v25DobRate').value||0,0,30);cr+=d*.035*dt}if(v25.inf.nor){let n=clamp(+$('v25NorRate').value||0,0,2);vr+=n*1.8*dt}if(now<v25.atropineUntil){let dose=clamp(+$('v25AtDose').value||0,0,100),target=clamp(90+dose*1.5,90,190),cur=+$('hr').value||90;$('hr').value=Math.round(cur+(target-cur)*Math.min(1,dt*.08))}phys.preload=clamp(phys.preload+pr,20,180);phys.contractility=clamp(phys.contractility+cr,20,180);phys.vascularTone=clamp(phys.vascularTone+vr,30,180);setPhysInputs()}
 function v25PerfusionEt(){let co=+($('co').value)||3.2,rr=Math.max(1,+$('rr').value||18),perf=clamp(co/3.2,.25,1.55),vent=clamp(18/rr,.45,1.8);return clamp(v25.etRef*(.55+.45*perf)*Math.pow(vent,.28),3,80)}
 function v25Sample(t){let rec={t};v25Metrics.forEach(([k])=>{if(k==='map')rec[k]=map();else if(k==='afterload')rec[k]=phys.vascularTone;else if(k==='preload')rec[k]=phys.preload;else if(k==='contractility')rec[k]=phys.contractility;else rec[k]=+(($(k)&&$(k).value)||state[k]||0)});v25.history.push(rec);if(v25.history.length>1800)v25.history.shift()}
-function v25Draw(){let c=$('v25TrendCanvas');if(!c)return;let d=devicePixelRatio||1,r=c.getBoundingClientRect(),w=Math.max(260,r.width),h=210;c.width=Math.floor(w*d);c.height=Math.floor(h*d);let g=c.getContext('2d');g.setTransform(d,0,0,d,0,0);g.clearRect(0,0,w,h);let key=$('v25Metric').value||'map',win=+$('v25Window').value||120,now=(performance.now()-v25.start)/1000,from=Math.max(0,now-win),a=v25.history.filter(x=>x.t>=from),def=v25Metrics.find(x=>x[0]===key)||v25Metrics[0];g.strokeStyle='#20323e';g.lineWidth=1;for(let i=1;i<4;i++){let y=i*h/4;g.beginPath();g.moveTo(0,y);g.lineTo(w,y);g.stroke()}if(a.length>1){let vals=a.map(x=>x[key]),mn=Math.min(...vals),mx=Math.max(...vals);if(mx-mn<1){mn-=.5;mx+=.5}let pad=(mx-mn)*.12;mn-=pad;mx+=pad;v25.events.filter(e=>e.t>=from).forEach(e=>{let x=(e.t-from)/win*w;g.strokeStyle='rgba(255,211,78,.35)';g.beginPath();g.moveTo(x,0);g.lineTo(x,h);g.stroke()});g.strokeStyle='#3bd6ff';g.lineWidth=2;g.beginPath();a.forEach((q,i)=>{let x=(q.t-from)/win*w,y=h-((q[key]-mn)/(mx-mn))*h*.82-h*.09;i?g.lineTo(x,y):g.moveTo(x,y)});g.stroke();let last=vals[vals.length-1];$('v25TrendLegend').textContent=def[1]+': '+Number(last).toFixed(Math.abs(last)<10?2:1)+(def[2]?' '+def[2]:'')+' · 23 parametri registrati ogni secondo.'}}
+const v26Groups=[
+ ['vitals',['hr','rr','spo2','etco2','temp']],
+ ['pressure',['sap','dap','map']],
+ ['flow',['co','ci']],
+ ['stroke',['sv','svi']],
+ ['resistance',['svr','svri']],
+ ['fluid',['ppv','svv']],
+ ['contractility',['dpdt','cce']],
+ ['coupling',['ea','cpo']],
+ ['physiology',['preload','afterload','contractility']]
+];
+const v26Colors=['#3bd6ff','#39ef8b','#ffd34e','#ff5364','#c78cff'];
+function v26Fmt(v){v=Number(v);if(!Number.isFinite(v))return '—';return Math.abs(v)<10?v.toFixed(2):v.toFixed(1)}
+function v26DrawGroup(name,keys,a,from,win){
+ let c=$('trend-'+name);if(!c)return;
+ let d=devicePixelRatio||1,r=c.getBoundingClientRect(),w=Math.max(260,r.width),h=165;
+ c.width=Math.floor(w*d);c.height=Math.floor(h*d);
+ let g=c.getContext('2d');g.setTransform(d,0,0,d,0,0);g.clearRect(0,0,w,h);
+ g.strokeStyle='#20323e';g.lineWidth=1;
+ for(let i=1;i<4;i++){let y=i*h/4;g.beginPath();g.moveTo(0,y);g.lineTo(w,y);g.stroke()}
+ v25.events.filter(e=>e.t>=from).forEach(e=>{let x=(e.t-from)/win*w;g.strokeStyle='rgba(255,211,78,.38)';g.beginPath();g.moveTo(x,0);g.lineTo(x,h);g.stroke()});
+ if(a.length<2)return;
+ let legend=[];
+ keys.forEach((key,j)=>{
+   let def=v25Metrics.find(x=>x[0]===key)||[key,key,''], vals=a.map(q=>Number(q[key])).filter(Number.isFinite);
+   if(!vals.length)return;
+   let mn=Math.min(...vals),mx=Math.max(...vals);
+   if(mx-mn<.0001){let bump=Math.max(Math.abs(mx)*.03,.5);mn-=bump;mx+=bump}
+   let pad=(mx-mn)*.12;mn-=pad;mx+=pad;
+   g.strokeStyle=v26Colors[j%v26Colors.length];g.lineWidth=2;g.beginPath();
+   a.forEach((q,i)=>{let val=Number(q[key]);if(!Number.isFinite(val))return;let x=(q.t-from)/win*w,y=h*.91-((val-mn)/(mx-mn))*h*.82;i?g.lineTo(x,y):g.moveTo(x,y)});
+   g.stroke();
+   let last=vals[vals.length-1];
+   legend.push('<span style="color:'+v26Colors[j%v26Colors.length]+'">●</span> '+def[1]+' '+v26Fmt(last)+(def[2]?' '+def[2]:''));
+ });
+ let el=$('legend-'+name);if(el)el.innerHTML=legend.join(' &nbsp; ');
+}
+function v25Draw(){
+ let win=+$('v25Window').value||120,now=(performance.now()-v25.start)/1000,from=Math.max(0,now-win),a=v25.history.filter(x=>x.t>=from);
+ v26Groups.forEach(([name,keys])=>v26DrawGroup(name,keys,a,from,win));
+}
 function v25RenderEvents(){$('v25TrendEvents').textContent=v25.events.slice(-5).map(e=>{let m=Math.floor(e.t/60),s=Math.floor(e.t%60);return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+' '+e.txt}).join(' · ')}
 function v25Loop(now){let dt=Math.min(.25,(now-v25.last)/1000);v25.last=now;v25TherapyStep(dt,now);physiology();v25.applying=true;let target=v25PerfusionEt();v25.etEffective+=(target-v25.etEffective)*Math.min(1,dt*.8);$('etco2').value=Math.round(v25.etEffective*10)/10;render();v25.applying=false;let sec=(now-v25.start)/1000,mm=Math.floor(sec/60),ss=Math.floor(sec%60);$('v25Clock').textContent=String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');if(sec-v25.lastSample>=1){v25.lastSample=sec;v25Sample(sec);v25Draw()}requestAnimationFrame(v25Loop)}
 v25Setup();requestAnimationFrame(v25Loop);

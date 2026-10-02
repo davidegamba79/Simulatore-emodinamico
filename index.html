@@ -140,16 +140,28 @@
  </div>
 
  <div class="card trend-card" id="trendV25">
-  <div class="trend-head"><h2>Trend monitor — V2.5</h2><b id="v25Clock">00:00</b></div>
-  <div class="trend-controls"><label>Parametro<select id="v25Metric"></select></label><label>Finestra<select id="v25Window"><option value="120">2 min</option><option value="300">5 min</option><option value="600">10 min</option><option value="1800">30 min</option></select></label></div>
-  <canvas id="v25TrendCanvas"></canvas><div id="v25TrendLegend" class="trend-legend">Registrazione in corso…</div><div id="v25TrendEvents" class="trend-events"></div>
+  <div class="trend-head"><h2>Trend monitor — V2.6</h2><b id="v25Clock">00:00</b></div>
+  <div class="trend-controls"><label>Finestra<select id="v25Window"><option value="120">2 min</option><option value="300">5 min</option><option value="600">10 min</option><option value="1800">30 min</option></select></label></div>
+  <div id="v26TrendGrid" class="v26-trend-grid">
+   <div class="v26-chart"><h3>Parametri vitali</h3><canvas id="trend-vitals"></canvas><div class="v26-legend" id="legend-vitals"></div></div>
+   <div class="v26-chart"><h3>Pressioni</h3><canvas id="trend-pressure"></canvas><div class="v26-legend" id="legend-pressure"></div></div>
+   <div class="v26-chart"><h3>Flusso</h3><canvas id="trend-flow"></canvas><div class="v26-legend" id="legend-flow"></div></div>
+   <div class="v26-chart"><h3>Gittata sistolica</h3><canvas id="trend-stroke"></canvas><div class="v26-legend" id="legend-stroke"></div></div>
+   <div class="v26-chart"><h3>Resistenze</h3><canvas id="trend-resistance"></canvas><div class="v26-legend" id="legend-resistance"></div></div>
+   <div class="v26-chart"><h3>Fluid responsiveness</h3><canvas id="trend-fluid"></canvas><div class="v26-legend" id="legend-fluid"></div></div>
+   <div class="v26-chart"><h3>Contrattilità</h3><canvas id="trend-contractility"></canvas><div class="v26-legend" id="legend-contractility"></div></div>
+   <div class="v26-chart"><h3>Accoppiamento / potenza</h3><canvas id="trend-coupling"></canvas><div class="v26-legend" id="legend-coupling"></div></div>
+   <div class="v26-chart"><h3>Fisiologia</h3><canvas id="trend-physiology"></canvas><div class="v26-legend" id="legend-physiology"></div></div>
+  </div>
+  <div class="trend-legend">23 parametri registrati ogni secondo · marker verticali = eventi/terapie</div>
+  <div id="v25TrendEvents" class="trend-events"></div>
  </div>
 </section>
 </div>
 </main>
 
-<script src="./app.js?v=251"></script>
+<script src="./app.js?v=260"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./wave-v2.js?v=251"></script>
+<script src="./wave-v2.js?v=260"></script>
 </body>
 </html>

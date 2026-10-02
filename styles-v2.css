@@ -28,3 +28,11 @@
  #therapyV25 .therapy{grid-template-columns:1fr!important;grid-template-areas:"drug" "dose" "action"!important}
  #therapyV25 .therapy:first-child{grid-template-areas:"drug" "action"!important}
 }
+
+/* V2.6 — simultaneous grouped trends */
+.v26-trend-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:8px}
+.v26-chart{min-width:0;background:#071116;border:1px solid #18303b;border-radius:8px;padding:8px}
+.v26-chart h3{font-size:13px;margin:0 0 5px;color:#dbeaf0}
+#trendV25 .v26-chart canvas{width:100%;height:165px!important;display:block;background:#03090d;border:1px solid #18303b;border-radius:6px}
+.v26-legend{font-size:10.5px;line-height:1.45;color:#b8c8cf;padding-top:5px;min-height:32px;overflow-wrap:anywhere}
+@media(max-width:760px){.v26-trend-grid{grid-template-columns:1fr}#trendV25 .v26-chart canvas{height:155px!important}}

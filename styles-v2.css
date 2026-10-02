@@ -1,1 +1,9 @@
-.monitor{display:flex!important;flex-direction:column!important;gap:3px!important}.wave{height:88px!important;min-height:78px!important;border-radius:5px!important}.student .monitor{display:flex!important;flex-direction:column!important;gap:2px!important}.student .wave{height:90px!important}.values{min-width:92px!important;background:#03090dcc!important;padding:1px 4px!important;border-radius:4px!important}@media(max-width:900px){.wave{height:86px!important}}
+/* V2.2 — monitor compatto, onde in primo piano */
+.monitor{display:flex!important;flex-direction:column!important;gap:3px!important}
+.wave{height:88px!important;min-height:78px!important;border-radius:5px!important;background:#03090d!important}
+.wave canvas{width:100%!important;height:100%!important}
+.values{min-width:92px!important;background:#03090dcc!important;padding:1px 4px!important;border-radius:4px!important}
+.student .monitor{display:flex!important;flex-direction:column!important;gap:2px!important}
+.student .wave{height:90px!important}
+@media(max-width:900px){.wave{height:86px!important}}
+@media(max-width:520px){.wave{height:80px!important}.wave .big{font-size:22px!important}}

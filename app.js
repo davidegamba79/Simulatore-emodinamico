@@ -4,8 +4,8 @@ const keys=['ecg','capno','nibp','art','pleth','temp','hemo'];
 const labels={ecg:'ECG',capno:'EtCO₂',nibp:'Pressione non invasiva',art:'Pressione invasiva ART',pleth:'SpO₂',temp:'Temperatura',hemo:'MostCare Up / PRAM'};
 let active=Object.fromEntries(keys.map(k=>[k,true]));
 let state={hr:90,etco2:38,rr:18,nibps:120,nibpd:70,sap:118,dap:68,spo2:98,temp:38.3,
-co:3.2,ci:3.1,sv:36,svi:35,svr:1800,svri:1850,ppv:8,svv:9,dpdt:950,cce:0.35,ea:2.1,cpo:0.70};
-const hemoDefs=[['co','CO','L/min'],['ci','CI','L/min/m²'],['sv','SV','mL'],['svi','SVI','mL/m²'],['svr','SVR','dyn·s/cm⁵'],['svri','SVRI','dyn·s·m²/cm⁵'],['ppv','PPV','%'],['svv','SVV','%'],['dpdt','dP/dtmax','mmHg/s'],['cce','CCE',''],['ea','Ea','mmHg/mL'],['cpo','CPO','W']];
+co:3.2,ci:3.1,sv:36,svi:35,svr:1800,svri:1850,ppv:8,svv:9,dpdt:0.95,cce:0.35,ea:2.1,cpo:0.70};
+const hemoDefs=[['co','CO','L/min'],['ci','CI','L/min/m²'],['sv','SV','mL'],['svi','SVI','mL/m²'],['svr','SVR','dyn·s/cm⁵'],['svri','SVRI','dyn·s·m²/cm⁵'],['ppv','PPV','%'],['svv','SVV','%'],['dpdt','dP/dtmax','mmHg/ms'],['cce','CCE',''],['ea','Ea','mmHg/mL'],['cpo','CPO','W']];
 $('toggles').innerHTML=keys.map(k=>`<div class="toggle"><span>${labels[k]}</span><input type="checkbox" data-toggle="${k}"></div>`).join('');
 $('hemoInputs').innerHTML=hemoDefs.map(([k,l,u])=>`<label>${l} ${u?`(${u})`:''}<input id="${k}" type="number" step="any" value="${state[k]}"></label>`).join('');
 $('hemoMetrics').innerHTML=hemoDefs.map(([k,l,u])=>`<div class="metric"><small>${l}</small><b id="m_${k}">${state[k]}</b><small>${u}</small></div>`).join('');
@@ -32,7 +32,7 @@ document.querySelectorAll('[data-toggle]').forEach(x=>x.addEventListener('change
 $('allOn').onclick=()=>setActive(true);$('allOff').onclick=()=>setActive(false);
 
 const presets={
-'Normale':{hr:90,etco2:38,rr:18,sap:118,dap:68,co:3.2,ci:3.1,sv:36,svr:1800,ppv:8,svv:9,dpdt:950,cce:.35,ea:2.1,cpo:.70},
+'Normale':{hr:90,etco2:38,rr:18,sap:118,dap:68,co:3.2,ci:3.1,sv:36,svr:1800,ppv:8,svv:9,dpdt:0.95,cce:.35,ea:2.1,cpo:.70},
 'Bradicardia':{hr:45,co:2.1,sv:47,sap:105,dap:62},
 'Tachicardia':{hr:180,co:3.5,sv:20,sap:105,dap:65},
 'PEA 80':{hr:80,sap:45,dap:25,co:.8,etco2:12,cpo:.08},
@@ -42,9 +42,9 @@ const presets={
 'CPR EtCO₂ migliore':{hr:120,etco2:18,sap:60,dap:30,co:1.2},
 'CPR ROSC imminente':{hr:120,etco2:32,sap:75,dap:40,co:1.8},
 'ROSC':{hr:105,etco2:38,sap:105,dap:60,co:2.8,ci:2.7,sv:27,ppv:10,svv:11,cpo:.55},
-'Ipovolemia':{hr:150,sap:82,dap:48,co:1.8,ci:1.8,sv:12,svr:2400,ppv:22,svv:24,dpdt:800,cce:.18,ea:3.0,cpo:.30},
+'Ipovolemia':{hr:150,sap:82,dap:48,co:1.8,ci:1.8,sv:12,svr:2400,ppv:22,svv:24,dpdt:0.8,cce:.18,ea:3.0,cpo:.30},
 'Vasodilatazione':{hr:130,sap:75,dap:35,co:3.8,svr:750,ppv:9,svv:10,ea:1.1,cpo:.42},
-'Bassa contrattilità':{hr:120,sap:78,dap:50,co:1.6,sv:13,dpdt:420,cce:.10,cpo:.25},
+'Bassa contrattilità':{hr:120,sap:78,dap:50,co:1.6,sv:13,dpdt:0.42,cce:.10,cpo:.25},
 'Fluid responsive':{hr:140,sap:88,dap:50,co:2.0,sv:14,ppv:20,svv:22},
 'Dopo fluid challenge':{hr:115,sap:108,dap:62,co:3.0,sv:26,ppv:9,svv:10},
 'Dopo vasopressore':{hr:105,sap:120,dap:72,co:2.8,svr:2100,ea:2.6}
@@ -168,7 +168,7 @@ function physiology(){
  let cce=clamp(.35*C*(co/3.2)/(V**.35),.04,.75);
  let cpo=clamp(map*co/451,.03,2);
  let bsa=Math.max(.25,0.101*Math.pow(+$('weight').value||25,2/3));
- let vals={sv:Math.round(sv),svi:+(sv/bsa).toFixed(1),co:+co.toFixed(2),ci:+(co/bsa).toFixed(2),svr:Math.round(svr),svri:Math.round(svr*bsa),ppv:Math.round(variability),svv:Math.round(variability*1.08),dpdt:Math.round(dpdt),cce:+cce.toFixed(2),ea:+ea.toFixed(2),cpo:+cpo.toFixed(2),sap:Math.round(sap),dap:Math.round(dap)};
+ let vals={sv:Math.round(sv),svi:+(sv/bsa).toFixed(1),co:+co.toFixed(2),ci:+(co/bsa).toFixed(2),svr:Math.round(svr),svri:Math.round(svr*bsa),ppv:Math.round(variability),svv:Math.round(variability*1.08),dpdt:+(dpdt/1000).toFixed(3),cce:+cce.toFixed(2),ea:+ea.toFixed(2),cpo:+cpo.toFixed(2),sap:Math.round(sap),dap:Math.round(dap)};
  Object.entries(vals).forEach(([k,v])=>{if($(k))$(k).value=v});
  $('preloadOut').textContent=Math.round(phys.preload)+'%';$('contractilityOut').textContent=Math.round(phys.contractility)+'%';$('vascularToneOut').textContent=Math.round(phys.vascularTone)+'%';$('complianceOut').textContent=Math.round(phys.compliance)+'%';
  render();interpret();
@@ -202,7 +202,7 @@ $('resetPhys').onclick=()=>{phys={preload:100,contractility:100,vascularTone:100
 
 /* ===== V2.5 integrated therapies + complete trends ===== */
 const v25={start:performance.now(),last:performance.now(),lastSample:0,inf:{fluid:false,dob:false,nor:false},fluidBolusUntil:0,atropineUntil:0,etRef:+$('etco2').value||38,etEffective:+$('etco2').value||38,history:[],events:[],applying:false};
-const v25Metrics=[['hr','FC','bpm'],['spo2','SpO₂','%'],['etco2','EtCO₂','mmHg'],['rr','FR','/min'],['sap','SAP','mmHg'],['dap','DAP','mmHg'],['map','MAP','mmHg'],['co','CO','L/min'],['ci','CI','L/min/m²'],['sv','SV','mL'],['svi','SVI','mL/m²'],['svr','SVR','dyn·s/cm⁵'],['svri','SVRI','dyn·s·m²/cm⁵'],['ppv','PPV','%'],['svv','SVV','%'],['dpdt','dP/dtmax','mmHg/s'],['cce','CCE',''],['ea','Ea','mmHg/mL'],['cpo','CPO','W'],['temp','Temperatura','°C'],['preload','Precarico','%'],['afterload','Afterload','%'],['contractility','Contrattilità','%']];
+const v25Metrics=[['hr','FC','bpm'],['spo2','SpO₂','%'],['etco2','EtCO₂','mmHg'],['rr','FR','/min'],['sap','SAP','mmHg'],['dap','DAP','mmHg'],['map','MAP','mmHg'],['co','CO','L/min'],['ci','CI','L/min/m²'],['sv','SV','mL'],['svi','SVI','mL/m²'],['svr','SVR','dyn·s/cm⁵'],['svri','SVRI','dyn·s·m²/cm⁵'],['ppv','PPV','%'],['svv','SVV','%'],['dpdt','dP/dtmax','mmHg/ms'],['cce','CCE',''],['ea','Ea','mmHg/mL'],['cpo','CPO','W'],['temp','Temperatura','°C'],['preload','Precarico','%'],['afterload','Afterload','%'],['contractility','Contrattilità','%']];
 function v25Event(txt){let t=(performance.now()-v25.start)/1000;v25.events.push({t,txt});if(v25.events.length>80)v25.events.shift();logEvent(txt);v25RenderEvents()}
 function v25Toggle(btn,key,label){v25.inf[key]=!v25.inf[key];btn.classList.toggle('active-therapy',v25.inf[key]);btn.textContent=v25.inf[key]?'ATTIVA — Stop':'Avvia';v25Event(label+(v25.inf[key]?' avviata':' arrestata'));v25Status()}
 function v25Status(){let a=[];if(v25.inf.fluid)a.push('Cristalloidi '+(+$('v25FluidRate').value||0)+' mL/kg/h');if(v25.inf.dob)a.push('Dobutamina '+(+$('v25DobRate').value||0)+' µg/kg/min');if(v25.inf.nor)a.push('Noradrenalina '+(+$('v25NorRate').value||0)+' µg/kg/min');$('v25TherapyStatus').textContent=a.length?'Attive: '+a.join(' · '):'Nessuna infusione continua attiva.'}

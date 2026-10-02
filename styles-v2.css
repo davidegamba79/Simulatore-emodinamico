@@ -8,3 +8,23 @@
 #therapyV25 .therapy label{min-width:105px}#therapyV25 .therapy input{width:100%}
 #trendV25{display:block!important;margin-top:8px}#trendV25 .trend-head h2{margin:0}#trendV25 .trend-controls label{min-width:150px;flex:1}#trendV25 canvas{height:210px!important}
 @media(max-width:620px){#therapyV25 .therapy{grid-template-columns:1fr 1fr}#therapyV25 .therapy>div{grid-column:1/-1}#therapyV25 .therapy button{min-height:44px}}
+
+/* V2.5.1 — therapy labels: iPad-safe */
+#therapyV25 .therapy{
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr) minmax(118px,150px)!important;
+ grid-template-areas:"drug dose" "drug action"!important;
+ gap:7px 12px!important;
+ align-items:center!important;
+ overflow:hidden;
+}
+#therapyV25 .therapy>div{grid-area:drug;min-width:0}
+#therapyV25 .therapy>div b,#therapyV25 .therapy>div small{display:block;white-space:normal;overflow-wrap:anywhere}
+#therapyV25 .therapy>label{grid-area:dose;min-width:0!important;width:100%;white-space:normal}
+#therapyV25 .therapy>label input{display:block;width:100%!important;margin:4px 0 0!important;min-width:0}
+#therapyV25 .therapy>button{grid-area:action;width:100%;min-width:0!important;white-space:normal;line-height:1.15;min-height:42px}
+#therapyV25 .therapy:first-child{grid-template-areas:"drug action"!important}
+@media(max-width:520px){
+ #therapyV25 .therapy{grid-template-columns:1fr!important;grid-template-areas:"drug" "dose" "action"!important}
+ #therapyV25 .therapy:first-child{grid-template-areas:"drug" "action"!important}
+}

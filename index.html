@@ -90,6 +90,16 @@
   </div>
   <label style="margin-top:9px"><span><input id="autoPhys" type="checkbox" checked style="width:auto"> Calcolo fisiologico automatico</span></label>
  </section>
+
+ <section class="card" id="therapyV25"><h2>Terapie dinamiche — V2.5</h2>
+  <div class="therapy-grid">
+   <div class="therapy"><div><b>Fluid challenge</b><small>2 mL/kg in 30 secondi</small></div><button id="v25FluidBolus">Somministra</button></div>
+   <div class="therapy"><div><b>Cristalloidi</b><small>Infusione continua</small></div><label>mL/kg/h<input id="v25FluidRate" type="number" min="0" max="50" step="1" value="2"></label><button id="v25FluidBtn">Avvia</button></div>
+   <div class="therapy"><div><b>Dobutamina</b><small>Infusione continua</small></div><label>µg/kg/min<input id="v25DobRate" type="number" min="0" max="30" step=".5" value="5"></label><button id="v25DobBtn">Avvia</button></div>
+   <div class="therapy"><div><b>Noradrenalina</b><small>Infusione continua</small></div><label>µg/kg/min<input id="v25NorRate" type="number" min="0" max="2" step=".01" value=".10"></label><button id="v25NorBtn">Avvia</button></div>
+   <div class="therapy"><div><b>Atropina</b><small>Bolo</small></div><label>µg/kg<input id="v25AtDose" type="number" min="0" max="100" step="1" value="20"></label><button id="v25AtBtn">Somministra</button></div>
+  </div><div id="v25TherapyStatus" class="status" style="margin-top:8px">Nessuna terapia attiva.</div>
+ </section>
  <section class="card"><h2>Interventi / trend</h2>
    <div id="eventLog" class="status" style="max-height:150px;overflow:auto">Nessun intervento.</div>
  </section>
@@ -128,13 +138,18 @@
     <div class="metric"><small>Perfusione</small><b id="iPerf">—</b></div>
    </div>
  </div>
+
+ <div class="card trend-card" id="trendV25">
+  <div class="trend-head"><h2>Trend monitor — V2.5</h2><b id="v25Clock">00:00</b></div>
+  <div class="trend-controls"><label>Parametro<select id="v25Metric"></select></label><label>Finestra<select id="v25Window"><option value="120">2 min</option><option value="300">5 min</option><option value="600">10 min</option><option value="1800">30 min</option></select></label></div>
+  <canvas id="v25TrendCanvas"></canvas><div id="v25TrendLegend" class="trend-legend">Registrazione in corso…</div><div id="v25TrendEvents" class="trend-events"></div>
+ </div>
 </section>
 </div>
 </main>
 
-<script src="./app.js"></script>
+<script src="./app.js?v=250"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./physiology-v2.4.2.js?v=242"></script>
-<script src="./wave-v2.js"></script>
+<script src="./wave-v2.js?v=250"></script>
 </body>
 </html>

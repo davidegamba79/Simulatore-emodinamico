@@ -1,9 +1,9 @@
 
 const $=id=>document.getElementById(id);
-const keys=['ecg','capno','nibp','art','pleth','temp','hemo'];
-const labels={ecg:'ECG',capno:'EtCO₂',nibp:'Pressione non invasiva',art:'Pressione invasiva ART',pleth:'SpO₂',temp:'Temperatura',hemo:'MostCare Up / PRAM'};
+const keys=['ecg','capno','art','pleth','hemo'];
+const labels={ecg:'ECG',capno:'EtCO₂',art:'Pressione invasiva ART',pleth:'SpO₂',hemo:'MostCare Up / PRAM'};
 let active=Object.fromEntries(keys.map(k=>[k,true]));
-let state={hr:90,etco2:38,rr:18,nibps:120,nibpd:70,sap:118,dap:68,spo2:98,temp:38.3,
+let state={hr:90,etco2:38,rr:18,sap:118,dap:68,spo2:98,
 co:3.2,ci:3.1,sv:36,svi:35,svr:1800,svri:1850,ppv:8,svv:9,dpdt:0.95,cce:0.35,ea:2.1,cpo:0.70};
 const hemoDefs=[['co','CO','L/min'],['ci','CI','L/min/m²'],['sv','SV','mL'],['svi','SVI','mL/m²'],['svr','SVR','dyn·s/cm⁵'],['svri','SVRI','dyn·s·m²/cm⁵'],['ppv','PPV','%'],['svv','SVV','%'],['dpdt','dP/dtmax','mmHg/ms'],['cce','CCE',''],['ea','Ea','mmHg/mL'],['cpo','CPO','W']];
 $('toggles').innerHTML=keys.map(k=>`<div class="toggle"><span>${labels[k]}</span><input type="checkbox" data-toggle="${k}"></div>`).join('');
@@ -11,13 +11,11 @@ $('hemoInputs').innerHTML=hemoDefs.map(([k,l,u])=>`<label>${l} ${u?`(${u})`:''}<
 $('hemoMetrics').innerHTML=hemoDefs.map(([k,l,u])=>`<div class="metric"><small>${l}</small><b id="m_${k}">${state[k]}</b><small>${u}</small></div>`).join('');
 
 function map(){return Math.round((+state.sap+2*(+state.dap))/3)}
-function nmap(){return Math.round((+state.nibps+2*(+state.nibpd))/3)}
 function render(){
  state.hr=+$('hr').value; $('hrOut').textContent=state.hr;
- ['etco2','rr','nibps','nibpd','sap','dap','spo2','temp',...hemoDefs.map(x=>x[0])].forEach(k=>state[k]=+$(k).value);
- $('vhr').textContent=state.hr;$('vet').textContent=state.etco2;$('vrr').textContent=state.rr;
- $('vart').textContent=`${state.sap}/${state.dap}`;$('vmap').textContent=map();$('vnibp').textContent=`${state.nibps}/${state.nibpd}`;$('vnmap').textContent=nmap();
- $('vspo2').textContent=state.spo2;$('vtemp').textContent=state.temp.toFixed(1);
+ ['etco2','rr','sap','dap','spo2',...hemoDefs.map(x=>x[0])].forEach(k=>state[k]=+$(k).value);
+ $('vhr').textContent=state.hr;$('vet').textContent=(+state.etco2).toFixed(1).replace('.0','');$('vrr').textContent=state.rr;
+ $('vart').textContent=`${state.sap}/${state.dap}`;$('vmap').textContent=map();$('vspo2').textContent=state.spo2;
  hemoDefs.forEach(([k])=>$('m_'+k).textContent=state[k]);
  $('studentPatient').textContent=$('name').value;$('studentWeight').textContent=$('weight').value;
  document.querySelectorAll('[data-key]').forEach(el=>{let k=el.dataset.key;el.style.display=active[k]?'':'none'});
@@ -50,7 +48,7 @@ const presets={
 'Dopo vasopressore':{hr:105,sap:120,dap:72,co:2.8,svr:2100,ea:2.6}
 };
 $('presets').innerHTML=Object.keys(presets).map(p=>`<button data-p="${p}">${p}</button>`).join('');
-function applyPreset(p){let o=presets[p];Object.entries(o).forEach(([k,v])=>{if($(k))$(k).value=v});if(p.includes('PEA'))$('rhythm').value='PEA / attività elettrica';else if(p.includes('TV'))$('rhythm').value='Tachicardia ventricolare';else if(p.includes('Massaggio')||p.includes('CPR'))$('rhythm').value='Artefatto massaggio cardiaco 120/min';else $('rhythm').value='Ritmo sinusale';render()}
+function applyPreset(p){let o=presets[p];Object.entries(o).forEach(([k,v])=>setNum(k,v));if(p.includes('PEA'))$('rhythm').value='PEA / attività elettrica';else if(p.includes('TV'))$('rhythm').value='Tachicardia ventricolare';else if(p.includes('Massaggio')||p.includes('CPR'))$('rhythm').value='Artefatto massaggio cardiaco 120/min';else $('rhythm').value='Ritmo sinusale';render()}
 document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>applyPreset(b.dataset.p));
 
 
@@ -82,10 +80,13 @@ const clinicalCases={
  }
 };
 let caseState={active:false,key:'',minute:0,score:0,actions:[],cpr:false};
-function setNum(id,v){if($(id))$(id).value=v}
+function setNum(id,v){
+ if(id==='etco2'){if($('etco2Set'))$('etco2Set').value=v;if($('etco2'))$('etco2').value=v;if(typeof v25!=='undefined'){v25.etRef=+v;v25.etEffective=+v}return}
+ if($(id))$(id).value=v
+}
 function caseApplyStart(c){
  phys.preload=c.start.preload;phys.contractility=c.start.contractility;phys.vascularTone=c.start.vascularTone;phys.compliance=c.start.compliance;
- ['hr','etco2','rr','spo2','temp'].forEach(k=>setNum(k,c.start[k]));
+ ['hr','etco2','rr','spo2'].forEach(k=>setNum(k,c.start[k]));
  setPhysInputs();physiology();
 }
 function caseStatus(msg){
@@ -156,7 +157,7 @@ function physiology(){
  let filling=clamp(Math.pow(P,0.72),.25,1.45);
  let tachyPenalty=hr>150?clamp(1-(hr-150)/350,.55,1):1;
  let bradyFill=hr<70?clamp(1+(70-hr)/250,1,1.16):1;
- let sv=clamp(36*filling*Math.pow(C,.70)*tachyPenalty*bradyFill,5,70);
+ let afterloadPenalty=clamp(Math.pow(V,-.22),.72,1.22); let sv=clamp(36*filling*Math.pow(C,.78)*afterloadPenalty*tachyPenalty*bradyFill,5,70);
  let co=clamp(sv*hr/1000,.25,7.5);
  let svr=clamp(1800*V,450,3400);
  let map=clamp(co*svr/80,20,155);
@@ -200,11 +201,11 @@ $('hemorrhage').onclick=()=>{phys.preload=clamp(+$('preload').value-28,20,180);s
 $('resetPhys').onclick=()=>{phys={preload:100,contractility:100,vascularTone:100,compliance:100};setPhysInputs();logEvent('Fisiologia ripristinata');physiology()};
 
 
-/* ===== V2.5 integrated therapies + complete trends ===== */
-const v25={start:performance.now(),last:performance.now(),lastSample:0,inf:{fluid:false,dob:false,nor:false},fluidBolusUntil:0,atropineUntil:0,etRef:+$('etco2').value||38,etEffective:+$('etco2').value||38,history:[],events:[],applying:false};
-const v25Metrics=[['hr','FC','bpm'],['spo2','SpO₂','%'],['etco2','EtCO₂','mmHg'],['rr','FR','/min'],['sap','SAP','mmHg'],['dap','DAP','mmHg'],['map','MAP','mmHg'],['co','CO','L/min'],['ci','CI','L/min/m²'],['sv','SV','mL'],['svi','SVI','mL/m²'],['svr','SVR','dyn·s/cm⁵'],['svri','SVRI','dyn·s·m²/cm⁵'],['ppv','PPV','%'],['svv','SVV','%'],['dpdt','dP/dtmax','mmHg/ms'],['cce','CCE',''],['ea','Ea','mmHg/mL'],['cpo','CPO','W'],['temp','Temperatura','°C'],['preload','Precarico','%'],['afterload','Afterload','%'],['contractility','Contrattilità','%']];
+/* ===== V2.7 coherent therapies + normalized trends ===== */
+const v25={start:performance.now(),last:performance.now(),lastPhys:performance.now(),lastSample:0,inf:{fluid:false,dob:false,nor:false},fluidBolusUntil:0,atropineUntil:0,etRef:+$('etco2Set').value||38,etEffective:+$('etco2').value||38,history:[],events:[],applying:false,base:{preload:phys.preload,contractility:phys.contractility,vascularTone:phys.vascularTone,hr:+$('hr').value||90},fx:{preload:0,contractility:0,tone:0,hr:0}};
+const v25Metrics=[['hr','FC','bpm'],['spo2','SpO₂','%'],['etco2','EtCO₂','mmHg'],['rr','FR','/min'],['sap','SAP','mmHg'],['dap','DAP','mmHg'],['map','MAP','mmHg'],['co','CO','L/min'],['ci','CI','L/min/m²'],['sv','SV','mL'],['svi','SVI','mL/m²'],['svr','SVR','dyn·s/cm⁵'],['svri','SVRI','dyn·s·m²/cm⁵'],['ppv','PPV','%'],['svv','SVV','%'],['dpdt','dP/dtmax','mmHg/ms'],['cce','CCE',''],['ea','Ea','mmHg/mL'],['cpo','CPO','W'],['preload','Precarico','%'],['afterload','Afterload','%'],['contractility','Contrattilità','%']];
 function v25Event(txt){let t=(performance.now()-v25.start)/1000;v25.events.push({t,txt});if(v25.events.length>80)v25.events.shift();logEvent(txt);v25RenderEvents()}
-function v25Toggle(btn,key,label){v25.inf[key]=!v25.inf[key];btn.classList.toggle('active-therapy',v25.inf[key]);btn.textContent=v25.inf[key]?'ATTIVA — Stop':'Avvia';v25Event(label+(v25.inf[key]?' avviata':' arrestata'));v25Status()}
+function v25Toggle(btn,key,label){let starting=!v25.inf[key],none=!v25.inf.fluid&&!v25.inf.dob&&!v25.inf.nor;if(starting&&none)v25.base={preload:phys.preload,contractility:phys.contractility,vascularTone:phys.vascularTone,hr:+$('hr').value||90};v25.inf[key]=!v25.inf[key];btn.classList.toggle('active-therapy',v25.inf[key]);btn.textContent=v25.inf[key]?'ATTIVA — Stop':'Avvia';v25Event(label+(v25.inf[key]?' avviata':' arrestata'));v25Status()}
 function v25Status(){let a=[];if(v25.inf.fluid)a.push('Cristalloidi '+(+$('v25FluidRate').value||0)+' mL/kg/h');if(v25.inf.dob)a.push('Dobutamina '+(+$('v25DobRate').value||0)+' µg/kg/min');if(v25.inf.nor)a.push('Noradrenalina '+(+$('v25NorRate').value||0)+' µg/kg/min');$('v25TherapyStatus').textContent=a.length?'Attive: '+a.join(' · '):'Nessuna infusione continua attiva.'}
 function v25Flash(b){b.classList.add('pulse-therapy');setTimeout(()=>b.classList.remove('pulse-therapy'),700)}
 function v25Setup(){
@@ -213,14 +214,23 @@ function v25Setup(){
  $('v25NorBtn').onclick=()=>v25Toggle($('v25NorBtn'),'nor','Noradrenalina');
  $('v25FluidBolus').onclick=()=>{v25.fluidBolusUntil=performance.now()+30000;v25Flash($('v25FluidBolus'));v25Event('Fluid challenge 2 mL/kg / 30 s')};
  $('v25AtBtn').onclick=()=>{v25.atropineUntil=performance.now()+120000;v25Flash($('v25AtBtn'));v25Event('Atropina '+(+$('v25AtDose').value||0)+' µg/kg')};
- $('etco2').addEventListener('change',()=>{if(!v25.applying){v25.etRef=clamp(+$('etco2').value||38,3,80);v25.etEffective=v25.etRef;v25Event('EtCO₂ riferimento '+v25.etRef+' mmHg')}});
+ $('etco2Set').addEventListener('input',()=>{v25.etRef=clamp(+$('etco2Set').value||38,3,80);if(!v25.applying){v25.etEffective=v25.etRef;$('etco2').value=v25.etEffective}});
+ $('etco2Set').addEventListener('change',()=>v25Event('EtCO₂ impostata '+v25.etRef+' mmHg'));
  $('v25Window').addEventListener('change',v25Draw)
 }
-function v25TherapyStep(dt,now){let pr=0,cr=0,vr=0;if(now<v25.fluidBolusUntil)pr+=.55*dt;if(v25.inf.fluid)pr+=clamp((+$('v25FluidRate').value||0)/12,0,3)*dt/60;if(v25.inf.dob){let d=clamp(+$('v25DobRate').value||0,0,30);cr+=d*.035*dt}if(v25.inf.nor){let n=clamp(+$('v25NorRate').value||0,0,2);vr+=n*1.8*dt}if(now<v25.atropineUntil){let dose=clamp(+$('v25AtDose').value||0,0,100),target=clamp(90+dose*1.5,90,190),cur=+$('hr').value||90;$('hr').value=Math.round(cur+(target-cur)*Math.min(1,dt*.08))}phys.preload=clamp(phys.preload+pr,20,180);phys.contractility=clamp(phys.contractility+cr,20,180);phys.vascularTone=clamp(phys.vascularTone+vr,30,180);setPhysInputs()}
+function v25TherapyStep(dt,now){
+ const approach=(cur,target,tau)=>cur+(target-cur)*(1-Math.exp(-dt/Math.max(.1,tau)));
+ let fluidRate=clamp(+$('v25FluidRate').value||0,0,50),dob=clamp(+$('v25DobRate').value||0,0,30),nor=clamp(+$('v25NorRate').value||0,0,2);
+ let responsive=clamp((+state.ppv-8)/14,0,1);
+ let pTarget=(v25.inf.fluid?clamp(fluidRate*.45,0,18):0)+(now<v25.fluidBolusUntil?(10+18*responsive):0);
+ let cTarget=v25.inf.dob?clamp(dob*4,0,55):0,tTarget=v25.inf.nor?clamp(nor*260,0,65):0,hTarget=now<v25.atropineUntil?clamp((+$('v25AtDose').value||0)*1.8,0,75):0;
+ v25.fx.preload=approach(v25.fx.preload,pTarget,pTarget?12:35);v25.fx.contractility=approach(v25.fx.contractility,cTarget,cTarget?8:25);v25.fx.tone=approach(v25.fx.tone,tTarget,tTarget?10:30);v25.fx.hr=approach(v25.fx.hr,hTarget,hTarget?7:22);
+ phys.preload=clamp(v25.base.preload+v25.fx.preload,20,180);phys.contractility=clamp(v25.base.contractility+v25.fx.contractility,20,180);phys.vascularTone=clamp(v25.base.vascularTone+v25.fx.tone,30,180);$('hr').value=Math.round(clamp(v25.base.hr+v25.fx.hr,0,260));setPhysInputs()
+}
 function v25PerfusionEt(){let co=+($('co').value)||3.2,rr=Math.max(1,+$('rr').value||18),perf=clamp(co/3.2,.25,1.55),vent=clamp(18/rr,.45,1.8);return clamp(v25.etRef*(.55+.45*perf)*Math.pow(vent,.28),3,80)}
 function v25Sample(t){let rec={t};v25Metrics.forEach(([k])=>{if(k==='map')rec[k]=map();else if(k==='afterload')rec[k]=phys.vascularTone;else if(k==='preload')rec[k]=phys.preload;else if(k==='contractility')rec[k]=phys.contractility;else rec[k]=+(($(k)&&$(k).value)||state[k]||0)});v25.history.push(rec);if(v25.history.length>1800)v25.history.shift()}
 const v26Groups=[
- ['vitals',['hr','rr','spo2','etco2','temp']],
+ ['vitals',['hr','rr','spo2','etco2']],
  ['pressure',['sap','dap','map']],
  ['flow',['co','ci']],
  ['stroke',['sv','svi']],
@@ -233,37 +243,27 @@ const v26Groups=[
 const v26Colors=['#3bd6ff','#39ef8b','#ffd34e','#ff5364','#c78cff'];
 function v26Fmt(v){v=Number(v);if(!Number.isFinite(v))return '—';return Math.abs(v)<10?v.toFixed(2):v.toFixed(1)}
 function v26DrawGroup(name,keys,a,from,win){
- let c=$('trend-'+name);if(!c)return;
- let d=devicePixelRatio||1,r=c.getBoundingClientRect(),w=Math.max(260,r.width),h=165;
- c.width=Math.floor(w*d);c.height=Math.floor(h*d);
- let g=c.getContext('2d');g.setTransform(d,0,0,d,0,0);g.clearRect(0,0,w,h);
- g.strokeStyle='#20323e';g.lineWidth=1;
- for(let i=1;i<4;i++){let y=i*h/4;g.beginPath();g.moveTo(0,y);g.lineTo(w,y);g.stroke()}
- v25.events.filter(e=>e.t>=from).forEach(e=>{let x=(e.t-from)/win*w;g.strokeStyle='rgba(255,211,78,.38)';g.beginPath();g.moveTo(x,0);g.lineTo(x,h);g.stroke()});
- if(a.length<2)return;
- let legend=[];
- keys.forEach((key,j)=>{
-   let def=v25Metrics.find(x=>x[0]===key)||[key,key,''], vals=a.map(q=>Number(q[key])).filter(Number.isFinite);
-   if(!vals.length)return;
-   let mn=Math.min(...vals),mx=Math.max(...vals);
-   if(mx-mn<.0001){let bump=Math.max(Math.abs(mx)*.03,.5);mn-=bump;mx+=bump}
-   let pad=(mx-mn)*.12;mn-=pad;mx+=pad;
-   g.strokeStyle=v26Colors[j%v26Colors.length];g.lineWidth=2;g.beginPath();
-   a.forEach((q,i)=>{let val=Number(q[key]);if(!Number.isFinite(val))return;let x=(q.t-from)/win*w,y=h*.91-((val-mn)/(mx-mn))*h*.82;i?g.lineTo(x,y):g.moveTo(x,y)});
-   g.stroke();
-   let last=vals[vals.length-1];
-   legend.push('<span style="color:'+v26Colors[j%v26Colors.length]+'">●</span> '+def[1]+' '+v26Fmt(last)+(def[2]?' '+def[2]:''));
- });
- let el=$('legend-'+name);if(el)el.innerHTML=legend.join(' &nbsp; ');
+ let c=$('trend-'+name);if(!c)return;let d=devicePixelRatio||1,r=c.getBoundingClientRect(),w=Math.max(260,r.width),h=165;c.width=Math.floor(w*d);c.height=Math.floor(h*d);
+ let g=c.getContext('2d');g.setTransform(d,0,0,d,0,0);g.clearRect(0,0,w,h);g.strokeStyle='#20323e';g.lineWidth=1;for(let i=1;i<4;i++){let y=i*h/4;g.beginPath();g.moveTo(0,y);g.lineTo(w,y);g.stroke()}
+ v25.events.filter(e=>e.t>=from).forEach(e=>{let x=(e.t-from)/win*w;g.strokeStyle='rgba(255,211,78,.38)';g.beginPath();g.moveTo(x,0);g.lineTo(x,h);g.stroke()});if(a.length<2)return;
+ let legend=[],pressure=name==='pressure',all=[];if(!pressure)keys.forEach(k=>{let b=Number(a[0][k])||1;a.forEach(q=>{let v=Number(q[k]);if(Number.isFinite(v))all.push((v-b)/Math.max(Math.abs(b),.01)*100)})});let absMax=pressure?1:Math.max(5,...all.map(Math.abs));
+ let pvals=pressure?keys.flatMap(k=>a.map(q=>Number(q[k])).filter(Number.isFinite)):[],pmn=pressure?Math.min(...pvals)-8:0,pmx=pressure?Math.max(...pvals)+8:0;
+ keys.forEach((key,j)=>{let def=v25Metrics.find(x=>x[0]===key)||[key,key,''],vals=a.map(q=>Number(q[key])).filter(Number.isFinite);if(!vals.length)return;let base=vals[0]||1;
+ g.strokeStyle=v26Colors[j%v26Colors.length];g.lineWidth=2;g.beginPath();a.forEach((q,i)=>{let val=Number(q[key]);if(!Number.isFinite(val))return;let x=(q.t-from)/win*w,y=pressure?h*.91-((val-pmn)/Math.max(1,pmx-pmn))*h*.82:h*.5-(((val-base)/Math.max(Math.abs(base),.01)*100)/absMax)*h*.38;i?g.lineTo(x,y):g.moveTo(x,y)});g.stroke();
+ let last=vals[vals.length-1],delta=(last-base)/Math.max(Math.abs(base),.01)*100;legend.push('<span style="color:'+v26Colors[j%v26Colors.length]+'">●</span> '+def[1]+' '+v26Fmt(last)+(def[2]?' '+def[2]:'')+(pressure?'':' ('+(delta>=0?'+':'')+delta.toFixed(1)+'%)'))});
+ if(!pressure){g.strokeStyle='rgba(255,255,255,.18)';g.beginPath();g.moveTo(0,h*.5);g.lineTo(w,h*.5);g.stroke()}let el=$('legend-'+name);if(el)el.innerHTML=legend.join(' &nbsp; ')
 }
 function v25Draw(){
  let win=+$('v25Window').value||120,now=(performance.now()-v25.start)/1000,from=Math.max(0,now-win),a=v25.history.filter(x=>x.t>=from);
  v26Groups.forEach(([name,keys])=>v26DrawGroup(name,keys,a,from,win));
 }
 function v25RenderEvents(){$('v25TrendEvents').textContent=v25.events.slice(-5).map(e=>{let m=Math.floor(e.t/60),s=Math.floor(e.t%60);return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+' '+e.txt}).join(' · ')}
-function v25Loop(now){let dt=Math.min(.25,(now-v25.last)/1000);v25.last=now;v25TherapyStep(dt,now);physiology();v25.applying=true;let target=v25PerfusionEt();v25.etEffective+=(target-v25.etEffective)*Math.min(1,dt*.8);$('etco2').value=Math.round(v25.etEffective*10)/10;render();v25.applying=false;let sec=(now-v25.start)/1000,mm=Math.floor(sec/60),ss=Math.floor(sec%60);$('v25Clock').textContent=String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');if(sec-v25.lastSample>=1){v25.lastSample=sec;v25Sample(sec);v25Draw()}requestAnimationFrame(v25Loop)}
+function v25Loop(now){
+ let dt=Math.min(.5,(now-v25.lastPhys)/1000);if(dt>=.20){v25.lastPhys=now;v25.applying=true;v25TherapyStep(dt,now);physiology();let target=v25PerfusionEt();v25.etEffective+=(target-v25.etEffective)*(1-Math.exp(-dt/2.2));$('etco2').value=(Math.round(v25.etEffective*10)/10).toFixed(1);render();v25.applying=false}
+ let sec=(now-v25.start)/1000,mm=Math.floor(sec/60),ss=Math.floor(sec%60);$('v25Clock').textContent=String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');if(sec-v25.lastSample>=1){v25.lastSample=sec;v25Sample(sec);v25Draw()}requestAnimationFrame(v25Loop)
+}
 v25Setup();requestAnimationFrame(v25Loop);
-/* ===== end V2.5 ===== */
+/* ===== end V2.7 ===== */
 
 let scenarioStep=-1;const scenario=['Normale','PEA 80','CPR EtCO₂ basso','CPR EtCO₂ migliore','CPR ROSC imminente','ROSC'];
 function stepScenario(){scenarioStep=Math.min(scenarioStep+1,scenario.length-1);applyPreset(scenario[scenarioStep]);$('scenarioStatus').textContent=`Fase ${scenarioStep+1}/${scenario.length}: ${scenario[scenarioStep]}${scenarioStep==1?' — PAUSA: riconoscimento arresto/ritmo':''}${scenarioStep==4?' — PAUSA: ricercare segni di ROSC':''}`}

@@ -40,20 +40,17 @@
  </section>
 
  <section class="card"><h2>Capnografia</h2><div class="cols">
-  <label>EtCO₂ (mmHg)<input id="etco2" type="number" value="38"></label>
+  <label>EtCO₂ impostata (mmHg)<input id="etco2Set" type="number" value="38" min="3" max="80" step=".1"></label><input id="etco2" type="hidden" value="38">
   <label>FR (atti/min)<input id="rr" type="number" value="18"></label>
  </div></section>
 
  <section class="card"><h2>Pressione</h2><div class="cols">
-  <label>Sistolica NIBP<input id="nibps" type="number" value="120"></label><label>Diastolica NIBP<input id="nibpd" type="number" value="70"></label>
   <label>SAP invasiva<input id="sap" type="number" value="118"></label><label>DAP invasiva<input id="dap" type="number" value="68"></label>
  </div></section>
 
  <section class="card"><h2>MostCare Up / PRAM — simulazione</h2><div class="cols" id="hemoInputs"></div></section>
 
- <section class="card"><h2>Altri parametri</h2><div class="cols">
-  <label>SpO₂ (%)<input id="spo2" type="number" value="98"></label><label>Temperatura (°C)<input id="temp" type="number" step=".1" value="38.3"></label>
- </div></section>
+ <section class="card"><h2>SpO₂</h2><div class="cols"><label>SpO₂ (%)<input id="spo2" type="number" value="98"></label></div></section>
 
  <section class="card"><h2>Modalità Caso clinico</h2>
   <label>Caso<select id="caseSelect">
@@ -125,7 +122,6 @@
  <div class="wave" data-key="art"><span class="wlabel red">ART — pressione invasiva</span><div class="values red"><span class="big" id="vart">118/68</span><br>MAP <span id="vmap">85</span> mmHg</div><canvas id="art"></canvas></div>
  <div class="wave" data-key="pleth"><span class="wlabel yellow">SpO₂</span><div class="values yellow"><span class="big" id="vspo2">98</span>%</div><canvas id="pleth"></canvas></div>
 
- <div class="card" data-key="nibp"><h2>NIBP</h2><div class="row"><span class="big" id="vnibp">120/70</span><span>MAP <b id="vnmap">87</b> mmHg</span><span>Temp <b id="vtemp">38.3</b> °C</span></div></div>
 
  <div class="card hemo-wrap" data-key="hemo"><h2>Emodinamica avanzata — MostCare Up / PRAM (simulazione didattica)</h2><div class="hemo" id="hemoMetrics"></div></div>
  <div class="card" data-key="hemo"><h2>Interpretazione emodinamica automatica</h2>
@@ -140,7 +136,7 @@
  </div>
 
  <div class="card trend-card" id="trendV25">
-  <div class="trend-head"><h2>Trend monitor — V2.6</h2><b id="v25Clock">00:00</b></div>
+  <div class="trend-head"><h2>Trend monitor — V2.7</h2><b id="v25Clock">00:00</b></div>
   <div class="trend-controls"><label>Finestra<select id="v25Window"><option value="120">2 min</option><option value="300">5 min</option><option value="600">10 min</option><option value="1800">30 min</option></select></label></div>
   <div id="v26TrendGrid" class="v26-trend-grid">
    <div class="v26-chart"><h3>Parametri vitali</h3><canvas id="trend-vitals"></canvas><div class="v26-legend" id="legend-vitals"></div></div>
@@ -153,15 +149,15 @@
    <div class="v26-chart"><h3>Accoppiamento / potenza</h3><canvas id="trend-coupling"></canvas><div class="v26-legend" id="legend-coupling"></div></div>
    <div class="v26-chart"><h3>Fisiologia</h3><canvas id="trend-physiology"></canvas><div class="v26-legend" id="legend-physiology"></div></div>
   </div>
-  <div class="trend-legend">23 parametri registrati ogni secondo · marker verticali = eventi/terapie</div>
+  <div class="trend-legend">22 parametri registrati ogni secondo · curve normalizzate rispetto al basale · marker verticali = eventi/terapie</div>
   <div id="v25TrendEvents" class="trend-events"></div>
  </div>
 </section>
 </div>
 </main>
 
-<script src="./app.js?v=260"></script>
+<script src="./app.js?v=270"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./wave-v2.js?v=260"></script>
+<script src="./wave-v2.js?v=270"></script>
 </body>
 </html>

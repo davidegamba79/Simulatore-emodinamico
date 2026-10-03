@@ -3,7 +3,7 @@ const $=id=>document.getElementById(id);
 const keys=['ecg','capno','art','pleth','hemo'];
 const labels={ecg:'ECG',capno:'EtCO₂',art:'Pressione invasiva ART',pleth:'SpO₂',hemo:'MostCare Up / PRAM'};
 let active=Object.fromEntries(keys.map(k=>[k,true]));
-let state={hr:90,etco2:38,rr:18,sap:118,dap:68,spo2:98,
+let state={hr:80,etco2:33,rr:12,sap:118,dap:68,spo2:98,
 co:3.2,ci:3.1,sv:36,svi:35,svr:1800,svri:1850,ppv:8,svv:9,dpdt:0.95,cce:0.35,ea:2.1,cpo:0.70};
 const hemoDefs=[['co','CO','L/min'],['ci','CI','L/min/m²'],['sv','SV','mL'],['svi','SVI','mL/m²'],['svr','SVR','dyn·s/cm⁵'],['svri','SVRI','dyn·s·m²/cm⁵'],['ppv','PPV','%'],['svv','SVV','%'],['dpdt','dP/dtmax','mmHg/ms'],['cce','CCE',''],['ea','Ea','mmHg/mL'],['cpo','CPO','W']];
 $('toggles').innerHTML=keys.map(k=>`<div class="toggle"><span>${labels[k]}</span><input type="checkbox" data-toggle="${k}"></div>`).join('');
@@ -30,7 +30,7 @@ document.querySelectorAll('[data-toggle]').forEach(x=>x.addEventListener('change
 $('allOn').onclick=()=>setActive(true);$('allOff').onclick=()=>setActive(false);
 
 const presets={
-'Normale':{hr:90,etco2:38,rr:18,sap:118,dap:68,co:3.2,ci:3.1,sv:36,svr:1800,ppv:8,svv:9,dpdt:0.95,cce:.35,ea:2.1,cpo:.70},
+'Normale':{hr:80,etco2:33,rr:12,sap:118,dap:68,co:3.2,ci:3.1,sv:36,svr:1800,ppv:8,svv:9,dpdt:0.95,cce:.35,ea:2.1,cpo:.70},
 'Bradicardia':{hr:45,co:2.1,sv:47,sap:105,dap:62},
 'Tachicardia':{hr:180,co:3.5,sv:20,sap:105,dap:65},
 'PEA 80':{hr:80,sap:45,dap:25,co:.8,etco2:12,cpo:.08},
@@ -56,26 +56,26 @@ document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>applyPreset(b.dat
 const clinicalCases={
  hemorrhagic:{
   title:'Shock emorragico',presentation:'Cane, addome acuto post-traumatico. Mucose pallide, polso periferico debole, estremità fredde.',
-  start:{preload:55,contractility:112,vascularTone:135,compliance:95,hr:155,etco2:29,rr:30,spo2:94,temp:37.5},
-  drift:{preload:-7,contractility:-2,vascularTone:3,hr:5,etco2:-2},
+  start:{preload:50,contractility:110,vascularTone:140,compliance:95,hr:150,etco2:33,rr:12,spo2:94},
+  drift:{preload:-7,contractility:-2,vascularTone:3,hr:5},
   preferred:['fluid'], harmful:['vasodilator']
  },
  distributive:{
   title:'Shock distributivo / vasoplegico',presentation:'Cane con quadro infiammatorio sistemico. Polsi inizialmente ampi, mucose iperemiche, ipotensione.',
-  start:{preload:82,contractility:105,vascularTone:48,compliance:112,hr:145,etco2:31,rr:28,spo2:95,temp:39.5},
-  drift:{preload:-3,contractility:-3,vascularTone:-4,hr:3,etco2:-1},
+  start:{preload:75,contractility:105,vascularTone:50,compliance:112,hr:140,etco2:33,rr:12,spo2:95},
+  drift:{preload:-3,contractility:-3,vascularTone:-4,hr:3},
   preferred:['pressor','fluid'], harmful:[]
  },
  myocardial:{
   title:'Depressione miocardica',presentation:'Cane debole e dispnoico. Polsi piccoli, perfusione periferica ridotta; pressione arteriosa bassa.',
-  start:{preload:115,contractility:42,vascularTone:118,compliance:90,hr:125,etco2:27,rr:32,spo2:91,temp:38.0},
-  drift:{preload:2,contractility:-5,vascularTone:2,hr:2,etco2:-2},
+  start:{preload:115,contractility:40,vascularTone:120,compliance:90,hr:140,etco2:33,rr:12,spo2:91},
+  drift:{preload:2,contractility:-5,vascularTone:2,hr:2},
   preferred:['inotrope','oxygen'], harmful:['fluid']
  },
  arrest:{
   title:'Arresto cardiaco / PEA',presentation:'Paziente improvvisamente non responsivo, apnea e assenza di polso palpabile.',
-  start:{preload:65,contractility:20,vascularTone:80,compliance:100,hr:80,etco2:8,rr:0,spo2:70,temp:37.0},
-  drift:{preload:-2,contractility:-2,vascularTone:-3,hr:0,etco2:-1},
+  start:{preload:60,contractility:20,vascularTone:80,compliance:100,hr:80,etco2:33,rr:12,spo2:70},
+  drift:{preload:-2,contractility:-2,vascularTone:-3,hr:0},
   preferred:['cpr','pressor'], harmful:['shock']
  }
 };
@@ -154,8 +154,8 @@ function physiology(){
  phys.preload=+$('preload').value;phys.contractility=+$('contractility').value;phys.vascularTone=+$('vascularTone').value;phys.compliance=+$('compliance').value;
  let P=phys.preload/100,C=phys.contractility/100,V=phys.vascularTone/100,A=phys.compliance/100;
  const calc=hr=>{hr=Math.max(1,hr);let filling=clamp(Math.pow(P,.72),.25,1.45),tp=hr>150?clamp(1-(hr-150)/350,.55,1):1,bf=hr<70?clamp(1+(70-hr)/250,1,1.16):1,ap=clamp(Math.pow(V,-.22),.72,1.22),sv=clamp(36*filling*Math.pow(C,.78)*ap*tp*bf,5,70),co=clamp(sv*hr/1000,.25,7.5),svr=clamp(1800*V,450,3400),map=clamp(co*svr/80,20,155),pp=clamp((sv/36)*(50/A),12,85),dap=clamp(map-pp/3,12,125),sap=clamp(dap+pp,25,210);return{hr,sv,co,svr,map,pp,dap,sap}};
- let hr=+$('hr').value||90,r=calc(hr),rh=$('rhythm').value,reflex=['Ritmo sinusale','Tachicardia sinusale','Bradicardia sinusale'].includes(rh);
- if(reflex){let target=90+clamp((75-r.map)*1.15,-30,85)+clamp((2.8-r.co)*18,-18,45)+(typeof v25!=='undefined'?(v25.fx.hr||0):0);target=clamp(target,42,190);hr+= (target-hr)*.055;$('hr').value=Math.round(hr);r=calc(hr)}
+ let hr=+$('hr').value||80,r=calc(hr),rh=$('rhythm').value,reflex=['Ritmo sinusale','Tachicardia sinusale','Bradicardia sinusale'].includes(rh);
+ if(reflex){let target=80+clamp((65-r.map)*1.15,-30,85)+clamp((2.9-r.co)*18,-18,45)+(typeof v25!=='undefined'?(v25.fx.hr||0):0);target=clamp(target,42,190);hr+= (target-hr)*.055;$('hr').value=Math.round(hr);r=calc(hr)}
  let variability=clamp(8+Math.max(0,100-phys.preload)*.23+Math.max(0,hr-170)*.025,3,35),dpdt=clamp(950*C*(r.sap/118)*Math.pow(A,-.15),180,2200),ea=clamp((r.sap*.9)/Math.max(r.sv,5),.5,8),cce=clamp(.35*C*(r.co/3.2)/(V**.35),.04,.75),cpo=clamp(r.map*r.co/451,.03,2),bsa=Math.max(.25,0.101*Math.pow(+$('weight').value||25,2/3));
  let vals={sv:Math.round(r.sv),svi:+(r.sv/bsa).toFixed(1),co:+r.co.toFixed(2),ci:+(r.co/bsa).toFixed(2),svr:Math.round(r.svr),svri:Math.round(r.svr*bsa),ppv:Math.round(variability),svv:Math.round(variability*1.08),dpdt:+(dpdt/1000).toFixed(3),cce:+cce.toFixed(2),ea:+ea.toFixed(2),cpo:+cpo.toFixed(2),sap:Math.round(r.sap),dap:Math.round(r.dap)};
  Object.entries(vals).forEach(([k,v])=>{if($(k))$(k).value=v});$('preloadOut').textContent=Math.round(phys.preload)+'%';$('contractilityOut').textContent=Math.round(phys.contractility)+'%';$('vascularToneOut').textContent=Math.round(phys.vascularTone)+'%';$('complianceOut').textContent=Math.round(phys.compliance)+'%';render();interpret()
@@ -188,10 +188,10 @@ $('resetPhys').onclick=()=>{phys={preload:100,contractility:100,vascularTone:100
 
 
 /* ===== V2.8 closed-loop hemodynamics + normalized trends ===== */
-const v25={start:performance.now(),last:performance.now(),lastPhys:performance.now(),lastSample:0,inf:{fluid:false,dob:false,nor:false},fluidBolusUntil:0,atropineUntil:0,etRef:+$('etco2Set').value||38,etEffective:+$('etco2').value||38,history:[],events:[],applying:false,base:{preload:phys.preload,contractility:phys.contractility,vascularTone:phys.vascularTone,hr:+$('hr').value||90},fx:{preload:0,contractility:0,tone:0,hr:0}};
+const v25={start:performance.now(),last:performance.now(),lastPhys:performance.now(),lastSample:0,inf:{fluid:false,dob:false,nor:false},fluidBolusUntil:0,atropineUntil:0,etRef:+$('etco2Set').value||33,etEffective:+$('etco2').value||33,history:[],events:[],applying:false,base:{preload:phys.preload,contractility:phys.contractility,vascularTone:phys.vascularTone,hr:+$('hr').value||80},fx:{preload:0,contractility:0,tone:0,hr:0}};
 const v25Metrics=[['hr','FC','bpm'],['spo2','SpO₂','%'],['etco2','EtCO₂','mmHg'],['rr','FR','/min'],['sap','SAP','mmHg'],['dap','DAP','mmHg'],['map','MAP','mmHg'],['co','CO','L/min'],['ci','CI','L/min/m²'],['sv','SV','mL'],['svi','SVI','mL/m²'],['svr','SVR','dyn·s/cm⁵'],['svri','SVRI','dyn·s·m²/cm⁵'],['ppv','PPV','%'],['svv','SVV','%'],['dpdt','dP/dtmax','mmHg/ms'],['cce','CCE',''],['ea','Ea','mmHg/mL'],['cpo','CPO','W'],['preload','Precarico','%'],['afterload','Afterload','%'],['contractility','Contrattilità','%']];
 function v25Event(txt){let t=(performance.now()-v25.start)/1000;v25.events.push({t,txt});if(v25.events.length>80)v25.events.shift();logEvent(txt);v25RenderEvents()}
-function v25Toggle(btn,key,label){let starting=!v25.inf[key],none=!v25.inf.fluid&&!v25.inf.dob&&!v25.inf.nor;if(starting&&none)v25.base={preload:phys.preload,contractility:phys.contractility,vascularTone:phys.vascularTone,hr:+$('hr').value||90};v25.inf[key]=!v25.inf[key];btn.classList.toggle('active-therapy',v25.inf[key]);btn.textContent=v25.inf[key]?'ATTIVA — Stop':'Avvia';v25Event(label+(v25.inf[key]?' avviata':' arrestata'));v25Status()}
+function v25Toggle(btn,key,label){let starting=!v25.inf[key],none=!v25.inf.fluid&&!v25.inf.dob&&!v25.inf.nor;if(starting&&none)v25.base={preload:phys.preload,contractility:phys.contractility,vascularTone:phys.vascularTone,hr:+$('hr').value||80};v25.inf[key]=!v25.inf[key];btn.classList.toggle('active-therapy',v25.inf[key]);btn.textContent=v25.inf[key]?'ATTIVA — Stop':'Avvia';v25Event(label+(v25.inf[key]?' avviata':' arrestata'));v25Status()}
 function v25Status(){let a=[];if(v25.inf.fluid)a.push('Cristalloidi '+(+$('v25FluidRate').value||0)+' mL/kg/h');if(v25.inf.dob)a.push('Dobutamina '+(+$('v25DobRate').value||0)+' µg/kg/min');if(v25.inf.nor)a.push('Noradrenalina '+(+$('v25NorRate').value||0)+' µg/kg/min');$('v25TherapyStatus').textContent=a.length?'Attive: '+a.join(' · '):'Nessuna infusione continua attiva.'}
 function v25Flash(b){b.classList.add('pulse-therapy');setTimeout(()=>b.classList.remove('pulse-therapy'),700)}
 function v25Setup(){
@@ -200,7 +200,7 @@ function v25Setup(){
  $('v25NorBtn').onclick=()=>v25Toggle($('v25NorBtn'),'nor','Noradrenalina');
  $('v25FluidBolus').onclick=()=>{v25.fluidBolusUntil=performance.now()+30000;v25Flash($('v25FluidBolus'));v25Event('Fluid challenge 2 mL/kg / 30 s')};
  $('v25AtBtn').onclick=()=>{v25.atropineUntil=performance.now()+120000;v25Flash($('v25AtBtn'));v25Event('Atropina '+(+$('v25AtDose').value||0)+' µg/kg')};
- $('etco2Set').addEventListener('input',()=>{v25.etRef=clamp(+$('etco2Set').value||38,3,80);if(!v25.applying){v25.etEffective=v25.etRef;$('etco2').value=v25.etEffective}});
+ $('etco2Set').addEventListener('input',()=>{v25.etRef=clamp(+$('etco2Set').value||33,3,80);if(!v25.applying){v25.etEffective=v25.etRef;$('etco2').value=v25.etEffective}});
  $('etco2Set').addEventListener('change',()=>v25Event('EtCO₂ impostata '+v25.etRef+' mmHg'));
  $('v25Window').addEventListener('change',v25Draw)
 }
@@ -213,7 +213,7 @@ function v25TherapyStep(dt,now){
  v25.fx.preload=approach(v25.fx.preload,pTarget,pTarget?12:35);v25.fx.contractility=approach(v25.fx.contractility,cTarget,cTarget?8:25);v25.fx.tone=approach(v25.fx.tone,tTarget,tTarget?10:30);v25.fx.hr=approach(v25.fx.hr,hTarget,hTarget?7:22);
  phys.preload=clamp(v25.base.preload+v25.fx.preload,20,180);phys.contractility=clamp(v25.base.contractility+v25.fx.contractility,20,180);phys.vascularTone=clamp(v25.base.vascularTone+v25.fx.tone,30,180);setPhysInputs()
 }
-function v25PerfusionEt(){let co=+($('co').value)||3.2,rr=Math.max(1,+$('rr').value||18),perf=clamp(co/3.2,.25,1.55),vent=clamp(18/rr,.45,1.8);return clamp(v25.etRef*(.55+.45*perf)*Math.pow(vent,.28),3,80)}
+function v25PerfusionEt(){let co=+($('co').value)||3.2,rr=Math.max(1,+$('rr').value||18),perf=clamp(co/2.9,.25,1.55),vent=clamp(12/rr,.45,1.8);return clamp(v25.etRef*(.55+.45*perf)*Math.pow(vent,.28),3,80)}
 function v25Sample(t){let rec={t};v25Metrics.forEach(([k])=>{if(k==='map')rec[k]=map();else if(k==='afterload')rec[k]=phys.vascularTone;else if(k==='preload')rec[k]=phys.preload;else if(k==='contractility')rec[k]=phys.contractility;else rec[k]=+(($(k)&&$(k).value)||state[k]||0)});v25.history.push(rec);if(v25.history.length>1800)v25.history.shift()}
 const v26Groups=[
  ['vitals',['hr','rr','spo2','etco2']],

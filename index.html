@@ -36,12 +36,12 @@
 
  <section class="card"><h2>ECG</h2>
   <label>Ritmo<select id="rhythm"><option>Ritmo sinusale</option><option>Bradicardia sinusale</option><option>Tachicardia sinusale</option><option>Tachicardia ventricolare</option><option>Fibrillazione ventricolare</option><option>PEA / attività elettrica</option><option>Artefatto massaggio cardiaco 120/min</option><option>Asistolia</option></select></label>
-  <label>FC (bpm)<input id="hr" type="range" min="0" max="260" value="90"><span id="hrOut">90</span></label>
+  <label>FC (bpm)<input id="hr" type="range" min="0" max="260" value="80"><span id="hrOut">80</span></label>
  </section>
 
  <section class="card"><h2>Capnografia</h2><div class="cols">
-  <label>EtCO₂ impostata (mmHg)<input id="etco2Set" type="number" value="38" min="3" max="80" step=".1"></label><input id="etco2" type="hidden" value="38">
-  <label>FR (atti/min)<input id="rr" type="number" value="18"></label>
+  <label>EtCO₂ impostata (mmHg)<input id="etco2Set" type="number" value="33" min="3" max="80" step=".1"></label><input id="etco2" type="hidden" value="33">
+  <label>FR (atti/min)<input id="rr" type="number" value="12"></label>
  </div></section>
 
  <section class="card"><h2>Pressione</h2><div class="cols">
@@ -136,7 +136,7 @@
  </div>
 
  <div class="card trend-card" id="trendV25">
-  <div class="trend-head"><h2>Trend monitor — V2.8</h2><b id="v25Clock">00:00</b></div>
+  <div class="trend-head"><h2>Trend monitor — V2.8.1</h2><b id="v25Clock">00:00</b></div>
   <div class="trend-controls"><label>Finestra<select id="v25Window"><option value="120">2 min</option><option value="300">5 min</option><option value="600">10 min</option><option value="1800">30 min</option></select></label></div>
   <div id="v26TrendGrid" class="v26-trend-grid">
    <div class="v26-chart"><h3>Parametri vitali</h3><canvas id="trend-vitals"></canvas><div class="v26-legend" id="legend-vitals"></div></div>
@@ -156,8 +156,8 @@
 </div>
 </main>
 
-<script src="./app.js?v=280"></script>
+<script src="./app.js?v=281"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./wave-v2.js?v=280"></script>
+<script src="./wave-v2.js?v=281"></script>
 </body>
 </html>

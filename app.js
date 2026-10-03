@@ -190,7 +190,7 @@ $('hemorrhage').onclick=()=>{phys.preload=clamp(+$('preload').value-28,20,180);s
 $('resetPhys').onclick=()=>{phys={preload:100,contractility:100,vascularTone:100,compliance:100};setPhysInputs();logEvent('Fisiologia ripristinata');physiology()};
 
 
-/* ===== V2.8.5 dobutamine response + norepinephrine dose-response + drug washout + MAC closed-loop hemodynamics ===== */
+/* ===== V2.8.6 dobutamine response + norepinephrine dose-response + drug washout + MAC closed-loop hemodynamics ===== */
 const v25={start:performance.now(),last:performance.now(),lastPhys:performance.now(),lastSample:0,inf:{fluid:false,dob:false,nor:false},fluidBolusUntil:0,atropineUntil:0,etRef:+$('etco2Set').value||33,etEffective:+$('etco2').value||33,history:[],events:[],applying:false,base:{preload:phys.preload,contractility:phys.contractility,vascularTone:phys.vascularTone,hr:+$('hr').value||80},fx:{preload:0,contractility:0,tone:0,hr:0}};
 const v25Metrics=[['hr','FC','bpm'],['spo2','SpO₂','%'],['etco2','EtCO₂','mmHg'],['rr','FR','/min'],['sap','SAP','mmHg'],['dap','DAP','mmHg'],['map','MAP','mmHg'],['co','CO','L/min'],['ci','CI','L/min/m²'],['sv','SV','mL'],['svi','SVI','mL/m²'],['svr','SVR','dyn·s/cm⁵'],['svri','SVRI','dyn·s·m²/cm⁵'],['ppv','PPV','%'],['svv','SVV','%'],['dpdt','dP/dtmax','mmHg/ms'],['cce','CCE',''],['ea','Ea','mmHg/mL'],['cpo','CPO','W'],['preload','Precarico','%'],['afterload','Afterload','%'],['contractility','Contrattilità','%'],['mac','MAC','']];
 function v25Event(txt){let t=(performance.now()-v25.start)/1000;v25.events.push({t,txt});if(v25.events.length>80)v25.events.shift();logEvent(txt);v25RenderEvents()}
@@ -213,7 +213,7 @@ function v25TherapyStep(dt,now){
  let fluidRate=clamp(+$('v25FluidRate').value||0,0,50),dob=clamp(+$('v25DobRate').value||0,0,30),nor=clamp(+$('v25NorRate').value||0,0,2);
  let responsive=clamp((+state.ppv-8)/14,0,1);
  let pTarget=(v25.inf.fluid?clamp(fluidRate*.45,0,18):0)+(now<v25.fluidBolusUntil?(10+18*responsive):0);
- let cTarget=v25.inf.dob?clamp(dob*4,0,55):0,dobTone=v25.inf.dob?clamp((dob-1.5)*.35,-.3,1.2):0,tTarget=(v25.inf.nor?clamp(55*Math.pow(nor,.9)/(Math.pow(nor,.9)+Math.pow(.5,.9)),0,55):0)+dobTone,hTarget=now<v25.atropineUntil?clamp((+$('v25AtDose').value||0)*1.8,0,75):0;
+ let cTarget=v25.inf.dob?clamp(dob*5.5,0,55):0,dobTone=v25.inf.dob?clamp((dob-1.5)*.35,-.3,1.2):0,tTarget=(v25.inf.nor?clamp(55*Math.pow(nor,.9)/(Math.pow(nor,.9)+Math.pow(.5,.9)),0,55):0)+dobTone,hTarget=now<v25.atropineUntil?clamp((+$('v25AtDose').value||0)*1.8,0,75):0;
  v25.fx.preload=approach(v25.fx.preload,pTarget,pTarget?12:28);v25.fx.contractility=approach(v25.fx.contractility,cTarget,cTarget?8:18);v25.fx.tone=approach(v25.fx.tone,tTarget,tTarget?10:20);v25.fx.hr=approach(v25.fx.hr,hTarget,hTarget?7:18);
  let residual=Math.max(Math.abs(v25.fx.preload),Math.abs(v25.fx.contractility),Math.abs(v25.fx.tone));let hemoActive=v25.inf.fluid||v25.inf.dob||v25.inf.nor||now<v25.fluidBolusUntil||residual>.05;if(hemoActive){phys.preload=clamp(v25.base.preload+v25.fx.preload,20,180);phys.contractility=clamp(v25.base.contractility+v25.fx.contractility,20,180);phys.vascularTone=clamp(v25.base.vascularTone+v25.fx.tone,30,180);setPhysInputs()}else{v25.fx.preload=0;v25.fx.contractility=0;v25.fx.tone=0;phys.preload=v25.base.preload;phys.contractility=v25.base.contractility;phys.vascularTone=v25.base.vascularTone;setPhysInputs()}
 }

@@ -69,6 +69,10 @@
   </div>
   <div id="caseFeedback" class="status" style="margin-top:8px">Le azioni verranno registrate e influenzeranno il paziente.</div>
  </section>
+<section class="card"><h2>Anestesia inalatoria</h2>
+  <div class="status">1,0 MAC = baseline del paziente anestetizzato. La variazione del MAC modifica progressivamente tono vascolare e contrattilità; FC, pressione, CO, EtCO₂ e onde reagiscono attraverso il motore fisiologico.</div>
+  <label style="margin-top:10px">MAC <input id="mac" type="range" min="0.6" max="2" value="1" step="0.1"><span id="macOut">1,0</span></label>
+ </section>
 <section class="card"><h2>Motore fisiologico — emodinamica</h2>
   <div class="status">Modalità dinamica: precarico, contrattilità e tono vascolare modificano simultaneamente curva ART e parametri emodinamici.</div>
   <div class="cols" style="margin-top:10px">
@@ -136,7 +140,7 @@
  </div>
 
  <div class="card trend-card" id="trendV25">
-  <div class="trend-head"><h2>Trend monitor — V2.8.1</h2><b id="v25Clock">00:00</b></div>
+  <div class="trend-head"><h2>Trend monitor — V2.8.2</h2><b id="v25Clock">00:00</b></div>
   <div class="trend-controls"><label>Finestra<select id="v25Window"><option value="120">2 min</option><option value="300">5 min</option><option value="600">10 min</option><option value="1800">30 min</option></select></label></div>
   <div id="v26TrendGrid" class="v26-trend-grid">
    <div class="v26-chart"><h3>Parametri vitali</h3><canvas id="trend-vitals"></canvas><div class="v26-legend" id="legend-vitals"></div></div>
@@ -149,15 +153,15 @@
    <div class="v26-chart"><h3>Accoppiamento / potenza</h3><canvas id="trend-coupling"></canvas><div class="v26-legend" id="legend-coupling"></div></div>
    <div class="v26-chart"><h3>Fisiologia</h3><canvas id="trend-physiology"></canvas><div class="v26-legend" id="legend-physiology"></div></div>
   </div>
-  <div class="trend-legend">22 parametri registrati ogni secondo · curve normalizzate rispetto al basale · marker verticali = eventi/terapie</div>
+  <div class="trend-legend">23 parametri registrati ogni secondo · curve normalizzate rispetto al basale · marker verticali = eventi/terapie</div>
   <div id="v25TrendEvents" class="trend-events"></div>
  </div>
 </section>
 </div>
 </main>
 
-<script src="./app.js?v=281"></script>
+<script src="./app.js?v=282"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./wave-v2.js?v=281"></script>
+<script src="./wave-v2.js?v=282"></script>
 </body>
 </html>

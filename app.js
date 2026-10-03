@@ -152,27 +152,13 @@ function setPhysInputs(){
 function physiology(){
  if(!$('autoPhys').checked)return render();
  phys.preload=+$('preload').value;phys.contractility=+$('contractility').value;phys.vascularTone=+$('vascularTone').value;phys.compliance=+$('compliance').value;
- let hr=Math.max(1,+$('hr').value), P=phys.preload/100, C=phys.contractility/100, V=phys.vascularTone/100, A=phys.compliance/100;
- // Educational canine model: deliberately simplified, smooth and bounded.
- let filling=clamp(Math.pow(P,0.72),.25,1.45);
- let tachyPenalty=hr>150?clamp(1-(hr-150)/350,.55,1):1;
- let bradyFill=hr<70?clamp(1+(70-hr)/250,1,1.16):1;
- let afterloadPenalty=clamp(Math.pow(V,-.22),.72,1.22); let sv=clamp(36*filling*Math.pow(C,.78)*afterloadPenalty*tachyPenalty*bradyFill,5,70);
- let co=clamp(sv*hr/1000,.25,7.5);
- let svr=clamp(1800*V,450,3400);
- let map=clamp(co*svr/80,20,155);
- let pp=clamp((sv/36)*(50/A),12,85);
- let dap=clamp(map-pp/3,12,125), sap=clamp(dap+pp,25,210);
- let variability=clamp(8+Math.max(0,100-phys.preload)*.23+Math.max(0,hr-170)*.025,3,35);
- let dpdt=clamp(950*C*(sap/118)*Math.pow(A,-.15),180,2200);
- let ea=clamp((sap*.9)/Math.max(sv,5),.5,8);
- let cce=clamp(.35*C*(co/3.2)/(V**.35),.04,.75);
- let cpo=clamp(map*co/451,.03,2);
- let bsa=Math.max(.25,0.101*Math.pow(+$('weight').value||25,2/3));
- let vals={sv:Math.round(sv),svi:+(sv/bsa).toFixed(1),co:+co.toFixed(2),ci:+(co/bsa).toFixed(2),svr:Math.round(svr),svri:Math.round(svr*bsa),ppv:Math.round(variability),svv:Math.round(variability*1.08),dpdt:+(dpdt/1000).toFixed(3),cce:+cce.toFixed(2),ea:+ea.toFixed(2),cpo:+cpo.toFixed(2),sap:Math.round(sap),dap:Math.round(dap)};
- Object.entries(vals).forEach(([k,v])=>{if($(k))$(k).value=v});
- $('preloadOut').textContent=Math.round(phys.preload)+'%';$('contractilityOut').textContent=Math.round(phys.contractility)+'%';$('vascularToneOut').textContent=Math.round(phys.vascularTone)+'%';$('complianceOut').textContent=Math.round(phys.compliance)+'%';
- render();interpret();
+ let P=phys.preload/100,C=phys.contractility/100,V=phys.vascularTone/100,A=phys.compliance/100;
+ const calc=hr=>{hr=Math.max(1,hr);let filling=clamp(Math.pow(P,.72),.25,1.45),tp=hr>150?clamp(1-(hr-150)/350,.55,1):1,bf=hr<70?clamp(1+(70-hr)/250,1,1.16):1,ap=clamp(Math.pow(V,-.22),.72,1.22),sv=clamp(36*filling*Math.pow(C,.78)*ap*tp*bf,5,70),co=clamp(sv*hr/1000,.25,7.5),svr=clamp(1800*V,450,3400),map=clamp(co*svr/80,20,155),pp=clamp((sv/36)*(50/A),12,85),dap=clamp(map-pp/3,12,125),sap=clamp(dap+pp,25,210);return{hr,sv,co,svr,map,pp,dap,sap}};
+ let hr=+$('hr').value||90,r=calc(hr),rh=$('rhythm').value,reflex=['Ritmo sinusale','Tachicardia sinusale','Bradicardia sinusale'].includes(rh);
+ if(reflex){let target=90+clamp((75-r.map)*1.15,-30,85)+clamp((2.8-r.co)*18,-18,45)+(typeof v25!=='undefined'?(v25.fx.hr||0):0);target=clamp(target,42,190);hr+= (target-hr)*.055;$('hr').value=Math.round(hr);r=calc(hr)}
+ let variability=clamp(8+Math.max(0,100-phys.preload)*.23+Math.max(0,hr-170)*.025,3,35),dpdt=clamp(950*C*(r.sap/118)*Math.pow(A,-.15),180,2200),ea=clamp((r.sap*.9)/Math.max(r.sv,5),.5,8),cce=clamp(.35*C*(r.co/3.2)/(V**.35),.04,.75),cpo=clamp(r.map*r.co/451,.03,2),bsa=Math.max(.25,0.101*Math.pow(+$('weight').value||25,2/3));
+ let vals={sv:Math.round(r.sv),svi:+(r.sv/bsa).toFixed(1),co:+r.co.toFixed(2),ci:+(r.co/bsa).toFixed(2),svr:Math.round(r.svr),svri:Math.round(r.svr*bsa),ppv:Math.round(variability),svv:Math.round(variability*1.08),dpdt:+(dpdt/1000).toFixed(3),cce:+cce.toFixed(2),ea:+ea.toFixed(2),cpo:+cpo.toFixed(2),sap:Math.round(r.sap),dap:Math.round(r.dap)};
+ Object.entries(vals).forEach(([k,v])=>{if($(k))$(k).value=v});$('preloadOut').textContent=Math.round(phys.preload)+'%';$('contractilityOut').textContent=Math.round(phys.contractility)+'%';$('vascularToneOut').textContent=Math.round(phys.vascularTone)+'%';$('complianceOut').textContent=Math.round(phys.compliance)+'%';render();interpret()
 }
 function interpret(){
  let P=phys.preload,C=phys.contractility,V=phys.vascularTone,m=map(),ppv=+state.ppv,co=+state.co;
@@ -201,7 +187,7 @@ $('hemorrhage').onclick=()=>{phys.preload=clamp(+$('preload').value-28,20,180);s
 $('resetPhys').onclick=()=>{phys={preload:100,contractility:100,vascularTone:100,compliance:100};setPhysInputs();logEvent('Fisiologia ripristinata');physiology()};
 
 
-/* ===== V2.7 coherent therapies + normalized trends ===== */
+/* ===== V2.8 closed-loop hemodynamics + normalized trends ===== */
 const v25={start:performance.now(),last:performance.now(),lastPhys:performance.now(),lastSample:0,inf:{fluid:false,dob:false,nor:false},fluidBolusUntil:0,atropineUntil:0,etRef:+$('etco2Set').value||38,etEffective:+$('etco2').value||38,history:[],events:[],applying:false,base:{preload:phys.preload,contractility:phys.contractility,vascularTone:phys.vascularTone,hr:+$('hr').value||90},fx:{preload:0,contractility:0,tone:0,hr:0}};
 const v25Metrics=[['hr','FC','bpm'],['spo2','SpO₂','%'],['etco2','EtCO₂','mmHg'],['rr','FR','/min'],['sap','SAP','mmHg'],['dap','DAP','mmHg'],['map','MAP','mmHg'],['co','CO','L/min'],['ci','CI','L/min/m²'],['sv','SV','mL'],['svi','SVI','mL/m²'],['svr','SVR','dyn·s/cm⁵'],['svri','SVRI','dyn·s·m²/cm⁵'],['ppv','PPV','%'],['svv','SVV','%'],['dpdt','dP/dtmax','mmHg/ms'],['cce','CCE',''],['ea','Ea','mmHg/mL'],['cpo','CPO','W'],['preload','Precarico','%'],['afterload','Afterload','%'],['contractility','Contrattilità','%']];
 function v25Event(txt){let t=(performance.now()-v25.start)/1000;v25.events.push({t,txt});if(v25.events.length>80)v25.events.shift();logEvent(txt);v25RenderEvents()}
@@ -225,7 +211,7 @@ function v25TherapyStep(dt,now){
  let pTarget=(v25.inf.fluid?clamp(fluidRate*.45,0,18):0)+(now<v25.fluidBolusUntil?(10+18*responsive):0);
  let cTarget=v25.inf.dob?clamp(dob*4,0,55):0,tTarget=v25.inf.nor?clamp(nor*260,0,65):0,hTarget=now<v25.atropineUntil?clamp((+$('v25AtDose').value||0)*1.8,0,75):0;
  v25.fx.preload=approach(v25.fx.preload,pTarget,pTarget?12:35);v25.fx.contractility=approach(v25.fx.contractility,cTarget,cTarget?8:25);v25.fx.tone=approach(v25.fx.tone,tTarget,tTarget?10:30);v25.fx.hr=approach(v25.fx.hr,hTarget,hTarget?7:22);
- phys.preload=clamp(v25.base.preload+v25.fx.preload,20,180);phys.contractility=clamp(v25.base.contractility+v25.fx.contractility,20,180);phys.vascularTone=clamp(v25.base.vascularTone+v25.fx.tone,30,180);$('hr').value=Math.round(clamp(v25.base.hr+v25.fx.hr,0,260));setPhysInputs()
+ phys.preload=clamp(v25.base.preload+v25.fx.preload,20,180);phys.contractility=clamp(v25.base.contractility+v25.fx.contractility,20,180);phys.vascularTone=clamp(v25.base.vascularTone+v25.fx.tone,30,180);setPhysInputs()
 }
 function v25PerfusionEt(){let co=+($('co').value)||3.2,rr=Math.max(1,+$('rr').value||18),perf=clamp(co/3.2,.25,1.55),vent=clamp(18/rr,.45,1.8);return clamp(v25.etRef*(.55+.45*perf)*Math.pow(vent,.28),3,80)}
 function v25Sample(t){let rec={t};v25Metrics.forEach(([k])=>{if(k==='map')rec[k]=map();else if(k==='afterload')rec[k]=phys.vascularTone;else if(k==='preload')rec[k]=phys.preload;else if(k==='contractility')rec[k]=phys.contractility;else rec[k]=+(($(k)&&$(k).value)||state[k]||0)});v25.history.push(rec);if(v25.history.length>1800)v25.history.shift()}
@@ -263,7 +249,7 @@ function v25Loop(now){
  let sec=(now-v25.start)/1000,mm=Math.floor(sec/60),ss=Math.floor(sec%60);$('v25Clock').textContent=String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');if(sec-v25.lastSample>=1){v25.lastSample=sec;v25Sample(sec);v25Draw()}requestAnimationFrame(v25Loop)
 }
 v25Setup();requestAnimationFrame(v25Loop);
-/* ===== end V2.7 ===== */
+/* ===== end V2.8 ===== */
 
 let scenarioStep=-1;const scenario=['Normale','PEA 80','CPR EtCO₂ basso','CPR EtCO₂ migliore','CPR ROSC imminente','ROSC'];
 function stepScenario(){scenarioStep=Math.min(scenarioStep+1,scenario.length-1);applyPreset(scenario[scenarioStep]);$('scenarioStatus').textContent=`Fase ${scenarioStep+1}/${scenario.length}: ${scenario[scenarioStep]}${scenarioStep==1?' — PAUSA: riconoscimento arresto/ritmo':''}${scenarioStep==4?' — PAUSA: ricercare segni di ROSC':''}`}
@@ -278,23 +264,7 @@ window.addEventListener('storage',e=>{if(e.key==='recoverCaneState'&&document.bo
 if(d.caseState&&d.caseState.active){caseState=d.caseState;$('studentCaseBanner').style.display='block';$('studentCaseMinute').textContent=caseState.minute;$('studentCasePresentation').textContent=d.casePresentation;$('studentCaseEvolution').textContent=d.caseEvolutionText}else{$('studentCaseBanner').style.display='none'}
 render()}});
 
-function canvasFit(c){let d=devicePixelRatio||1,r=c.getBoundingClientRect();if(c.width!==Math.floor(r.width*d)){c.width=Math.floor(r.width*d);c.height=Math.floor(r.height*d)}let x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);return [x,r.width,r.height]}
-let phase=0;
-function wave(){
- phase+=.035;
- [['ecg','#39ef8b'],['capno','#3bd6ff'],['art','#ff5364'],['pleth','#ffd34e']].forEach(([id,col])=>{
-  let c=$(id),[x,w,h]=canvasFit(c);x.clearRect(0,0,w,h);x.strokeStyle=col;x.lineWidth=2;x.beginPath();
-  let rhythm=$('rhythm').value;
-  for(let px=0;px<w;px++){let t=phase+px/w*8*Math.max(state.hr,30)/90,y=.5;
-   if(id==='ecg'){let q=t%1;y=.58-(Math.exp(-(((q-.18)/.025)**2))*.10-Math.exp(-(((q-.30)/.012)**2))*.12+Math.exp(-(((q-.33)/.014)**2))*.52-Math.exp(-(((q-.37)/.018)**2))*.16+Math.exp(-(((q-.62)/.07)**2))*.12);if(rhythm.includes('Fibrillazione'))y=.5+.12*Math.sin(t*19)+.07*Math.sin(t*31);if(rhythm==='Asistolia')y=.5+.005*Math.sin(t*3)}
-   if(id==='capno'){let q=t%(Math.max(1,state.hr/Math.max(state.rr,1)));q=q/(Math.max(1,state.hr/Math.max(state.rr,1)));y=.80-(q<.12?q/.12*.55:q<.58?.55:q<.72?.55*(1-(q-.58)/.14):0)}
-   if(id==='art'){let q=t%1;let pulse=Math.exp(-q*5)*Math.pow(Math.sin(Math.PI*Math.min(q/.72,1)),2);let notch=.10*Math.exp(-(((q-.52)/.025)**2));y=.78-.55*pulse+.10*notch}
-   if(id==='pleth'){let q=t%1;y=.75-.42*Math.exp(-q*4)*Math.pow(Math.sin(Math.PI*Math.min(q/.85,1)),2)}
-   let yy=y*h;if(px===0)x.moveTo(px,yy);else x.lineTo(px,yy)
-  }x.stroke()
- });requestAnimationFrame(wave)
-}
-setActive(true);setPhysInputs();physiology();wave();
+setActive(true);setPhysInputs();physiology();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));

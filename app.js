@@ -144,6 +144,27 @@ $('startCase').onclick=startClinicalCase;$('advanceCase').onclick=advanceClinica
 $('caseFluid').onclick=()=>caseAction('fluid');$('casePressor').onclick=()=>caseAction('pressor');$('caseInotrope').onclick=()=>caseAction('inotrope');
 $('caseOxygen').onclick=()=>caseAction('oxygen');$('caseCPR').onclick=()=>caseAction('cpr');$('caseShock').onclick=()=>caseAction('shock');
 
+
+// Override indipendenti: i valori bloccati non vengono sovrascritti dal modello.
+const manualParams=['hr','etco2','rr','sap','dap','spo2',...hemoDefs.map(d=>d[0])];
+const manualLocks=Object.fromEntries(manualParams.map(k=>[k,false]));
+function manualSet(k,on){
+ manualLocks[k]=on;
+ const b=document.getElementById('manual-'+k);
+ if(b){b.textContent=on?'MANUALE':'AUTO';b.style.color=on?'#ffcf77':'#8db9c5';b.title=on?'Valore bloccato: clicca per tornare automatico':'Valore calcolato: clicca per bloccarlo';}
+ if(!on){if(k==='hr'||k==='sap'||k==='dap'||hemoDefs.some(d=>d[0]===k))physiology();else render();}
+}
+function manualSetup(){
+ manualParams.forEach(k=>{
+  const input=$(k);if(!input)return;
+  const b=document.createElement('button');b.type='button';b.id='manual-'+k;b.textContent='AUTO';
+  b.style.cssText='display:block;margin-top:3px;padding:2px 6px;font-size:10px;border:1px solid #33505d;border-radius:5px;background:#10212b;color:#8db9c5;cursor:pointer';
+  b.onclick=()=>manualSet(k,!manualLocks[k]);
+  input.insertAdjacentElement('afterend',b);
+  input.addEventListener('input',()=>{if(!v25.applying)manualSet(k,true)});
+ });
+}
+
 let phys={preload:100,contractility:100,vascularTone:100,compliance:100};
 let eventLines=[];
 function logEvent(t){eventLines.unshift(new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+' — '+t);eventLines=eventLines.slice(0,8);$('eventLog').innerHTML=eventLines.join('<br>')}
@@ -157,10 +178,10 @@ function physiology(){
  let P=phys.preload/100,mac=clamp(+$('mac').value||1,.6,2),md=mac-1,macC=Math.exp(-.28*md-.08*Math.max(md,0)*Math.max(md,0)),macV=Math.exp(-.35*md-.10*Math.max(md,0)*Math.max(md,0)),C=(phys.contractility/100)*macC,V=(phys.vascularTone/100)*macV,A=phys.compliance/100;window.macEffectiveContractility=C*100;window.macEffectiveTone=V*100;
  const calc=hr=>{hr=Math.max(1,hr);let filling=clamp(Math.pow(P,.72),.25,1.45),tp=hr>150?clamp(1-(hr-150)/350,.55,1):1,bf=hr<70?clamp(1+(70-hr)/250,1,1.16):1,ap=clamp(Math.pow(V,-.22),.72,1.22),sv=clamp(36*filling*Math.pow(C,.78)*ap*tp*bf,5,70),co=clamp(sv*hr/1000,.25,7.5),svr=clamp(1800*V,450,3400),map=clamp(co*svr/80,20,155),pp=clamp((sv/36)*(50/A),12,85),dap=clamp(map-pp/3,12,125),sap=clamp(dap+pp,25,210);return{hr,sv,co,svr,map,pp,dap,sap}};
  let hr=+$('hr').value||80,r=calc(hr),rh=$('rhythm').value,reflex=['Ritmo sinusale','Tachicardia sinusale','Bradicardia sinusale'].includes(rh);
- if(reflex){let pressureDrive=clamp((65-r.map)*1.15,-30,85),flowDrive=clamp((2.9-r.co)*18,-18,45),reflexGain=mac<=1.6?1:clamp(1-.55*((mac-1.6)/.4),.45,1),dobResponse=(typeof v25!=='undefined'&&v25.inf.dob)?clamp((r.co-2.9)*18,0,14):0,target=80+reflexGain*(pressureDrive+flowDrive)-dobResponse+(typeof v25!=='undefined'?(v25.fx.hr||0):0);let washedOut=typeof v25!=='undefined'&&!v25.inf.dob&&!v25.inf.fluid&&!v25.inf.nor&&Math.abs(v25.fx.contractility)<.05&&Math.abs(v25.fx.tone)<.05&&Math.abs(v25.fx.preload)<.05;let structuralHR=(typeof v25!=='undefined'&&v25.base.hr)||80;let stableAnesthetized=washedOut&&Math.abs(mac-1)<.03&&Math.abs(phys.preload-100)<=3&&Math.abs(phys.contractility-100)<=3&&Math.abs(phys.vascularTone-100)<=3&&Math.abs(phys.compliance-100)<=3;if(stableAnesthetized){hr+=(structuralHR-hr)*.16;if(Math.abs(structuralHR-hr)<.35)hr=structuralHR;$('hr').value=Math.round(hr);r=calc(hr)}else{target=clamp(target,42,190);hr+=(target-hr)*.055;$('hr').value=Math.round(hr);r=calc(hr)}$('hr').value=Math.round(hr);r=calc(hr)}
+ if(reflex&&!manualLocks.hr){let pressureDrive=clamp((65-r.map)*1.15,-30,85),flowDrive=clamp((2.9-r.co)*18,-18,45),reflexGain=mac<=1.6?1:clamp(1-.55*((mac-1.6)/.4),.45,1),dobResponse=(typeof v25!=='undefined'&&v25.inf.dob)?clamp((r.co-2.9)*18,0,14):0,target=80+reflexGain*(pressureDrive+flowDrive)-dobResponse+(typeof v25!=='undefined'?(v25.fx.hr||0):0);let washedOut=typeof v25!=='undefined'&&!v25.inf.dob&&!v25.inf.fluid&&!v25.inf.nor&&Math.abs(v25.fx.contractility)<.05&&Math.abs(v25.fx.tone)<.05&&Math.abs(v25.fx.preload)<.05;let structuralHR=(typeof v25!=='undefined'&&v25.base.hr)||80;let stableAnesthetized=washedOut&&Math.abs(mac-1)<.03&&Math.abs(phys.preload-100)<=3&&Math.abs(phys.contractility-100)<=3&&Math.abs(phys.vascularTone-100)<=3&&Math.abs(phys.compliance-100)<=3;if(stableAnesthetized){hr+=(structuralHR-hr)*.16;if(Math.abs(structuralHR-hr)<.35)hr=structuralHR;$('hr').value=Math.round(hr);r=calc(hr)}else{target=clamp(target,42,190);hr+=(target-hr)*.055;$('hr').value=Math.round(hr);r=calc(hr)}$('hr').value=Math.round(hr);r=calc(hr)}
  let variability=clamp(8+Math.max(0,100-phys.preload)*.23+Math.max(0,hr-170)*.025,3,35),dpdt=clamp(950*C*(r.sap/118)*Math.pow(A,-.15),180,2200),ea=clamp((r.sap*.9)/Math.max(r.sv,5),.5,8),cce=clamp(.35*C*(r.co/3.2)/(V**.35),.04,.75),cpo=clamp(r.map*r.co/451,.03,2),bsa=Math.max(.25,0.101*Math.pow(+$('weight').value||25,2/3));
  let vals={sv:Math.round(r.sv),svi:+(r.sv/bsa).toFixed(1),co:+r.co.toFixed(2),ci:+(r.co/bsa).toFixed(2),svr:Math.round(r.svr),svri:Math.round(r.svr*bsa),ppv:Math.round(variability),svv:Math.round(variability*1.08),dpdt:+(dpdt/1000).toFixed(3),cce:+cce.toFixed(2),ea:+ea.toFixed(2),cpo:+cpo.toFixed(2),sap:Math.round(r.sap),dap:Math.round(r.dap)};
- Object.entries(vals).forEach(([k,v])=>{if($(k))$(k).value=v});$('preloadOut').textContent=Math.round(phys.preload)+'%';$('contractilityOut').textContent=Math.round(phys.contractility)+'%';$('vascularToneOut').textContent=Math.round(phys.vascularTone)+'%';$('complianceOut').textContent=Math.round(phys.compliance)+'%';render();interpret()
+ Object.entries(vals).forEach(([k,v])=>{if($(k)&&!manualLocks[k])$(k).value=v});$('preloadOut').textContent=Math.round(phys.preload)+'%';$('contractilityOut').textContent=Math.round(phys.contractility)+'%';$('vascularToneOut').textContent=Math.round(phys.vascularTone)+'%';$('complianceOut').textContent=Math.round(phys.compliance)+'%';render();interpret()
 }
 function interpret(){
  let P=phys.preload,C=window.macEffectiveContractility||phys.contractility,V=window.macEffectiveTone||phys.vascularTone,m=map(),ppv=+state.ppv,co=+state.co;
@@ -249,7 +270,7 @@ function v25Draw(){
 }
 function v25RenderEvents(){$('v25TrendEvents').textContent=v25.events.slice(-5).map(e=>{let m=Math.floor(e.t/60),s=Math.floor(e.t%60);return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+' '+e.txt}).join(' · ')}
 function v25Loop(now){
- let dt=Math.min(.5,(now-v25.lastPhys)/1000);if(dt>=.20){v25.lastPhys=now;v25.applying=true;v25TherapyStep(dt,now);physiology();let target=v25PerfusionEt();v25.etEffective+=(target-v25.etEffective)*(1-Math.exp(-dt/2.2));$('etco2').value=(Math.round(v25.etEffective*10)/10).toFixed(1);render();v25.applying=false}
+ let dt=Math.min(.5,(now-v25.lastPhys)/1000);if(dt>=.20){v25.lastPhys=now;v25.applying=true;v25TherapyStep(dt,now);physiology();let target=v25PerfusionEt();v25.etEffective+=(target-v25.etEffective)*(1-Math.exp(-dt/2.2));if(!manualLocks.etco2)$('etco2').value=(Math.round(v25.etEffective*10)/10).toFixed(1);render();v25.applying=false}
  let sec=(now-v25.start)/1000,mm=Math.floor(sec/60),ss=Math.floor(sec%60);$('v25Clock').textContent=String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');if(sec-v25.lastSample>=1){v25.lastSample=sec;v25Sample(sec);v25Draw()}requestAnimationFrame(v25Loop)
 }
 v25Setup();requestAnimationFrame(v25Loop);
@@ -268,7 +289,7 @@ window.addEventListener('storage',e=>{if(e.key==='recoverCaneState'&&document.bo
 if(d.caseState&&d.caseState.active){caseState=d.caseState;$('studentCaseBanner').style.display='block';$('studentCaseMinute').textContent=caseState.minute;$('studentCasePresentation').textContent=d.casePresentation;$('studentCaseEvolution').textContent=d.caseEvolutionText}else{$('studentCaseBanner').style.display='none'}
 render()}});
 
-setActive(true);setPhysInputs();physiology();
+setActive(true);setPhysInputs();manualSetup();physiology();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));

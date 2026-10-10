@@ -1,4 +1,4 @@
-/* V2.8.18 peripheral IBP rounded systole concave diastolic decay */
+/* V2.8.19 peripheral IBP rounded systole concave diastolic decay */
 (()=>{const R=requestAnimationFrame.bind(window),E=i=>document.getElementById(i),N=i=>+(E(i)?.value||0),C=(v,a,b)=>Math.max(a,Math.min(b,v)),G=(x,m,s)=>Math.exp(-.5*((x-m)/s)**2),t0=performance.now()/1000;
 function fit(c){let d=devicePixelRatio||1,r=c.getBoundingClientRect();c.width=Math.floor(r.width*d);c.height=Math.floor(r.height*d);let g=c.getContext("2d");g.setTransform(d,0,0,d,0,0);return[g,r.width,r.height]}
 function ecg(q,r){if(r==="Asistolia")return .003*Math.sin(q*20);if(r.includes("Fibrillazione"))return .08*Math.sin(q*37)+.05*Math.sin(q*71)+.03*Math.sin(q*113);if(r.includes("Tachicardia ventricolare"))return .34*Math.sin(2*Math.PI*q)+.13*Math.sin(4*Math.PI*q);return .06*G(q,.12,.034)-.07*G(q,.255,.015)+.47*G(q,.286,.013)-.16*G(q,.319,.017)+.13*G(q,.57,.072)}
@@ -6,18 +6,17 @@ function art(q){let pp=C((N("sap")-N("dap"))/60,.12,1.75),sv=C((N("sv")||36)/36,
 // Peripheral arterial pressure: rounded rapid upstroke, systolic crest,
 // continuous descending limb, dicrotic notch and secondary reflected wave.
 // All terms taper smoothly at the beat boundary.
-let onset=.085,rise=C(.125/Math.pow(con*dp,.16),.085,.17);
+let onset=.085,rise=C(.088/Math.pow(con*dp,.12),.065,.115);
 let z=C((q-onset)/rise,0,1),up=z*z*(3-2*z);
-// Rounded systolic summit: gradual transition into a concave diastolic fall.
 let dt=Math.max(0,q-onset-rise);
-let decay=C(3.35+.30*tone-.18*comp,2.6,4.1);
-let tail=Math.exp(-decay*dt)*(1+.90*dt);
+// Narrow peripheral systolic apex; concave early systolic descent.
+let decay=C(4.1+.28*tone-.14*comp,3.4,4.8);
+let tail=Math.exp(-decay*Math.pow(dt,1.45));
 let v=up*tail;
-let shoulder=C(.12+.035*tone+.025/comp,.09,.20)*G(q,.28,.105);
-let notchAt=C(.47+.025/comp,.45,.53);
-let notch=C(.085+.025*tone,.06,.13)*G(q,notchAt,.022);
-let dicrotic=C(.085+.035*tone,.06,.15)*G(q,notchAt+.068,.044);
-v+=shoulder-notch+dicrotic;
+let notchAt=C(.44+.025/comp,.42,.50);
+let notch=C(.13+.02*tone,.09,.17)*G(q,notchAt,.018);
+let dicrotic=C(.19+.035*tone,.14,.24)*G(q,notchAt+.075,.038);
+v+=-notch+dicrotic;
 let end=C((1-q)/.23,0,1);end=end*end*(3-2*end);
 let peak=C(1+.14*(dp-1)+.07*(sv-1),.75,1.35);
 return C(v*end*peak,0,1.5)*pp}

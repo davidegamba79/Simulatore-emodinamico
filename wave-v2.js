@@ -1,23 +1,23 @@
-/* V2.8.15 peripheral metatarsal IBP waveform */
+/* V2.8.16 peripheral metatarsal IBP waveform */
 (()=>{const R=requestAnimationFrame.bind(window),E=i=>document.getElementById(i),N=i=>+(E(i)?.value||0),C=(v,a,b)=>Math.max(a,Math.min(b,v)),G=(x,m,s)=>Math.exp(-.5*((x-m)/s)**2),t0=performance.now()/1000;
 function fit(c){let d=devicePixelRatio||1,r=c.getBoundingClientRect();c.width=Math.floor(r.width*d);c.height=Math.floor(r.height*d);let g=c.getContext("2d");g.setTransform(d,0,0,d,0,0);return[g,r.width,r.height]}
 function ecg(q,r){if(r==="Asistolia")return .003*Math.sin(q*20);if(r.includes("Fibrillazione"))return .08*Math.sin(q*37)+.05*Math.sin(q*71)+.03*Math.sin(q*113);if(r.includes("Tachicardia ventricolare"))return .34*Math.sin(2*Math.PI*q)+.13*Math.sin(4*Math.PI*q);return .06*G(q,.12,.034)-.07*G(q,.255,.015)+.47*G(q,.286,.013)-.16*G(q,.319,.017)+.13*G(q,.57,.072)}
 function art(q){let pp=C((N("sap")-N("dap"))/60,.12,1.75),sv=C((N("sv")||36)/36,.35,1.8),con=C((window.macEffectiveContractility||N("contractility"))/100,.2,1.9),dp=C((N("dpdt")||.8)/.8,.4,2.2),tone=C((window.macEffectiveTone||N("vascularTone"))/100,.3,2.1),comp=C(N("compliance")/100,.4,1.8);
-// Distal metatarsal arterial pressure: sharp systolic upstroke, amplified peak,
-// reflected shoulder and a conspicuous but continuous dicrotic complex.
-let onset=.075,z=Math.max(0,q-onset),rise=C(.024/(Math.pow(con,.48)*Math.pow(dp,.48)),.010,.055);
-let decay=C(3.0+.48*tone-.32*comp,2.0,4.5);
-let v=q>onset?(1-Math.exp(-z/rise))*Math.exp(-z*decay):0;
-let peak=C(1.04+.18*(dp-1)+.11*(sv-1)+.10*(1/comp-1),.72,1.45);
-v*=peak;
-let reflected=C(.09+.07*tone+.06*(1/comp-1),.045,.28);
-v+=reflected*G(q,C(.255+.025/comp,.23,.34),.043);
-let notchPos=C(.43+.025/comp-.018*(dp-1),.37,.51);
-v-=C(.075+.035*tone,.055,.17)*G(q,notchPos,.013);
-v+=C(.045+.035*tone,.035,.13)*G(q,notchPos+.055,.027);
-// Smooth periodic boundary: the pulse returns to baseline before the next beat.
-let taper=q>.84?Math.pow(C((1-q)/.16,0,1),2):1;
-return C(v*taper,-.04,1.6)*pp}
+// Smooth periodic peripheral pressure pulse; no hard clipping or abrupt reset.
+// Systolic shoulder and reflection are broad, rather than narrow spikes.
+let onset=.075,rise=C(.075/Math.pow(con*dp,.22),.052,.105);
+let u=C((q-onset)/rise,0,1),up=u*u*(3-2*u);
+let decay=C(2.7+.42*tone-.30*comp,1.9,3.8);
+let v=up*Math.exp(-Math.max(0,q-onset-rise)*decay);
+let shoulder=C(.065+.05*tone+.035*(1/comp-1),.025,.17)*G(q,.30,.073);
+let notchPos=C(.48+.025/comp,.43,.53);
+let notch=C(.032+.02*tone,.025,.075)*G(q,notchPos,.027);
+let rebound=C(.027+.018*tone,.02,.065)*G(q,notchPos+.075,.055);
+v+=shoulder-notch+rebound;
+// Smoothly blend the end of the beat to the starting baseline.
+let fadeStart=.72,t=C((q-fadeStart)/(1-fadeStart),0,1),fade=1-t*t*(3-2*t);
+let peak=C(.98+.13*(dp-1)+.09*(sv-1),.75,1.35);
+return C(v*fade*peak,0,1.5)*pp}
 function pleth(q){let co=C((N("co")||3.2)/3.2,.08,1.8),pp=C((N("sap")-N("dap"))/50,.15,1.7),tone=C((window.macEffectiveTone||N("vascularTone"))/100,.3,2),z=Math.max(0,q-.1),v=q>.1?(1-Math.exp(-z/.055))*Math.exp(-z*(2.7+.45*tone)):0;return (v+.08*G(q,.53,.075))*C(Math.sqrt(co*pp/tone),.08,1.35)}
 function cap(q){let m=E("capnoPattern")?.value||"Normale";if(m.includes("Disconnessione"))return 0;let b=m.includes("Rebreathing")?.18:0,v=0;if(m.includes("Broncospasmo")){if(q<.07)v=0;else if(q<.42)v=C((q-.07)/.35,0,1)**1.8;else if(q<.69)v=.96+.06*(q-.42)/.27;else if(q<.82){let z=(q-.69)/.13;v=1.02*(1-z*z*(3-2*z))}}else{if(q<.08)v=0;else if(q<.14){let z=(q-.08)/.06;v=.94*(z*z*(3-2*z))}else if(q<.72){let z=(q-.14)/.58;v=.94+.09*z+.010*Math.sin(Math.PI*z)}else if(q<.78){let z=(q-.72)/.06;v=1.03*(1-(z*z*(3-2*z)))}else v=0;if(m.includes("Oscillazioni"))v+=.045*Math.sin(q*42)*C((q-.14)*4,0,1)*C((.78-q)*8,0,1)}return b+(1-b)*C(v,0,1.1)}
 function draw(){let hr=Math.max(1,N("hr")||90),rr=Math.max(1,N("rr")||18),et=C(N("etco2")||38,3,80),rh=E("rhythm")?.value||"Ritmo sinusale",now=performance.now()/1000-t0;[["ecg","#39ef8b",6],["pleth","#ffd34e",6],["capno","#3bd6ff",12],["art","#ff5364",6]].forEach(([id,col,sec])=>{let c=E(id);if(!c||c.offsetParent===null)return;let[g,w,h]=fit(c);g.clearRect(0,0,w,h);g.strokeStyle=col;g.lineWidth=2;g.beginPath();for(let x=0;x<w;x++){let ts=now+x/w*sec,q,y;if(id==="capno"){q=((ts/(60/rr))%1+1)%1;y=.86-cap(q)*C(et/40,.12,1.65)*.60}else{let rate=rh.includes("massaggio")?120:hr,delay=id==="art"?.055:id==="pleth"?.16:0;q=((((ts-delay)/(60/rate))%1)+1)%1;if(id==="ecg")y=.58-ecg(q,rh)*.76;else if(id==="art")y=.84-art(q)*.60;else y=.84-pleth(q)*.48}x?g.lineTo(x,C(y,.035,.965)*h):g.moveTo(x,C(y,.035,.965)*h)}g.stroke()});R(draw)}R(draw)})();

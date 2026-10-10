@@ -19,9 +19,13 @@ let v=up*tail;
 let notchAt=C(.40+.025/comp,.39,.46);
 let notch=C(.065+.012*tone,.045,.085)*G(q,notchAt,.020);
 let dicrotic=C(.075+.018*tone,.055,.105)*G(q,notchAt+.078,.058);
-let reflection=C((tone-1)*.24,-.12,.24);
-let reflected=reflection*G(q,C(.34-.045*(tone-1),.28,.39),.075);
-v+=-notch+dicrotic+reflected;
+// Peripheral reflected-wave augmentation is visible during vasoconstriction.
+// Preserve the baseline contour; do not alter measured SAP/DAP or physiology.
+let constrict=C((tone-1)/.40,0,1);
+let reflection=C((tone-1)*.55,-.10,.46);
+let reflected=reflection*G(q,C(.335-.035*constrict,.29,.36),.065);
+let shoulder=.10*constrict*G(q,.235,.045);
+v+=-notch*(1+.20*constrict)+dicrotic*(1+.25*constrict)+reflected+shoulder;
 let end=C((1-q)/.23,0,1);end=end*end*(3-2*end);
 let peak=C(1+.14*(dp-1)+.07*(sv-1),.75,1.35);
 return C(v*end*peak,0,1.5)*pp}

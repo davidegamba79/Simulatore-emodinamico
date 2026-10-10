@@ -13,8 +13,7 @@ let dt=Math.max(0,q-onset-rise);
 // Distal waveform: vasoconstriction strengthens and advances reflected pressure;
  // inotropy preferentially sharpens the primary systolic ejection.
 let fall=C(.145+.015*comp-.012*tone,.115,.18);
-// Concave systolic downslope: steep initial fall, then progressively flattening.
-let tail=Math.exp(-Math.pow(dt/fall,.72));
+let tail=1/(1+Math.pow(dt/fall,1.65));
 let v=up*tail;
 // Dicrotic notch followed by a broad, low reflected wave, never a second spike.
 let notchAt=C(.40+.025/comp,.39,.46);

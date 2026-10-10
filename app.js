@@ -241,7 +241,7 @@ function v25TherapyStep(dt,now){
 function v25PerfusionEt(){let co=+($('co').value)||3.2,rr=Math.max(1,+$('rr').value||18),perf=clamp(co/2.9,.25,1.55),vent=clamp(12/rr,.45,1.8);return clamp(v25.etRef*(.55+.45*perf)*Math.pow(vent,.28),3,80)}
 function v25Sample(t){let rec={t};v25Metrics.forEach(([k])=>{if(k==='map')rec[k]=map();else if(k==='mac')rec[k]=+$('mac').value;else if(k==='afterload')rec[k]=phys.vascularTone;else if(k==='preload')rec[k]=phys.preload;else if(k==='contractility')rec[k]=phys.contractility;else rec[k]=+(($(k)&&$(k).value)||state[k]||0)});v25.history.push(rec);if(v25.history.length>1800)v25.history.shift()}
 const v26Groups=[
- ['vitals',['hr','etco2']],
+ ['vitals',['hr','etco2','spo2']],
  ['pressure',['sap','dap','map']],
  ['flow',['co','ci']],
  ['stroke',['sv','svi']],
@@ -252,6 +252,7 @@ const v26Groups=[
  ['physiology',['preload','afterload','contractility','mac']]
 ];
 const v26Colors=['#3bd6ff','#39ef8b','#ffd34e','#ff5364','#c78cff'];
+const v26MonitorColors={hr:'#39ef8b',etco2:'#ffd34e',spo2:'#3bd6ff',sap:'#ff5364',dap:'#ff914d',map:'#ffce4b'};
 function v26Fmt(v){v=Number(v);if(!Number.isFinite(v))return '—';return Math.abs(v)<10?v.toFixed(2):v.toFixed(1)}
 function v26DrawGroup(name,keys,a,from,win){
  let c=$('trend-'+name);if(!c)return;let d=devicePixelRatio||1,r=c.getBoundingClientRect(),w=Math.max(260,r.width),h=165;c.width=Math.floor(w*d);c.height=Math.floor(h*d);
@@ -260,8 +261,8 @@ function v26DrawGroup(name,keys,a,from,win){
  let legend=[],pressure=name==='pressure',all=[];if(!pressure)keys.forEach(k=>{let b=Number(a[0][k])||1;a.forEach(q=>{let v=Number(q[k]);if(Number.isFinite(v))all.push((v-b)/Math.max(Math.abs(b),.01)*100)})});let absMax=pressure?1:Math.max(5,...all.map(Math.abs));
  let pvals=pressure?keys.flatMap(k=>a.map(q=>Number(q[k])).filter(Number.isFinite)):[],pmn=pressure?Math.min(...pvals)-8:0,pmx=pressure?Math.max(...pvals)+8:0;
  keys.forEach((key,j)=>{let def=v25Metrics.find(x=>x[0]===key)||[key,key,''],vals=a.map(q=>Number(q[key])).filter(Number.isFinite);if(!vals.length)return;let base=vals[0]||1;
- g.strokeStyle=v26Colors[j%v26Colors.length];g.lineWidth=2;g.beginPath();a.forEach((q,i)=>{let val=Number(q[key]);if(!Number.isFinite(val))return;let x=(q.t-from)/win*w,y=pressure?h*.91-((val-pmn)/Math.max(1,pmx-pmn))*h*.82:h*.5-(((val-base)/Math.max(Math.abs(base),.01)*100)/absMax)*h*.38;i?g.lineTo(x,y):g.moveTo(x,y)});g.stroke();
- let last=vals[vals.length-1],delta=(last-base)/Math.max(Math.abs(base),.01)*100;legend.push('<span style="color:'+v26Colors[j%v26Colors.length]+'">●</span> '+def[1]+' '+v26Fmt(last)+(def[2]?' '+def[2]:'')+(pressure?'':' ('+(delta>=0?'+':'')+delta.toFixed(1)+'%)'))});
+ g.strokeStyle=v26MonitorColors[key]||v26Colors[j%v26Colors.length];g.lineWidth=2;g.beginPath();a.forEach((q,i)=>{let val=Number(q[key]);if(!Number.isFinite(val))return;let x=(q.t-from)/win*w,y=pressure?h*.91-((val-pmn)/Math.max(1,pmx-pmn))*h*.82:h*.5-(((val-base)/Math.max(Math.abs(base),.01)*100)/absMax)*h*.38;i?g.lineTo(x,y):g.moveTo(x,y)});g.stroke();
+ let last=vals[vals.length-1],delta=(last-base)/Math.max(Math.abs(base),.01)*100;legend.push('<span style="color:'+(v26MonitorColors[key]||v26Colors[j%v26Colors.length])+'">●</span> '+def[1]+' '+v26Fmt(last)+(def[2]?' '+def[2]:'')+(pressure?'':' ('+(delta>=0?'+':'')+delta.toFixed(1)+'%)'))});
  if(!pressure){g.strokeStyle='rgba(255,255,255,.18)';g.beginPath();g.moveTo(0,h*.5);g.lineTo(w,h*.5);g.stroke()}let el=$('legend-'+name);if(el)el.innerHTML=legend.join(' &nbsp; ')
 }
 function v25Draw(){

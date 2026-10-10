@@ -1,4 +1,4 @@
-/* V2.8.20 peripheral IBP rounded systole concave diastolic decay */
+/* V2.8.21 peripheral IBP rounded systole concave diastolic decay */
 (()=>{const R=requestAnimationFrame.bind(window),E=i=>document.getElementById(i),N=i=>+(E(i)?.value||0),C=(v,a,b)=>Math.max(a,Math.min(b,v)),G=(x,m,s)=>Math.exp(-.5*((x-m)/s)**2),t0=performance.now()/1000;
 function fit(c){let d=devicePixelRatio||1,r=c.getBoundingClientRect();c.width=Math.floor(r.width*d);c.height=Math.floor(r.height*d);let g=c.getContext("2d");g.setTransform(d,0,0,d,0,0);return[g,r.width,r.height]}
 function ecg(q,r){if(r==="Asistolia")return .003*Math.sin(q*20);if(r.includes("Fibrillazione"))return .08*Math.sin(q*37)+.05*Math.sin(q*71)+.03*Math.sin(q*113);if(r.includes("Tachicardia ventricolare"))return .34*Math.sin(2*Math.PI*q)+.13*Math.sin(4*Math.PI*q);return .06*G(q,.12,.034)-.07*G(q,.255,.015)+.47*G(q,.286,.013)-.16*G(q,.319,.017)+.13*G(q,.57,.072)}
@@ -10,6 +10,8 @@ let onset=.085,rise=C(.072/Math.pow(con*dp,.10),.055,.092);
 let z=C((q-onset)/rise,0,1),up=z*z*(3-2*z);
 let dt=Math.max(0,q-onset-rise);
 // Rapid, curved peripheral systolic fall; smooth late diastolic tail.
+// Distal waveform: vasoconstriction strengthens and advances reflected pressure;
+ // inotropy preferentially sharpens the primary systolic ejection.
 let fall=C(.145+.015*comp-.012*tone,.115,.18);
 let tail=1/(1+Math.pow(dt/fall,1.65));
 let v=up*tail;
@@ -17,7 +19,9 @@ let v=up*tail;
 let notchAt=C(.40+.025/comp,.39,.46);
 let notch=C(.065+.012*tone,.045,.085)*G(q,notchAt,.020);
 let dicrotic=C(.075+.018*tone,.055,.105)*G(q,notchAt+.078,.058);
-v+=-notch+dicrotic;
+let reflection=C((tone-1)*.24,-.12,.24);
+let reflected=reflection*G(q,C(.34-.045*(tone-1),.28,.39),.075);
+v+=-notch+dicrotic+reflected;
 let end=C((1-q)/.23,0,1);end=end*end*(3-2*end);
 let peak=C(1+.14*(dp-1)+.07*(sv-1),.75,1.35);
 return C(v*end*peak,0,1.5)*pp}

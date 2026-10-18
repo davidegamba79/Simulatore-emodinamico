@@ -26,6 +26,20 @@ function setActive(v){keys.forEach(k=>active[k]=v);document.querySelectorAll('[d
 document.querySelectorAll('input,select').forEach(x=>{
  if(!['preload','contractility','vascularTone','compliance','v25FluidRate','v25DobRate','v25NorRate','v25AtDose','v25Metric','v25Window'].includes(x.id)) x.addEventListener('input',render)
 });
+// Frequenza elettrica coerente con il ritmo selezionato; il cursore resta modificabile.
+let previousRhythm=$('rhythm').value;
+$('rhythm').addEventListener('change',()=>{
+ const rhythm=$('rhythm').value;
+ if(rhythm==='Tachicardia ventricolare con polso'||rhythm==='Tachicardia ventricolare senza polso'){
+  if(!previousRhythm.startsWith('Tachicardia ventricolare'))$('hr').value=180;
+  manualSet('hr',true);
+ }else if(previousRhythm.startsWith('Tachicardia ventricolare')){
+  manualSet('hr',false);
+  if(rhythm==='Ritmo sinusale')$('hr').value=80;
+ }
+ previousRhythm=rhythm;
+ physiology();render();
+});
 document.querySelectorAll('[data-toggle]').forEach(x=>x.addEventListener('change',e=>{active[e.target.dataset.toggle]=e.target.checked;render()}));
 $('allOn').onclick=()=>setActive(true);$('allOff').onclick=()=>setActive(false);
 

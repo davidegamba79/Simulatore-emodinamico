@@ -156,8 +156,7 @@ function endClinicalCase(){
  caseState.active=false;$('studentCaseEvolution').textContent='Caso terminato.';save();
 }
 $('startCase').onclick=startClinicalCase;$('advanceCase').onclick=advanceClinicalCase;$('endCase').onclick=endClinicalCase;
-$('caseFluid').onclick=()=>caseAction('fluid');$('casePressor').onclick=()=>caseAction('pressor');$('caseInotrope').onclick=()=>caseAction('inotrope');
-$('caseOxygen').onclick=()=>caseAction('oxygen');$('caseCPR').onclick=()=>caseAction('cpr');$('caseShock').onclick=()=>caseAction('shock');
+
 
 
 // Override indipendenti: i valori bloccati non vengono sovrascritti dal modello.

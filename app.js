@@ -12,10 +12,10 @@ $('hemoMetrics').innerHTML=hemoDefs.map(([k,l,u])=>`<div class="metric"><small>$
 
 function map(){return Math.round((+state.sap+2*(+state.dap))/3)}
 function render(){
- state.hr=+$('hr').value; $('hrOut').textContent=state.hr;
+ state.hr=+$('hr').value; $('hrOut').textContent=$('rhythm').value==='Fibrillazione ventricolare'?'—':state.hr;
  ['etco2','rr','sap','dap','spo2',...hemoDefs.map(x=>x[0])].forEach(k=>state[k]=+$(k).value);
- $('vhr').textContent=state.hr;$('vet').textContent=(+state.etco2).toFixed(1).replace('.0','');$('vrr').textContent=state.rr;
- $('vart').textContent=`${state.sap}/${state.dap}`;$('vmap').textContent=map();$('vspo2').textContent=state.spo2;
+ $('vhr').textContent=$('rhythm').value==='Fibrillazione ventricolare'?'—':state.hr;$('vet').textContent=(+state.etco2).toFixed(1).replace('.0','');$('vrr').textContent=state.rr;
+ $('vart').textContent=`${state.sap}/${state.dap}`;$('vmap').textContent=map();$('vspo2').textContent=$('rhythm').value==='Fibrillazione ventricolare'?'—':state.spo2;
  hemoDefs.forEach(([k])=>$('m_'+k).textContent=state[k]);
  $('studentPatient').textContent=$('name').value;$('studentWeight').textContent=$('weight').value;
  document.querySelectorAll('[data-key]').forEach(el=>{let k=el.dataset.key;el.style.display=active[k]?'':'none'});
@@ -240,7 +240,7 @@ function v25TherapyStep(dt,now){
  let residual=Math.max(Math.abs(v25.fx.preload),Math.abs(v25.fx.contractility),Math.abs(v25.fx.tone));let hemoActive=v25.inf.fluid||v25.inf.dob||v25.inf.nor||now<v25.fluidBolusUntil||residual>.05;if(hemoActive){phys.preload=clamp(v25.base.preload+v25.fx.preload,20,180);phys.contractility=clamp(v25.base.contractility+v25.fx.contractility,20,180);phys.vascularTone=clamp(v25.base.vascularTone+v25.fx.tone,30,180);setPhysInputs()}else{v25.fx.preload=0;v25.fx.contractility=0;v25.fx.tone=0;phys.preload=v25.base.preload;phys.contractility=v25.base.contractility;phys.vascularTone=v25.base.vascularTone;setPhysInputs()}
 }
 function v25PerfusionEt(){if($('rhythm').value==='Fibrillazione ventricolare')return 3;let co=+($('co').value)||3.2,rr=Math.max(1,+$('rr').value||18),perf=clamp(co/2.9,.25,1.55),vent=clamp(12/rr,.45,1.8);return clamp(v25.etRef*(.55+.45*perf)*Math.pow(vent,.28),3,80)}
-function v25Sample(t){let rec={t};v25Metrics.forEach(([k])=>{if(k==='map')rec[k]=map();else if(k==='mac')rec[k]=+$('mac').value;else if(k==='afterload')rec[k]=phys.vascularTone;else if(k==='preload')rec[k]=phys.preload;else if(k==='contractility')rec[k]=phys.contractility;else rec[k]=+(($(k)&&$(k).value)||state[k]||0)});v25.history.push(rec);if(v25.history.length>1800)v25.history.shift()}
+function v25Sample(t){let rec={t};v25Metrics.forEach(([k])=>{if(k==='map')rec[k]=map();else if(k==='hr'&&$('rhythm').value==='Fibrillazione ventricolare')rec[k]=null;else if(k==='mac')rec[k]=+$('mac').value;else if(k==='afterload')rec[k]=phys.vascularTone;else if(k==='preload')rec[k]=phys.preload;else if(k==='contractility')rec[k]=phys.contractility;else rec[k]=+(($(k)&&$(k).value)||state[k]||0)});v25.history.push(rec);if(v25.history.length>1800)v25.history.shift()}
 const v26Groups=[
  ['vitals',['hr','etco2','spo2']],
  ['pressure',['sap','dap','map']],

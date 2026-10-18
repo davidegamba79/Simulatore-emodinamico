@@ -214,12 +214,15 @@ function interpret(){if($('rhythm').value==='Artefatto massaggio cardiaco 120/mi
   return;
  }
  let P=phys.preload,C=window.macEffectiveContractility||phys.contractility,V=window.macEffectiveTone||phys.vascularTone,m=map(),ppv=+state.ppv,co=+state.co;
+ const hr=+state.hr,sv=+state.sv,pulsePressure=(+state.sap)-(+state.dap);
+ const tachyLowFlow=$('rhythm').value==='Tachicardia sinusale'&&hr>=180&&(sv<=25||pulsePressure<=25);
  $('iPre').textContent=P<75?'↓':P>125?'↑':'↔';
  $('iAfter').textContent=V<75?'↓':V>125?'↑':'↔';
  $('iContr').textContent=C<75?'↓':C>125?'↑':'↔';
  $('iFluid').textContent=ppv>=15?'Probabile':'Bassa';
- $('iPerf').textContent=(m<60||co<1.8)?'Ridotta':m>70&&co>=2.2?'Adeguata':'Borderline';
+ $('iPerf').textContent=tachyLowFlow?'Da rivalutare':(m<60||co<1.8)?'Ridotta':m>70&&co>=2.2?'Adeguata':'Borderline';
  let txt=[];
+ if(tachyLowFlow)txt.push('tachicardia marcata: possibile compromissione della portata cardiaca per ridotto riempimento ventricolare; valutare SV e pressione differenziale');
  if(P<70)txt.push('pattern compatibile con riduzione del precarico');
  if(V<70)txt.push('basso tono vascolare');
  if(V>135)txt.push('afterload elevato');

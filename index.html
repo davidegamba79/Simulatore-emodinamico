@@ -76,15 +76,7 @@
    <label>Tono vascolare / SVR <input id="vascularTone" type="range" min="30" max="180" value="100"><span id="vascularToneOut">100%</span></label>
    <label>Compliance arteriosa <input id="compliance" type="range" min="40" max="160" value="100"><span id="complianceOut">100%</span></label>
   </div>
-  <div class="row" style="margin-top:10px">
-   <button id="fluid250">Fluido +10 mL/kg</button>
-   <button id="vasopressor">Vasopressore</button>
-   <button id="inotrope">Inotropo</button>
-   <button id="vasodilator">Vasodilatatore</button>
-   <button id="hemorrhage" class="danger">Emorragia</button>
-   <button id="resetPhys">Reset fisiologia</button>
-  </div>
-  <label style="margin-top:9px"><span><input id="autoPhys" type="checkbox" checked style="width:auto"> Calcolo fisiologico automatico</span></label>
+  <label style="margin-top:9px"><span><input id="autoPhys" type="checkbox" checked style="width:auto"> Aggiornamento automatico da terapie (senza spunta: regolazione manuale degli slider)</span></label>
  </section>
 
  <section class="card" id="therapyV25"><h2>Terapie dinamiche — V2.5</h2>
@@ -135,7 +127,7 @@
  </div>
 
  <div class="card trend-card" id="trendV25">
-  <div class="trend-head"><h2>Trend monitor — V2.8.48</h2><b id="v25Clock">00:00</b></div>
+  <div class="trend-head"><h2>Trend monitor — V2.8.49</h2><b id="v25Clock">00:00</b></div>
   <div class="trend-controls"><label>Finestra<select id="v25Window"><option value="120">2 min</option><option value="300">5 min</option><option value="600">10 min</option><option value="1800">30 min</option></select></label></div>
   <div id="v26TrendGrid" class="v26-trend-grid">
    <div class="v26-chart"><h3>Parametri vitali</h3><canvas id="trend-vitals"></canvas><div class="v26-legend" id="legend-vitals"></div></div>
@@ -155,8 +147,8 @@
 </div>
 </main>
 
-<script src="./app.js?v=2848"></script>
+<script src="./app.js?v=2849"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./wave-v2.js?v=2848"></script>
+<script src="./wave-v2.js?v=2849"></script>
 </body>
 </html>

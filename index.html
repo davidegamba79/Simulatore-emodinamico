@@ -35,7 +35,7 @@
  </section>
 
  <section class="card"><h2>ECG</h2>
-  <label>Ritmo<select id="rhythm"><option>Ritmo sinusale</option><option>Bradicardia sinusale</option><option>Tachicardia sinusale</option><option>Tachicardia ventricolare</option><option>Fibrillazione ventricolare</option><option>PEA / attività elettrica</option><option>Artefatto massaggio cardiaco 120/min</option><option>Asistolia</option></select></label>
+  <label>Ritmo<select id="rhythm"><option>Ritmo sinusale</option><option>Bradicardia sinusale</option><option>Tachicardia sinusale</option><option>Tachicardia ventricolare con polso</option><option>Tachicardia ventricolare senza polso</option><option>Fibrillazione ventricolare</option><option>PEA / attività elettrica</option><option>Artefatto massaggio cardiaco 120/min</option><option>Asistolia</option></select></label>
   <label>FC (bpm)<input id="hr" type="range" min="0" max="260" value="80"><span id="hrOut">80</span></label>
  </section>
 
@@ -140,7 +140,7 @@
  </div>
 
  <div class="card trend-card" id="trendV25">
-  <div class="trend-head"><h2>Trend monitor — V2.8.33</h2><b id="v25Clock">00:00</b></div>
+  <div class="trend-head"><h2>Trend monitor — V2.8.34</h2><b id="v25Clock">00:00</b></div>
   <div class="trend-controls"><label>Finestra<select id="v25Window"><option value="120">2 min</option><option value="300">5 min</option><option value="600">10 min</option><option value="1800">30 min</option></select></label></div>
   <div id="v26TrendGrid" class="v26-trend-grid">
    <div class="v26-chart"><h3>Parametri vitali</h3><canvas id="trend-vitals"></canvas><div class="v26-legend" id="legend-vitals"></div></div>
@@ -160,8 +160,8 @@
 </div>
 </main>
 
-<script src="./app.js?v=2833"></script>
+<script src="./app.js?v=2834"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./wave-v2.js?v=2830"></script>
+<script src="./wave-v2.js?v=2834"></script>
 </body>
 </html>

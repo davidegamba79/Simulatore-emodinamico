@@ -185,6 +185,11 @@ function physiology(){
  Object.entries(vals).forEach(([k,v])=>{if($(k)&&(!manualLocks[k]||rh==='Fibrillazione ventricolare'))$(k).value=v});$('preloadOut').textContent=Math.round(phys.preload)+'%';$('contractilityOut').textContent=Math.round(phys.contractility)+'%';$('vascularToneOut').textContent=Math.round(phys.vascularTone)+'%';$('complianceOut').textContent=Math.round(phys.compliance)+'%';render();interpret()
 }
 function interpret(){
+ if($('rhythm').value==='Fibrillazione ventricolare'){
+  $('iPre').textContent='—';$('iAfter').textContent='—';$('iContr').textContent='—';$('iFluid').textContent='Non valutabile';$('iPerf').textContent='Assente';
+  $('interpretation').textContent='Assenza di perfusione — arresto cardiocircolatorio.';
+  return;
+ }
  let P=phys.preload,C=window.macEffectiveContractility||phys.contractility,V=window.macEffectiveTone||phys.vascularTone,m=map(),ppv=+state.ppv,co=+state.co;
  $('iPre').textContent=P<75?'↓':P>125?'↑':'↔';
  $('iAfter').textContent=V<75?'↓':V>125?'↑':'↔';

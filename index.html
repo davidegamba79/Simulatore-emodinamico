@@ -62,12 +62,7 @@
   </select></label>
   <div class="row" style="margin-top:9px"><button class="primary" id="startCase">Avvia caso</button><button id="advanceCase">+ 1 minuto</button><button class="danger" id="endCase">Termina caso</button></div>
   <div id="caseInstructor" class="status" style="margin-top:9px">Nessun caso clinico attivo.</div>
-  <div class="case-actions">
-   <button id="caseFluid">Fluido 10 mL/kg</button><button id="casePressor">Vasopressore</button>
-   <button id="caseInotrope">Inotropo</button><button id="caseOxygen">O₂ / ventilazione</button>
-   <button id="caseCPR">Avvia CPR</button><button id="caseShock">Defibrilla</button>
-  </div>
-  <div id="caseFeedback" class="status" style="margin-top:8px">Le azioni verranno registrate e influenzeranno il paziente.</div>
+  <div id="caseFeedback" class="status" style="margin-top:8px">Gestisci il caso utilizzando i controlli del simulatore.</div>
  </section>
 <section class="card"><h2>Anestesia inalatoria</h2>
   <div class="status">1,0 MAC = baseline del paziente anestetizzato. La variazione del MAC modifica progressivamente tono vascolare e contrattilità; FC, pressione, CO, EtCO₂ e onde reagiscono attraverso il motore fisiologico.</div>
@@ -140,7 +135,7 @@
  </div>
 
  <div class="card trend-card" id="trendV25">
-  <div class="trend-head"><h2>Trend monitor — V2.8.47</h2><b id="v25Clock">00:00</b></div>
+  <div class="trend-head"><h2>Trend monitor — V2.8.48</h2><b id="v25Clock">00:00</b></div>
   <div class="trend-controls"><label>Finestra<select id="v25Window"><option value="120">2 min</option><option value="300">5 min</option><option value="600">10 min</option><option value="1800">30 min</option></select></label></div>
   <div id="v26TrendGrid" class="v26-trend-grid">
    <div class="v26-chart"><h3>Parametri vitali</h3><canvas id="trend-vitals"></canvas><div class="v26-legend" id="legend-vitals"></div></div>
@@ -160,8 +155,8 @@
 </div>
 </main>
 
-<script src="./app.js?v=2847"></script>
+<script src="./app.js?v=2848"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./wave-v2.js?v=2847"></script>
+<script src="./wave-v2.js?v=2848"></script>
 </body>
 </html>

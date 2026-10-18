@@ -303,10 +303,6 @@ function v25Loop(now){
 v25Setup();requestAnimationFrame(v25Loop);
 /* ===== end V2.8.2 ===== */
 
-let scenarioStep=-1;const scenario=['Paziente anestetizzato','PEA 80','CPR EtCO₂ basso','CPR EtCO₂ migliore','CPR ROSC imminente','ROSC'];
-function stepScenario(){scenarioStep=Math.min(scenarioStep+1,scenario.length-1);applyPreset(scenario[scenarioStep]);$('scenarioStatus').textContent=`Fase ${scenarioStep+1}/${scenario.length}: ${scenario[scenarioStep]}${scenarioStep==1?' — PAUSA: riconoscimento arresto/ritmo':''}${scenarioStep==4?' — PAUSA: ricercare segni di ROSC':''}`}
-$('startScenario').onclick=()=>{scenarioStep=-1;stepScenario()};$('nextScenario').onclick=stepScenario;$('stopScenario').onclick=()=>{$('scenarioStatus').textContent='Scenario fermato';scenarioStep=-1};
-
 $('modeBtn').onclick=()=>{document.body.classList.toggle('student');let s=document.body.classList.contains('student');$('modeTitle').textContent=s?'Monitor studenti':'Console istruttore';$('modeBtn').textContent=s?'Torna alla console':'Modalità studenti'};
 $('studentBtn').onclick=()=>{let u=new URL(location.href);u.searchParams.set('student','1');window.open(u.toString(),'_blank')};
 $('fullBtn').onclick=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();else document.exitFullscreen?.()};

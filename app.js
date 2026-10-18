@@ -187,7 +187,7 @@ function setPhysInputs(){
  ['preload','contractility','vascularTone','compliance'].forEach(k=>{$(k).value=phys[k];$(k+'Out').textContent=Math.round(phys[k])+'%'})
 }
 function physiology(){
- if(!$('autoPhys').checked)return render();
+ // Anche in modalità manuale gli slider aggiornano il modello emodinamico.
  phys.preload=+$('preload').value;phys.contractility=+$('contractility').value;phys.vascularTone=+$('vascularTone').value;phys.compliance=+$('compliance').value;
  let P=phys.preload/100,mac=clamp(+$('mac').value||1,.6,2),md=mac-1,macC=Math.exp(-.28*md-.08*Math.max(md,0)*Math.max(md,0)),macV=Math.exp(-.35*md-.10*Math.max(md,0)*Math.max(md,0)),C=(phys.contractility/100)*macC,V=(phys.vascularTone/100)*macV,A=phys.compliance/100;window.macEffectiveContractility=C*100;window.macEffectiveTone=V*100;
  const calc=hr=>{hr=Math.max(1,hr);let filling=clamp(Math.pow(P,.72),.25,1.45),tp=hr>110?clamp(1/(1+.008*(hr-110)*clamp(1+.9*Math.max(0,1-P)+.65*Math.max(0,1-A),.7,2)),.38,1):1;tp*=hr>140?1/(1+.004*(hr-140)):1;let bf=hr<70?clamp(1+(70-hr)/250,1,1.16):1,ap=clamp(Math.pow(V,-.22),.72,1.22),sv=clamp(36*filling*Math.pow(C,.78)*ap*tp*bf,5,70),co=clamp(sv*hr/1000,.25,7.5),svr=clamp(1800*V,450,3400),map=clamp(co*svr/80,20,155),pp=clamp((sv/36)*(50/A),12,85),dap=clamp(map-pp/3,12,125),sap=clamp(dap+pp,25,210);return{hr,sv,co,svr,map,pp,dap,sap}};
@@ -231,15 +231,10 @@ function interpret(){if($('rhythm').value==='Artefatto massaggio cardiaco 120/mi
  if(!txt.length)txt.push('profilo emodinamico relativamente stabile');
  $('interpretation').textContent=txt.join(' · ')+'.';
 }
-['preload','contractility','vascularTone','compliance'].forEach(k=>$(k).addEventListener('input',physiology));
+['preload','contractility','vascularTone','compliance'].forEach(k=>$(k).addEventListener('input',()=>{if(!$('autoPhys').checked&&typeof v25!=='undefined'){v25.base.preload=+$('preload').value;v25.base.contractility=+$('contractility').value;v25.base.vascularTone=+$('vascularTone').value;}physiology()}));
 $('mac').addEventListener('input',()=>{$('macOut').textContent=(+$('mac').value).toFixed(1).replace('.',',');physiology()});$('mac').addEventListener('change',()=>{if(typeof v25Event==='function')v25Event('MAC impostato a '+(+$('mac').value).toFixed(1));});
 $('autoPhys').addEventListener('change',physiology);
-$('fluid250').onclick=()=>{phys.preload=clamp(+$('preload').value+22,20,180);setPhysInputs();logEvent('Fluido 10 mL/kg: ↑ precarico');physiology()};
-$('vasopressor').onclick=()=>{phys.vascularTone=clamp(+$('vascularTone').value+28,30,180);setPhysInputs();logEvent('Vasopressore: ↑ tono vascolare/SVR');physiology()};
-$('inotrope').onclick=()=>{phys.contractility=clamp(+$('contractility').value+25,20,180);setPhysInputs();logEvent('Inotropo: ↑ contrattilità');physiology()};
-$('vasodilator').onclick=()=>{phys.vascularTone=clamp(+$('vascularTone').value-25,30,180);setPhysInputs();logEvent('Vasodilatatore: ↓ tono vascolare/SVR');physiology()};
-$('hemorrhage').onclick=()=>{phys.preload=clamp(+$('preload').value-28,20,180);setPhysInputs();logEvent('Emorragia simulata: ↓ precarico');physiology()};
-$('resetPhys').onclick=()=>{phys={preload:100,contractility:100,vascularTone:100,compliance:100};setPhysInputs();logEvent('Fisiologia ripristinata');physiology()};
+
 
 
 /* ===== V2.8.14 dobutamine response + norepinephrine dose-response + drug washout + MAC closed-loop hemodynamics ===== */
@@ -302,7 +297,7 @@ function v25Draw(){
 }
 function v25RenderEvents(){$('v25TrendEvents').textContent=v25.events.slice(-5).map(e=>{let m=Math.floor(e.t/60),s=Math.floor(e.t%60);return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+' '+e.txt}).join(' · ')}
 function v25Loop(now){
- let dt=Math.min(.5,(now-v25.lastPhys)/1000);if(dt>=.20){v25.lastPhys=now;v25.applying=true;v25TherapyStep(dt,now);physiology();let target=v25PerfusionEt();v25.etEffective+=(target-v25.etEffective)*(1-Math.exp(-dt/2.2));if(!manualLocks.etco2||$('rhythm').value==='Artefatto massaggio cardiaco 120/min'||($('rhythm').value==='Fibrillazione ventricolare'||$('rhythm').value==='Tachicardia ventricolare senza polso'||$('rhythm').value==='PEA / attività elettrica'||$('rhythm').value==='Asistolia'))$('etco2').value=(Math.round(v25.etEffective*10)/10).toFixed(1);render();v25.applying=false}
+ let dt=Math.min(.5,(now-v25.lastPhys)/1000);if(dt>=.20){v25.lastPhys=now;v25.applying=true;if($('autoPhys').checked)v25TherapyStep(dt,now);physiology();let target=v25PerfusionEt();v25.etEffective+=(target-v25.etEffective)*(1-Math.exp(-dt/2.2));if(!manualLocks.etco2||$('rhythm').value==='Artefatto massaggio cardiaco 120/min'||($('rhythm').value==='Fibrillazione ventricolare'||$('rhythm').value==='Tachicardia ventricolare senza polso'||$('rhythm').value==='PEA / attività elettrica'||$('rhythm').value==='Asistolia'))$('etco2').value=(Math.round(v25.etEffective*10)/10).toFixed(1);render();v25.applying=false}
  let sec=(now-v25.start)/1000,mm=Math.floor(sec/60),ss=Math.floor(sec%60);$('v25Clock').textContent=String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');if(sec-v25.lastSample>=1){v25.lastSample=sec;v25Sample(sec);v25Draw()}requestAnimationFrame(v25Loop)
 }
 v25Setup();requestAnimationFrame(v25Loop);

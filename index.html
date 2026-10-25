@@ -103,16 +103,7 @@
 
 
  <div class="card hemo-wrap" data-key="hemo"><h2>Emodinamica avanzata — MostCare Up / PRAM (simulazione didattica)</h2><div class="hemo" id="hemoMetrics"></div></div>
- <div class="card" data-key="hemo"><h2>Interpretazione emodinamica automatica</h2>
-   <div id="interpretation" class="status">Monitoraggio non ancora attivo.</div>
-   <div class="hemo" style="margin-top:8px">
-    <div class="metric"><small>Precarico</small><b id="iPre">—</b></div>
-    <div class="metric"><small>Afterload</small><b id="iAfter">—</b></div>
-    <div class="metric"><small>Contrattilità</small><b id="iContr">—</b></div>
-    <div class="metric"><small>Fluid responsiveness</small><b id="iFluid">—</b></div>
-    <div class="metric"><small>Perfusione</small><b id="iPerf">—</b></div>
-   </div>
- </div>
+
 
  <section class="card" id="therapyV25"><h2>Terapie dinamiche — V2.5</h2>
   <div class="therapy-grid">
@@ -126,7 +117,7 @@
  </section>
 
  <div class="card trend-card" id="trendV25">
-  <div class="trend-head"><h2>Trend monitor — V2.8.56</h2><b id="v25Clock">00:00</b></div>
+  <div class="trend-head"><h2>Trend monitor — V2.8.57</h2><b id="v25Clock">00:00</b></div>
   <div class="trend-controls"><label>Finestra<select id="v25Window"><option value="120">2 min</option><option value="300">5 min</option><option value="600">10 min</option><option value="1800">30 min</option></select></label></div>
   <div id="v26TrendGrid" class="v26-trend-grid">
    <div class="v26-chart"><h3>Parametri vitali</h3><canvas id="trend-vitals"></canvas><div class="v26-legend" id="legend-vitals"></div></div>
@@ -142,12 +133,22 @@
   <div class="trend-legend">23 parametri registrati ogni secondo · curve normalizzate rispetto al basale · marker verticali = eventi/terapie</div>
   <div id="v25TrendEvents" class="trend-events"></div>
  </div>
+ <div class="card" data-key="hemo"><h2>Interpretazione emodinamica automatica</h2>
+   <div id="interpretation" class="status">Monitoraggio non ancora attivo.</div>
+   <div class="hemo" style="margin-top:8px">
+    <div class="metric"><small>Precarico</small><b id="iPre">—</b></div>
+    <div class="metric"><small>Afterload</small><b id="iAfter">—</b></div>
+    <div class="metric"><small>Contrattilità</small><b id="iContr">—</b></div>
+    <div class="metric"><small>Fluid responsiveness</small><b id="iFluid">—</b></div>
+    <div class="metric"><small>Perfusione</small><b id="iPerf">—</b></div>
+   </div>
+ </div>
 </section>
 </div>
 </main>
 
-<script src="./app.js?v=2856"></script>
+<script src="./app.js?v=2857"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./wave-v2.js?v=2856"></script>
+<script src="./wave-v2.js?v=2857"></script>
 </body>
 </html>

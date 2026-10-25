@@ -166,7 +166,7 @@ function manualSet(k,on){
  manualLocks[k]=on;
  const b=document.getElementById('manual-'+k);
  if(b){b.textContent=on?'MANUALE':'AUTO';b.style.color=on?'#ffcf77':'#8db9c5';b.title=on?'Valore bloccato: clicca per tornare automatico':'Valore calcolato: clicca per bloccarlo';}
- if(!on){if(k==='hr'||k==='sap'||k==='dap'||hemoDefs.some(d=>d[0]===k))physiology();else render();}
+ if(!on){if(k==='etco2'){v25.etRef=clamp(+$('etco2Set').value||33,3,80)}if(k==='hr'||k==='sap'||k==='dap'||hemoDefs.some(d=>d[0]===k))physiology();else render();}
 }
 function manualSetup(){
  manualParams.forEach(k=>{
@@ -251,7 +251,7 @@ function v25Setup(){
  $('v25NorBtn').onclick=()=>v25Toggle($('v25NorBtn'),'nor','Noradrenalina');
  $('v25FluidBolus').onclick=()=>{if(!v25.inf.fluid&&!v25.inf.dob&&!v25.inf.nor)v25CaptureUntreatedBase();v25.fluidBolusUntil=performance.now()+30000;v25Flash($('v25FluidBolus'));v25Event('Fluid challenge 2 mL/kg / 30 s')};
  $('v25AtBtn').onclick=()=>{v25.atropineUntil=performance.now()+120000;v25Flash($('v25AtBtn'));v25Event('Atropina '+(+$('v25AtDose').value||0)+' µg/kg')};
- $('etco2Set').addEventListener('input',()=>{v25.etRef=clamp(+$('etco2Set').value||33,3,80);if(!v25.applying){v25.etEffective=v25.etRef;$('etco2').value=v25.etEffective}});
+ $('etco2Set').addEventListener('input',()=>{const raw=+$('etco2Set').value;if(!Number.isFinite(raw))return;v25.etRef=clamp(raw,3,80);if(!v25.applying){manualSet('etco2',true);v25.etEffective=v25.etRef;$('etco2').value=v25.etEffective;render()}});
  $('etco2Set').addEventListener('change',()=>v25Event('EtCO₂ impostata '+v25.etRef+' mmHg'));
  $('v25Window').addEventListener('change',v25Draw)
 }

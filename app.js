@@ -20,7 +20,7 @@ function render(){
  hemoDefs.forEach(([k])=>{const rh=$('rhythm').value;const nv=(rh==='Artefatto massaggio cardiaco 120/min')||(rh==='Tachicardia ventricolare con polso'&&(k==='ppv'||k==='svv'))||((rh==='Tachicardia ventricolare senza polso'||rh==='Fibrillazione ventricolare'||rh==='PEA / attività elettrica'||rh==='Asistolia')&&['svr','svri','ea','ppv','svv'].includes(k));$('m_'+k).textContent=nv?'N/V':state[k]});
  $('studentPatient').textContent=$('name').value;$('studentWeight').textContent=$('weight').value;
  document.querySelectorAll('[data-key]').forEach(el=>{let k=el.dataset.key;el.style.display=active[k]?'':'none'});
- save();
+ if(!document.body.classList.contains('student'))save();
 }
 function save(){localStorage.setItem('recoverCaneState',JSON.stringify({state,active,name:$('name').value,weight:$('weight').value,rhythm:$('rhythm').value,caseState:typeof caseState!=='undefined'?caseState:null,casePresentation:(typeof caseState!=='undefined'&&caseState.active)?clinicalCases[caseState.key].presentation:'',caseEvolutionText:(typeof caseState!=='undefined'&&caseState.active)?caseEvolution():''}))}
 function setActive(v){keys.forEach(k=>active[k]=v);document.querySelectorAll('[data-toggle]').forEach(x=>x.checked=v);render()}
@@ -297,6 +297,7 @@ function v25Draw(){
 }
 function v25RenderEvents(){$('v25TrendEvents').textContent=v25.events.slice(-5).map(e=>{let m=Math.floor(e.t/60),s=Math.floor(e.t%60);return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+' '+e.txt}).join(' · ')}
 function v25Loop(now){
+ if(document.body.classList.contains('student')){requestAnimationFrame(v25Loop);return;}
  let dt=Math.min(.5,(now-v25.lastPhys)/1000);if(dt>=.20){v25.lastPhys=now;v25.applying=true;if($('autoPhys').checked)v25TherapyStep(dt,now);physiology();let target=v25PerfusionEt();v25.etEffective+=(target-v25.etEffective)*(1-Math.exp(-dt/2.2));if(!manualLocks.etco2||$('rhythm').value==='Artefatto massaggio cardiaco 120/min'||($('rhythm').value==='Fibrillazione ventricolare'||$('rhythm').value==='Tachicardia ventricolare senza polso'||$('rhythm').value==='PEA / attività elettrica'||$('rhythm').value==='Asistolia'))$('etco2').value=(Math.round(v25.etEffective*10)/10).toFixed(1);render();v25.applying=false}
  let sec=(now-v25.start)/1000,mm=Math.floor(sec/60),ss=Math.floor(sec%60);$('v25Clock').textContent=String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');if(sec-v25.lastSample>=1){v25.lastSample=sec;v25Sample(sec);v25Draw()}requestAnimationFrame(v25Loop)
 }

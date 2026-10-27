@@ -36,3 +36,17 @@
 #trendV25 .v26-chart canvas{width:100%;height:165px!important;display:block;background:#03090d;border:1px solid #18303b;border-radius:6px}
 .v26-legend{font-size:10.5px;line-height:1.45;color:#b8c8cf;padding-top:5px;min-height:32px;overflow-wrap:anywhere}
 @media(max-width:760px){.v26-trend-grid{grid-template-columns:1fr}#trendV25 .v26-chart canvas{height:155px!important}}
+
+/* V2.8.60 — compact therapy overview, responsive to available panel width */
+#therapyV25{container-type:inline-size}
+#therapyV25 .therapy-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#therapyV25 .therapy{min-width:0;min-height:100px;padding:8px!important;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(76px,100px)!important;grid-template-areas:"drug dose" "drug action"!important;gap:4px 7px!important;align-content:center;align-items:center}
+#therapyV25 .therapy:first-child{grid-template-areas:"drug action"!important}
+#therapyV25 .therapy>div{grid-area:drug!important;grid-column:auto!important;min-width:0}
+#therapyV25 .therapy>div b{font-size:13px;line-height:1.2}
+#therapyV25 .therapy>div small{font-size:10px;line-height:1.25}
+#therapyV25 .therapy>label{grid-area:dose!important;min-width:0!important;font-size:10px}
+#therapyV25 .therapy>label input{width:100%!important;padding:5px 6px!important;margin:2px 0 0!important;font-size:13px}
+#therapyV25 .therapy>button{grid-area:action!important;min-width:0!important;width:100%;min-height:36px;padding:5px 4px;font-size:11px}
+@container (min-width:840px){#therapyV25 .therapy-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@container (max-width:460px){#therapyV25 .therapy-grid{grid-template-columns:1fr}}

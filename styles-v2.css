@@ -36,15 +36,3 @@
 #trendV25 .v26-chart canvas{width:100%;height:165px!important;display:block;background:#03090d;border:1px solid #18303b;border-radius:6px}
 .v26-legend{font-size:10.5px;line-height:1.45;color:#b8c8cf;padding-top:5px;min-height:32px;overflow-wrap:anywhere}
 @media(max-width:760px){.v26-trend-grid{grid-template-columns:1fr}#trendV25 .v26-chart canvas{height:155px!important}}
-
-/* V2.8.58 — six dynamic therapies visible together on desktop */
-#therapyV25 .therapy-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
-#therapyV25 .therapy{min-width:0;grid-template-columns:minmax(0,1fr) minmax(90px,112px)!important;padding:9px!important;gap:5px 9px!important;align-content:center}
-#therapyV25 .therapy>div b{font-size:13px}
-#therapyV25 .therapy>div small{font-size:10.5px;line-height:1.3}
-#therapyV25 .therapy>label{font-size:10.5px}
-#therapyV25 .therapy>label input{padding:6px 7px;font-size:13px}
-#therapyV25 .therapy>button{min-height:31px;padding:6px 8px;font-size:12px}
-@media(max-width:1200px){#therapyV25 .therapy-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:760px){#therapyV25 .therapy-grid{grid-template-columns:1fr}}
-@media(max-width:520px){#therapyV25 .therapy{grid-template-columns:1fr!important}}

@@ -19,7 +19,7 @@ function render(){
  $('vart').textContent=`${state.sap}/${state.dap}`;$('vmap').textContent=map();$('vspo2').textContent=cpr?'—':($('rhythm').value==='Fibrillazione ventricolare'||$('rhythm').value==='Tachicardia ventricolare senza polso'||$('rhythm').value==='PEA / attività elettrica'||$('rhythm').value==='Asistolia')?'—':state.spo2;
  hemoDefs.forEach(([k])=>{const rh=$('rhythm').value;const nv=(rh==='Artefatto massaggio cardiaco 120/min')||(rh==='Tachicardia ventricolare con polso'&&(k==='ppv'||k==='svv'))||((rh==='Tachicardia ventricolare senza polso'||rh==='Fibrillazione ventricolare'||rh==='PEA / attività elettrica'||rh==='Asistolia')&&['svr','svri','ea','ppv','svv'].includes(k));$('m_'+k).textContent=nv?'N/V':state[k]});
  $('studentPatient').textContent=$('name').value;$('studentWeight').textContent=$('weight').value;
- document.querySelectorAll('[data-key]').forEach(el=>{let k=el.dataset.key;el.style.display=active[k]?'':'none'});
+ document.querySelectorAll('[data-key]').forEach(el=>{let k=el.dataset.key;el.style.display=(active[k]&&!(k==='capno'&&window.premedAwakePhase))?'':'none'});const awakeNotice=$('awakeCapnoNotice');if(awakeNotice)awakeNotice.style.display=window.premedAwakePhase?'flex':'none';
  if(!document.body.classList.contains('student'))save();
 }
 function save(){localStorage.setItem('recoverCaneState',JSON.stringify({state,active,name:$('name').value,weight:$('weight').value,rhythm:$('rhythm').value,caseState:typeof caseState!=='undefined'?caseState:null,casePresentation:(typeof caseState!=='undefined'&&caseState.active)?clinicalCases[caseState.key].presentation:'',caseEvolutionText:(typeof caseState!=='undefined'&&caseState.active)?caseEvolution():''}))}

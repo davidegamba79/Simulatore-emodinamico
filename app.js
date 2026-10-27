@@ -389,6 +389,16 @@ render()}});
 
 setActive(true);setPhysInputs();manualSetup();physiology();
 
+// Aggiornamenti GitHub Pages: disattiva il vecchio Service Worker e le sue cache.
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+  window.addEventListener('load', async () => {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map(reg => reg.unregister()));
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.filter(key => key.startsWith('sim-emodinamico-')).map(key => caches.delete(key)));
+      }
+    } catch (err) { console.warn('Pulizia cache simulatore:', err); }
+  });
 }

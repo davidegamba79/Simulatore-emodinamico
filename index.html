@@ -9,8 +9,23 @@
 <meta name="theme-color" content="#071016">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="stylesheet" href="./styles.css">
-<link rel="stylesheet" href="./styles-v2.css">
+<link rel="stylesheet" href="./styles-v2.css?v=2861">
 <title>Simulatore emodinamico</title>
+<style id="therapy-layout-2861">
+/* Applied in the document to avoid stale stylesheet caching */
+#therapyV25{container-type:normal!important}
+#therapyV25 .therapy-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}
+#therapyV25 .therapy{min-width:0!important;min-height:84px!important;padding:7px!important;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(80px,105px)!important;grid-template-areas:"drug dose" "drug action"!important;gap:3px 7px!important;align-content:center!important;align-items:center!important}
+#therapyV25 .therapy:first-child{grid-template-areas:"drug action"!important}
+#therapyV25 .therapy>div{grid-area:drug!important;grid-column:auto!important;min-width:0!important}
+#therapyV25 .therapy>div b{font-size:13px!important;line-height:1.2!important}
+#therapyV25 .therapy>div small{font-size:10px!important;line-height:1.2!important}
+#therapyV25 .therapy>label{grid-area:dose!important;min-width:0!important;font-size:10px!important}
+#therapyV25 .therapy>label input{width:100%!important;padding:5px 6px!important;margin:2px 0 0!important;font-size:13px!important}
+#therapyV25 .therapy>button{grid-area:action!important;width:100%!important;min-width:0!important;min-height:34px!important;padding:5px 4px!important;font-size:11px!important}
+@media(min-width:1550px){#therapyV25 .therapy-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+@media(max-width:640px){#therapyV25 .therapy-grid{grid-template-columns:1fr!important}}
+</style>
 </head>
 <body>
 
@@ -105,7 +120,7 @@
  <div class="card hemo-wrap" data-key="hemo"><h2>Emodinamica avanzata — MostCare Up / PRAM (simulazione didattica)</h2><div class="hemo" id="hemoMetrics"></div></div>
 
 
- <section class="card" id="therapyV25"><h2>Terapie dinamiche — V2.5</h2>
+ <section class="card" id="therapyV25"><h2>Terapie dinamiche — V2.8.61</h2>
   <div class="therapy-grid">
    <div class="therapy"><div><b>Fluid challenge</b><small>2 mL/kg in 30 secondi</small></div><button id="v25FluidBolus">Somministra</button></div>
    <div class="therapy"><div><b>Cristalloidi</b><small>Infusione continua</small></div><label>mL/kg/h<input id="v25FluidRate" type="number" min="0" max="50" step="1" value="2"></label><button id="v25FluidBtn">Avvia</button></div>
@@ -117,7 +132,7 @@
  </section>
 
  <div class="card trend-card" id="trendV25">
-  <div class="trend-head"><h2>Trend monitor — V2.8.60</h2><b id="v25Clock">00:00</b></div>
+  <div class="trend-head"><h2>Trend monitor — V2.8.61</h2><b id="v25Clock">00:00</b></div>
   <div class="trend-controls"><label>Finestra<select id="v25Window"><option value="120">2 min</option><option value="300">5 min</option><option value="600">10 min</option><option value="1800">30 min</option></select></label></div>
   <div id="v26TrendGrid" class="v26-trend-grid">
    <div class="v26-chart"><h3>Parametri vitali</h3><canvas id="trend-vitals"></canvas><div class="v26-legend" id="legend-vitals"></div></div>
@@ -147,8 +162,8 @@
 </div>
 </main>
 
-<script src="./app.js?v=2860"></script>
+<script src="./app.js?v=2861"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./wave-v2.js?v=2860"></script>
+<script src="./wave-v2.js?v=2861"></script>
 </body>
 </html>

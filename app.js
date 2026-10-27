@@ -316,7 +316,7 @@ function v25Draw(){
 function v25RenderEvents(){$('v25TrendEvents').textContent=v25.events.slice(-5).map(e=>{let m=Math.floor(e.t/60),s=Math.floor(e.t%60);return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+' '+e.txt}).join(' · ')}
 
 // Virtual simulation time is monotonic and independent of the browser clock.
-const simClock={virtual:performance.now(),real:performance.now(),speed:1,paused:false,busy:false};
+const simClock={virtual:performance.now(),real:performance.now(),speed:1,paused:false,busy:false,accumulator:0};
 window.simVirtualNow=()=>simClock.virtual;
 function simAdvancePhysics(seconds){
  const n=Math.ceil(seconds/.25),step=seconds/n;
@@ -352,7 +352,7 @@ function simTimeSetup(){
     const span=Math.min(left,10);
     simAdvancePhysics(span);left-=span;simTimeDisplay();
     if(left>0)setTimeout(batch,0);
-    else{simClock.busy=false;simClock.real=performance.now();buttons.forEach(k=>$(k).disabled=false)}
+    else{simClock.busy=false;simClock.accumulator=0;simClock.real=performance.now();buttons.forEach(k=>$(k).disabled=false)}
    }
    batch();
   };
@@ -363,8 +363,14 @@ function v25Loop(now){
  if(document.body.classList.contains('student')){simClock.real=now;requestAnimationFrame(v25Loop);return}
  const elapsed=Math.min(.5,Math.max(0,(now-simClock.real)/1000));simClock.real=now;
  if(!simClock.busy&&!simClock.paused){
-  const delta=elapsed*simClock.speed;
-  if(delta>=.05)simAdvancePhysics(delta);
+  // Accumulate animation-frame time: at 60 fps a single frame is only
+  // ~0.016 s, so the former 0.05 s threshold discarded every frame.
+  simClock.accumulator+=elapsed*simClock.speed;
+  if(simClock.accumulator>=.05){
+   const delta=simClock.accumulator;
+   simClock.accumulator=0;
+   simAdvancePhysics(delta);
+  }
  }
  simTimeDisplay();
  requestAnimationFrame(v25Loop);

@@ -9,15 +9,20 @@ function art(q){if(E("rhythm")?.value==="Artefatto massaggio cardiaco 120/min")r
 let norFx=(typeof v25!=="undefined"&&v25.fx)?Math.max(0,v25.fx.tone||0):0;
 let norActive=typeof v25!=="undefined"&&v25.inf&&v25.inf.nor;
 let nor=C((norActive||norFx>2?norFx:0)/30,0,1);
+ // Canine dexmedetomidine: high peripheral resistance prolongs arterial
+ // runoff. Preserve the norepinephrine-specific contour independently.
+ const dex=typeof window.premedDexEffect==='function'?window.premedDexEffect():0;
+ const dexTone=C((tone-1)/.7,0,1)*C(dex,0,1);
 let onset=.085,rise=C(.072/Math.pow(con*dp,.10),.055,.092);
 let z=C((q-onset)/rise,0,1),up=z*z*(3-2*z);
 let dt=Math.max(0,q-onset-rise),fall=C(.145+.015*comp-.012*tone,.115,.18);
-let tail=1/(1+Math.pow(dt/fall,1.65));
+let tail=1/(1+Math.pow(dt/(fall*(1+.70*dexTone)),1.65));
 let baseline=up*tail;
 let notchAt=C(.40+.025/comp,.39,.46),notch=C(.065+.012*tone,.045,.085)*G(q,notchAt,.020),dicrotic=C(.075+.018*tone,.055,.105)*G(q,notchAt+.078,.058);
 let constrict=C((tone-1)/.40,0,1),reflection=C((tone-1)*.55,-.10,.46);
 let reflected=reflection*G(q,C(.335-.035*constrict,.29,.36),.065),shoulder=.10*constrict*G(q,.235,.045);
 baseline+=-notch*(1+.20*constrict)+dicrotic*(1+.25*constrict)+reflected+shoulder;
+ baseline+=dexTone*(.10*G(q,.60,.21)+.055*G(q,.82,.16));
 // Peripheral norepinephrine contour: early fast fall (concave in pressure),
 // clear incisura and reflection, then sustained diastolic pressure plateau.
 let systoleEnd=.395,peakAt=onset+rise;

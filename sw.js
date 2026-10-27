@@ -1,1 +1,13 @@
-const CACHE='sim-emodinamico-v2-8-72';const ASSETS=['./','./index.html','./styles.css','./styles-v2.css?v=2872','./app.js?v=2872','./ui-v2.4.js','./wave-v2.js?v=2872','./manifest.webmanifest'];self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>Promise.allSettled(ASSETS.map(u=>c.add(u)))))});self.addEventListener('activate',e=>e.waitUntil(Promise.all([self.clients.claim(),caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k))))])));self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(fetch(e.request).then(r=>{let cp=r.clone();caches.open(CACHE).then(c=>c.put(e.request,cp));return r}).catch(()=>caches.match(e.request)))})
+// V2.8.73: nessuna cache applicativa persistente; aggiornamenti sempre dalla rete.
+self.addEventListener('install', event => { self.skipWaiting(); });
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(key => key.startsWith('sim-emodinamico-')).map(key => caches.delete(key)));
+    await self.registration.unregister();
+    await self.clients.claim();
+  })());
+});
+self.addEventListener('fetch', event => {
+  if (event.request.method === 'GET') event.respondWith(fetch(event.request));
+});

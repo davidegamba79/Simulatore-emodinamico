@@ -190,7 +190,10 @@ function physiology(){
  // Anche in modalità manuale gli slider aggiornano il modello emodinamico.
  phys.preload=+$('preload').value;phys.contractility=+$('contractility').value;phys.vascularTone=+$('vascularTone').value;phys.compliance=+$('compliance').value;
  let P=phys.preload/100,mac=clamp(+$('mac').value||1,.6,2),md=mac-1,macC=Math.exp(-.28*md-.08*Math.max(md,0)*Math.max(md,0)),macV=Math.exp(-.35*md-.10*Math.max(md,0)*Math.max(md,0)),C=(phys.contractility/100)*macC,V=(phys.vascularTone/100)*macV,A=phys.compliance/100;window.macEffectiveContractility=C*100;window.macEffectiveTone=V*100;
- const calc=hr=>{hr=Math.max(1,hr);let filling=clamp(Math.pow(P,.72),.25,1.45),tp=hr>110?clamp(1/(1+.008*(hr-110)*clamp(1+.9*Math.max(0,1-P)+.65*Math.max(0,1-A),.7,2)),.38,1):1;tp*=hr>140?1/(1+.004*(hr-140)):1;let bf=hr<70?clamp(1+(70-hr)/250,1,1.16):1,ap=clamp(Math.pow(V,-.22),.72,1.22),sv=clamp(36*filling*Math.pow(C,.78)*ap*tp*bf,5,70),co=clamp(sv*hr/1000,.25,7.5),svr=clamp(1800*V,450,3400),map=clamp(co*svr/80,20,155),pp=clamp((sv/36)*(50/A),12,85),dap=clamp(map-pp/3,12,125),sap=clamp(dap+pp,25,210);return{hr,sv,co,svr,map,pp,dap,sap}};
+ const calc=hr=>{hr=Math.max(1,hr);let filling=clamp(Math.pow(P,.72),.25,1.45),tp=hr>110?clamp(1/(1+.008*(hr-110)*clamp(1+.9*Math.max(0,1-P)+.65*Math.max(0,1-A),.7,2)),.38,1):1;tp*=hr>140?1/(1+.004*(hr-140)):1;let bf=hr<70?clamp(1+(70-hr)/250,1,1.16):1,ap=clamp(Math.pow(V,-.22),.72,1.22),sv=clamp(36*filling*Math.pow(C,.78)*ap*tp*bf,5,70),co=clamp(sv*hr/1000,.25,7.5),svr=clamp(1800*V,450,3400),map=clamp(co*svr/80,20,155),pp=clamp((sv/36)*(50/A)*Math.pow(V,-.28),12,85),
+ // Compliance arteriosa e runoff: con SVR elevate il decadimento diastolico
+ // e' minore. Il termine della pressione pulsatoria si riduce moderatamente.
+ dap=clamp(map-pp/3,12,125),sap=clamp(dap+pp,25,210);return{hr,sv,co,svr,map,pp,dap,sap}};
  let hr=+$('hr').value||80,r=calc(hr),rh=$('rhythm').value,reflex=['Ritmo sinusale','Tachicardia sinusale','Bradicardia sinusale'].includes(rh);
  if(reflex&&!manualLocks.hr){let pressureDrive=clamp((65-r.map)*1.15,-30,85),flowDrive=clamp((2.9-r.co)*18,-18,45),reflexGain=mac<=1.6?1:clamp(1-.55*((mac-1.6)/.4),.45,1),dobResponse=(typeof v25!=='undefined'&&v25.inf.dob)?clamp((r.co-2.9)*18,0,14):0,target=80+reflexGain*(pressureDrive+flowDrive)-dobResponse+(typeof v25!=='undefined'?(v25.fx.hr||0):0);let ephActive=typeof v25!=='undefined'&&v25.ephedrineAt&&simClock.virtual-v25.ephedrineAt<420000;if(ephActive){let pressorRise=Math.max(0,r.map-v25.ephedrineBaselineMAP);let ephElapsed=(simClock.virtual-v25.ephedrineAt)/1000;let gain=clamp((ephElapsed-2)/9,0,1);target-=clamp(pressorRise*1.45*gain,0,65);}
  // Riflesso barocettivo nel cane: la bradicardia segue l'aumento delle SVR
@@ -199,7 +202,8 @@ function physiology(){
  if(dex>0){
   const toneRise=Math.max(0,phys.vascularTone-v25.base.vascularTone);
   const pressorRise=Math.max(0,r.map-65);
-  target-=clamp(dex*(toneRise*.46+pressorRise*.55),0,52);
+  const diastolicRise=Math.max(0,r.dap-48);
+  target-=clamp(dex*(toneRise*.46+pressorRise*.40+diastolicRise*.28),0,52);
  }
  let washedOut=typeof v25!=='undefined'&&!ephActive&&!v25.inf.dob&&!v25.inf.fluid&&!v25.inf.nor&&Math.abs(v25.fx.contractility)<.05&&Math.abs(v25.fx.tone)<.05&&Math.abs(v25.fx.preload)<.05;let structuralHR=(typeof v25!=='undefined'&&v25.base.hr)||80;let stableAnesthetized=washedOut&&Math.abs(mac-1)<.03&&Math.abs(phys.preload-100)<=3&&Math.abs(phys.contractility-100)<=3&&Math.abs(phys.vascularTone-100)<=3&&Math.abs(phys.compliance-100)<=3;if(stableAnesthetized){hr+=(structuralHR-hr)*.16;if(Math.abs(structuralHR-hr)<.35)hr=structuralHR;$('hr').value=Math.round(hr);r=calc(hr)}else{target=clamp(target,42,190);hr+=(target-hr)*.055;$('hr').value=Math.round(hr);r=calc(hr)}$('hr').value=Math.round(hr);r=calc(hr)}
  let variability=clamp(8+Math.max(0,100-phys.preload)*.23+Math.max(0,hr-170)*.025,3,35),dpdt=clamp(950*C*(r.sap/118)*Math.pow(A,-.15),180,2200),ea=clamp((r.sap*.9)/Math.max(r.sv,5),.5,8),cce=clamp(.35*C*(r.co/3.2)/(V**.35),.04,.75),cpo=clamp(r.map*r.co/451,.03,2),bsa=Math.max(.25,0.101*Math.pow(+$('weight').value||25,2/3));

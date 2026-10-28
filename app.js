@@ -283,7 +283,7 @@ function v25TherapyStep(dt,now){
  let residual=Math.max(Math.abs(v25.fx.preload),Math.abs(v25.fx.contractility),Math.abs(v25.fx.tone));let hemoActive=v25.inf.fluid||v25.inf.dob||v25.inf.nor||now<v25.fluidBolusUntil||ephEffect>.005||pm.active||residual>.05;if(hemoActive){phys.preload=clamp(v25.base.preload+v25.fx.preload,20,180);phys.contractility=clamp(v25.base.contractility+v25.fx.contractility,20,180);phys.vascularTone=clamp(v25.base.vascularTone+v25.fx.tone,30,180);setPhysInputs()}else{v25.fx.preload=0;v25.fx.contractility=0;v25.fx.tone=0;phys.preload=v25.base.preload;phys.contractility=v25.base.contractility;phys.vascularTone=v25.base.vascularTone;setPhysInputs()}
 }
 function v25PerfusionEt(){if($('rhythm').value==='Artefatto massaggio cardiaco 120/min')return 12;if(($('rhythm').value==='Fibrillazione ventricolare'||$('rhythm').value==='Tachicardia ventricolare senza polso'||$('rhythm').value==='PEA / attività elettrica'||$('rhythm').value==='Asistolia'))return 3;let co=+($('co').value)||0,rr=Math.max(1,+$('rr').value||18),perf=clamp(co/2.9,.25,1.55),vent=clamp(12/rr,.45,1.8);let rhythmFactor=$('rhythm').value==='Tachicardia ventricolare con polso'?clamp(.90-.12*clamp(((+$('hr').value||180)-120)/120,0,1),.78,.90):1;return clamp(v25.etRef*(.55+.45*perf)*Math.pow(vent,.28)*rhythmFactor,3,80)}
-function v25Sample(t){simCaptureSnapshot();let rec={t};v25Metrics.forEach(([k])=>{if(k==='map')rec[k]=map();else if((k==='hr'||k==='spo2')&&($('rhythm').value==='Artefatto massaggio cardiaco 120/min'||$('rhythm').value==='Fibrillazione ventricolare'||$('rhythm').value==='Asistolia'))rec[k]=null;else if(k==='spo2'&&($('rhythm').value==='Tachicardia ventricolare senza polso'||$('rhythm').value==='PEA / attività elettrica'||$('rhythm').value==='Asistolia'))rec[k]=null;else if(['svr','svri','ea','ppv','svv','co','ci','sv','svi','cpo','cce','dpdt'].includes(k)&&$('rhythm').value==='Artefatto massaggio cardiaco 120/min')rec[k]=null;else if(['svr','svri','ea','ppv','svv'].includes(k)&&($('rhythm').value==='Tachicardia ventricolare senza polso'||$('rhythm').value==='Fibrillazione ventricolare'||$('rhythm').value==='PEA / attività elettrica'||$('rhythm').value==='Asistolia'))rec[k]=null;else if(k==='mac')rec[k]=+$('mac').value;else if(k==='afterload')rec[k]=phys.vascularTone;else if(k==='preload')rec[k]=phys.preload;else if(k==='contractility')rec[k]=phys.contractility;else rec[k]=+(($(k)&&$(k).value)||state[k]||0)});v25.history.push(rec);if(v25.history.length>1800)v25.history.shift()}
+function v25Sample(t){let rec={t};v25Metrics.forEach(([k])=>{if(k==='map')rec[k]=map();else if((k==='hr'||k==='spo2')&&($('rhythm').value==='Artefatto massaggio cardiaco 120/min'||$('rhythm').value==='Fibrillazione ventricolare'||$('rhythm').value==='Asistolia'))rec[k]=null;else if(k==='spo2'&&($('rhythm').value==='Tachicardia ventricolare senza polso'||$('rhythm').value==='PEA / attività elettrica'||$('rhythm').value==='Asistolia'))rec[k]=null;else if(['svr','svri','ea','ppv','svv','co','ci','sv','svi','cpo','cce','dpdt'].includes(k)&&$('rhythm').value==='Artefatto massaggio cardiaco 120/min')rec[k]=null;else if(['svr','svri','ea','ppv','svv'].includes(k)&&($('rhythm').value==='Tachicardia ventricolare senza polso'||$('rhythm').value==='Fibrillazione ventricolare'||$('rhythm').value==='PEA / attività elettrica'||$('rhythm').value==='Asistolia'))rec[k]=null;else if(k==='mac')rec[k]=+$('mac').value;else if(k==='afterload')rec[k]=phys.vascularTone;else if(k==='preload')rec[k]=phys.preload;else if(k==='contractility')rec[k]=phys.contractility;else rec[k]=+(($(k)&&$(k).value)||state[k]||0)});v25.history.push(rec);if(v25.history.length>1800)v25.history.shift();try{simCaptureSnapshot()}catch(err){console.warn('Snapshot non disponibile:',err)}}
 const v26Groups=[
  ['vitals',['hr','etco2','spo2']],
  ['pressure',['sap','dap','map']],
@@ -340,12 +340,13 @@ function simTimeDisplay(){
  $('v25Clock').textContent=val;$('simTimeReadout').textContent=val;
 }
 const simSnapshots=[];
+const simCopy=x=>JSON.parse(JSON.stringify(x));
 function simCaptureSnapshot(){
  const previous=simSnapshots[simSnapshots.length-1];
  if(previous&&simClock.virtual-previous.time<950)return;
  const values={};document.querySelectorAll('input[id],select[id]').forEach(el=>{if(el.type!=='checkbox')values[el.id]=el.value});
- const dynamics={};Object.keys(v25).forEach(k=>{if(!['history','events','applying'].includes(k))dynamics[k]=structuredClone(v25[k])});
- simSnapshots.push({time:simClock.virtual,state:structuredClone(state),phys:structuredClone(phys),dynamics,values});
+ const dynamics={};Object.keys(v25).forEach(k=>{if(!['history','events','applying'].includes(k))dynamics[k]=simCopy(v25[k])});
+ simSnapshots.push({time:simClock.virtual,state:simCopy(state),phys:simCopy(phys),dynamics,values});
  if(simSnapshots.length>1800)simSnapshots.shift();
 }
 function simRewind(minutes){
@@ -354,8 +355,8 @@ function simRewind(minutes){
  const snap=[...simSnapshots].reverse().find(x=>x.time<=desired);
  if(!snap)return;
  simClock.virtual=snap.time;simClock.accumulator=0;simClock.real=performance.now();
- state=structuredClone(snap.state);Object.assign(phys,structuredClone(snap.phys));
- Object.assign(v25,structuredClone(snap.dynamics));v25.applying=false;
+ state=simCopy(snap.state);Object.assign(phys,simCopy(snap.phys));
+ Object.assign(v25,simCopy(snap.dynamics));v25.applying=false;
  Object.entries(snap.values).forEach(([id,value])=>{const el=$(id);if(el)el.value=value});
  const elapsed=(snap.time-v25.start)/1000;
  v25.history=v25.history.filter(x=>x.t<=elapsed);
@@ -400,7 +401,7 @@ function v25Loop(now){
  simTimeDisplay();
  requestAnimationFrame(v25Loop);
 }
-v25Setup();simTimeSetup();simCaptureSnapshot();requestAnimationFrame(v25Loop);
+v25Setup();simTimeSetup();try{simCaptureSnapshot()}catch(err){console.warn('Snapshot iniziale:',err)}requestAnimationFrame(v25Loop);
 /* ===== end V2.8.2 ===== */
 
 $('modeBtn').onclick=()=>{document.body.classList.toggle('student');let s=document.body.classList.contains('student');$('modeTitle').textContent=s?'Monitor studenti':'Console istruttore';$('modeBtn').textContent=s?'Torna alla console':'Modalità studenti'};

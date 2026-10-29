@@ -19,7 +19,7 @@ function avTiming(r,ventHR){
   const pOffset=cycle*.28;
   return {cycle,pPeriod:cycle/2,pOffset,blockedPOffset:pOffset+cycle/2,qrsOffset:pOffset+Math.min(.16,cycle*.14)};
  }
- return {cycle,pPeriod:60/120,pOffset:.12,qrsOffset:cycle*.21};
+ // Frequenza atriale 118/min, volutamente non multipla della FC ventricolare:\n // le P scorrono progressivamente rispetto ai QRS (dissociazione AV completa).\n return {cycle,pPeriod:60/118,pOffset:.12,qrsOffset:cycle*.21};
 }
 function avECG(t,r,hr){
  const c=avTiming(r,hr),p=(offset,period,sigma)=>periodicG(t,offset,period,sigma);
@@ -36,7 +36,7 @@ function avECG(t,r,hr){
   return conductedP+blockedP-.078*p(c.qrsOffset-.034,c.cycle,.013)+.70*p(c.qrsOffset,c.cycle,.017)
     -.21*p(c.qrsOffset+.040,c.cycle,.020)+.15*p(c.qrsOffset+Math.min(.17,c.cycle*.14),c.cycle,.055);
  }
- // Terzo grado: P a 95/min del tutto indipendenti da QRS di scappamento piu' larghi.
+ // Terzo grado: P a 118/min indipendenti dai QRS di scappamento piu' larghi.
  return P-.12*p(c.qrsOffset-.053,c.cycle,.027)+.68*p(c.qrsOffset,c.cycle,.033)
   -.25*p(c.qrsOffset+.065,c.cycle,.034)+.15*p(c.qrsOffset+.26,c.cycle,.092);
 }

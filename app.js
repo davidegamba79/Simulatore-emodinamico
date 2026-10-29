@@ -2,6 +2,7 @@
 const $=id=>document.getElementById(id);
 const keys=['ecg','capno','art','pleth','hemo'];
 const labels={ecg:'ECG',capno:'EtCO₂',art:'Pressione invasiva ART',pleth:'SpO₂',hemo:'MostCare Up / PRAM'};
+const AV1='Blocco AV I grado',AV2='Blocco AV II grado (2:1)',AV3='Blocco AV III grado';
 let active=Object.fromEntries(keys.map(k=>[k,true]));
 let state={hr:80,etco2:33,rr:12,sap:118,dap:68,spo2:98,
 co:3.2,ci:3.1,sv:36,svi:35,svr:1800,svri:1850,ppv:8,svv:9,dpdt:0.95,cce:0.35,ea:2.1,cpo:0.70};
@@ -13,11 +14,16 @@ $('hemoMetrics').innerHTML=hemoDefs.map(([k,l,u])=>`<div class="metric"><small>$
 function map(){return Math.round((+state.sap+2*(+state.dap))/3)}
 function render(){
  const cpr=$('rhythm').value==='Artefatto massaggio cardiaco 120/min';
+ const currentRhythm=$('rhythm').value,isAV2=currentRhythm===AV2,isAV3=currentRhythm===AV3;
+ const hrInput=$('hr');hrInput.min=isAV2||isAV3?20:0;hrInput.max=isAV2?100:isAV3?65:260;
+ $('hrCaption').textContent=isAV2||isAV3?'FC ventricolare (bpm)':'FC (bpm)';
+ const avInfo=$('avBlockInfo');avInfo.style.display=currentRhythm.startsWith('Blocco AV')?'block':'none';
+ avInfo.textContent=currentRhythm===AV1?'PR prolungato: tutte le onde P sono condotte.':isAV2?'Conduzione 2:1: una P su due non produce un QRS. FC atriale circa '+(2*hrInput.value)+'/min.':isAV3?'Dissociazione AV: onde P indipendenti dai QRS, ritmo di scappamento.':'';
  state.hr=+$('hr').value; $('hrOut').textContent=($('rhythm').value==='Fibrillazione ventricolare'||$('rhythm').value==='Asistolia'||cpr)?'—':(($('rhythm').value==='Tachicardia ventricolare senza polso'||$('rhythm').value==='PEA / attività elettrica'||$('rhythm').value==='Asistolia')?state.hr+' elettr.':state.hr);
  ['etco2','rr','sap','dap','spo2',...hemoDefs.map(x=>x[0])].forEach(k=>state[k]=+$(k).value);
  $('vhr').textContent=($('rhythm').value==='Fibrillazione ventricolare'||$('rhythm').value==='Asistolia'||cpr)?'—':(($('rhythm').value==='Tachicardia ventricolare senza polso'||$('rhythm').value==='PEA / attività elettrica'||$('rhythm').value==='Asistolia')?state.hr+' elettr.':state.hr);$('vet').textContent=(+state.etco2).toFixed(1).replace('.0','');$('vrr').textContent=state.rr;
  $('vart').textContent=`${state.sap}/${state.dap}`;$('vmap').textContent=map();$('vspo2').textContent=cpr?'—':($('rhythm').value==='Fibrillazione ventricolare'||$('rhythm').value==='Tachicardia ventricolare senza polso'||$('rhythm').value==='PEA / attività elettrica'||$('rhythm').value==='Asistolia')?'—':state.spo2;
- hemoDefs.forEach(([k])=>{const rh=$('rhythm').value;const nv=(rh==='Artefatto massaggio cardiaco 120/min')||(rh==='Tachicardia ventricolare con polso'&&(k==='ppv'||k==='svv'))||((rh==='Tachicardia ventricolare senza polso'||rh==='Fibrillazione ventricolare'||rh==='PEA / attività elettrica'||rh==='Asistolia')&&['svr','svri','ea','ppv','svv'].includes(k));$('m_'+k).textContent=nv?'N/V':state[k]});
+ hemoDefs.forEach(([k])=>{const rh=$('rhythm').value;const nv=((rh===AV2||rh===AV3)&&['ppv','svv'].includes(k))||(rh==='Artefatto massaggio cardiaco 120/min')||(rh==='Tachicardia ventricolare con polso'&&(k==='ppv'||k==='svv'))||((rh==='Tachicardia ventricolare senza polso'||rh==='Fibrillazione ventricolare'||rh==='PEA / attività elettrica'||rh==='Asistolia')&&['svr','svri','ea','ppv','svv'].includes(k));$('m_'+k).textContent=nv?'N/V':state[k]});
  $('studentPatient').textContent=$('name').value;$('studentWeight').textContent=$('weight').value;
  document.querySelectorAll('[data-key]').forEach(el=>{let k=el.dataset.key;el.style.display=(active[k]&&!(k==='capno'&&window.premedAwakePhase))?'':'none'});const awakeNotice=$('awakeCapnoNotice');if(awakeNotice)awakeNotice.style.display=window.premedAwakePhase?'flex':'none';
  if(!document.body.classList.contains('student'))save();
@@ -34,9 +40,12 @@ $('rhythm').addEventListener('change',()=>{
  if(rhythm==='Tachicardia ventricolare con polso'||rhythm==='Tachicardia ventricolare senza polso'){
   if(!previousRhythm.startsWith('Tachicardia ventricolare'))$('hr').value=180;
   manualSet('hr',true);
- }else if(previousRhythm.startsWith('Tachicardia ventricolare')){
+ }else if(rhythm===AV2||rhythm===AV3){
+  if(previousRhythm!==rhythm)$('hr').value=rhythm===AV2?50:40;
+  manualSet('hr',true);
+ }else if(previousRhythm.startsWith('Tachicardia ventricolare')||previousRhythm===AV2||previousRhythm===AV3){
+  $('hr').value=80;
   manualSet('hr',false);
-  if(rhythm==='Ritmo sinusale')$('hr').value=80;
  }
  previousRhythm=rhythm;
  physiology();render();
@@ -194,7 +203,7 @@ function physiology(){
  // Compliance arteriosa e runoff: con SVR elevate il decadimento diastolico
  // e' minore. Il termine della pressione pulsatoria si riduce moderatamente.
  dap=clamp(map-pp/3,12,125),sap=clamp(dap+pp,25,210);return{hr,sv,co,svr,map,pp,dap,sap}};
- let shownHR=+$('hr').value||80;let hr=(typeof v25!=='undefined'&&Number.isFinite(v25.continuousHR)&&v25.lastShownHR===shownHR)?v25.continuousHR:shownHR;let r=calc(hr),rh=$('rhythm').value,reflex=['Ritmo sinusale','Tachicardia sinusale','Bradicardia sinusale'].includes(rh);
+ let shownHR=+$('hr').value||80;let hr=(typeof v25!=='undefined'&&Number.isFinite(v25.continuousHR)&&v25.lastShownHR===shownHR)?v25.continuousHR:shownHR;let r=calc(hr),rh=$('rhythm').value,reflex=['Ritmo sinusale','Tachicardia sinusale','Bradicardia sinusale',AV1].includes(rh);
  if(reflex&&!manualLocks.hr){let pressureDrive=clamp((65-r.map)*1.15,-30,85),flowDrive=clamp((2.9-r.co)*18,-18,45),reflexGain=mac<=1.6?1:clamp(1-.55*((mac-1.6)/.4),.45,1),dobResponse=(typeof v25!=='undefined'&&v25.inf.dob)?clamp((r.co-2.9)*18,0,14):0,target=80+reflexGain*((pressureDrive+flowDrive)>0?0.25*(pressureDrive+flowDrive):(pressureDrive+flowDrive))-dobResponse+(typeof v25!=='undefined'?(v25.fx.hr||0):0);let ephActive=typeof v25!=='undefined'&&v25.ephedrineAt&&simClock.virtual-v25.ephedrineAt<420000;if(ephActive){let pressorRise=Math.max(0,r.map-v25.ephedrineBaselineMAP);let ephElapsed=(simClock.virtual-v25.ephedrineAt)/1000;let gain=clamp((ephElapsed-2)/9,0,1);target-=clamp(pressorRise*1.45*gain,0,65);}
  // Riflesso barocettivo nel cane: la bradicardia segue l'aumento delle SVR
  // e della pressione indotto dalla dexmedetomidina, non una riduzione FC fissa.
@@ -215,7 +224,7 @@ function physiology(){
   ea=clamp((r.sap*.9)/Math.max(r.sv,5),.5,8);
   cpo=clamp(r.map*r.co/451,0,2);
  }
- let vals={sv:Math.round(r.sv),svi:+(r.sv/bsa).toFixed(1),co:+r.co.toFixed(2),ci:+(r.co/bsa).toFixed(2),svr:Math.round(r.svr),svri:Math.round(r.svr*bsa),ppv:rh==='Tachicardia ventricolare con polso'?0:Math.round(variability),svv:rh==='Tachicardia ventricolare con polso'?0:Math.round(variability*1.08),dpdt:+(dpdt/1000).toFixed(3),cce:+cce.toFixed(2),ea:+ea.toFixed(2),cpo:+cpo.toFixed(2),sap:Math.round(r.sap),dap:Math.round(r.dap)};
+ let vals={sv:Math.round(r.sv),svi:+(r.sv/bsa).toFixed(1),co:+r.co.toFixed(2),ci:+(r.co/bsa).toFixed(2),svr:Math.round(r.svr),svri:Math.round(r.svr*bsa),ppv:(rh==='Tachicardia ventricolare con polso'||rh===AV2||rh===AV3)?0:Math.round(variability),svv:(rh==='Tachicardia ventricolare con polso'||rh===AV2||rh===AV3)?0:Math.round(variability*1.08),dpdt:+(dpdt/1000).toFixed(3),cce:+cce.toFixed(2),ea:+ea.toFixed(2),cpo:+cpo.toFixed(2),sap:Math.round(r.sap),dap:Math.round(r.dap)};
  if((rh==='Artefatto massaggio cardiaco 120/min'||rh==='Fibrillazione ventricolare'||rh==='Tachicardia ventricolare senza polso'||rh==='PEA / attività elettrica'||rh==='Asistolia')){const arrest={sv:0,svi:0,co:0,ci:0,dpdt:0,cce:0,cpo:0,ea:0,ppv:0,svv:0,sap:0,dap:0,svr:0,svri:0};Object.assign(vals,arrest);if(rh==='Artefatto massaggio cardiaco 120/min'){vals.sap=55;vals.dap=15;}}
  Object.entries(vals).forEach(([k,v])=>{if($(k)&&(!manualLocks[k]||(rh==='Fibrillazione ventricolare'||rh==='Tachicardia ventricolare senza polso'||rh==='PEA / attività elettrica'||rh==='Asistolia'||rh==='Artefatto massaggio cardiaco 120/min')))$(k).value=v});$('preloadOut').textContent=Math.round(phys.preload)+'%';$('contractilityOut').textContent=Math.round(phys.contractility)+'%';$('vascularToneOut').textContent=Math.round(phys.vascularTone)+'%';$('complianceOut').textContent=Math.round(phys.compliance)+'%';render();interpret()
 }
@@ -283,7 +292,7 @@ function v25TherapyStep(dt,now){
  let residual=Math.max(Math.abs(v25.fx.preload),Math.abs(v25.fx.contractility),Math.abs(v25.fx.tone));let hemoActive=v25.inf.fluid||v25.inf.dob||v25.inf.nor||now<v25.fluidBolusUntil||ephEffect>.005||pm.active||residual>.05;if(hemoActive){phys.preload=clamp(v25.base.preload+v25.fx.preload,20,180);phys.contractility=clamp(v25.base.contractility+v25.fx.contractility,20,180);phys.vascularTone=clamp(v25.base.vascularTone+v25.fx.tone,30,180);setPhysInputs()}else{v25.fx.preload=0;v25.fx.contractility=0;v25.fx.tone=0;phys.preload=v25.base.preload;phys.contractility=v25.base.contractility;phys.vascularTone=v25.base.vascularTone;setPhysInputs()}
 }
 function v25PerfusionEt(){if($('rhythm').value==='Artefatto massaggio cardiaco 120/min')return 12;if(($('rhythm').value==='Fibrillazione ventricolare'||$('rhythm').value==='Tachicardia ventricolare senza polso'||$('rhythm').value==='PEA / attività elettrica'||$('rhythm').value==='Asistolia'))return 3;let co=+($('co').value)||0,rr=Math.max(1,+$('rr').value||18),perf=clamp(co/2.9,.25,1.55),vent=clamp(12/rr,.45,1.8);let rhythmFactor=$('rhythm').value==='Tachicardia ventricolare con polso'?clamp(.90-.12*clamp(((+$('hr').value||180)-120)/120,0,1),.78,.90):1;return clamp(v25.etRef*(.55+.45*perf)*Math.pow(vent,.28)*rhythmFactor,3,80)}
-function v25Sample(t){let rec={t};v25Metrics.forEach(([k])=>{if(k==='map')rec[k]=map();else if((k==='hr'||k==='spo2')&&($('rhythm').value==='Artefatto massaggio cardiaco 120/min'||$('rhythm').value==='Fibrillazione ventricolare'||$('rhythm').value==='Asistolia'))rec[k]=null;else if(k==='spo2'&&($('rhythm').value==='Tachicardia ventricolare senza polso'||$('rhythm').value==='PEA / attività elettrica'||$('rhythm').value==='Asistolia'))rec[k]=null;else if(['svr','svri','ea','ppv','svv','co','ci','sv','svi','cpo','cce','dpdt'].includes(k)&&$('rhythm').value==='Artefatto massaggio cardiaco 120/min')rec[k]=null;else if(['svr','svri','ea','ppv','svv'].includes(k)&&($('rhythm').value==='Tachicardia ventricolare senza polso'||$('rhythm').value==='Fibrillazione ventricolare'||$('rhythm').value==='PEA / attività elettrica'||$('rhythm').value==='Asistolia'))rec[k]=null;else if(k==='mac')rec[k]=+$('mac').value;else if(k==='afterload')rec[k]=phys.vascularTone;else if(k==='preload')rec[k]=phys.preload;else if(k==='contractility')rec[k]=phys.contractility;else rec[k]=+(($(k)&&$(k).value)||state[k]||0)});v25.history.push(rec);if(v25.history.length>1800)v25.history.shift();try{simCaptureSnapshot()}catch(err){console.warn('Snapshot non disponibile:',err)}}
+function v25Sample(t){let rec={t};v25Metrics.forEach(([k])=>{if(['ppv','svv'].includes(k)&&[AV2,AV3].includes($('rhythm').value))rec[k]=null;else if(k==='map')rec[k]=map();else if((k==='hr'||k==='spo2')&&($('rhythm').value==='Artefatto massaggio cardiaco 120/min'||$('rhythm').value==='Fibrillazione ventricolare'||$('rhythm').value==='Asistolia'))rec[k]=null;else if(k==='spo2'&&($('rhythm').value==='Tachicardia ventricolare senza polso'||$('rhythm').value==='PEA / attività elettrica'||$('rhythm').value==='Asistolia'))rec[k]=null;else if(['svr','svri','ea','ppv','svv','co','ci','sv','svi','cpo','cce','dpdt'].includes(k)&&$('rhythm').value==='Artefatto massaggio cardiaco 120/min')rec[k]=null;else if(['svr','svri','ea','ppv','svv'].includes(k)&&($('rhythm').value==='Tachicardia ventricolare senza polso'||$('rhythm').value==='Fibrillazione ventricolare'||$('rhythm').value==='PEA / attività elettrica'||$('rhythm').value==='Asistolia'))rec[k]=null;else if(k==='mac')rec[k]=+$('mac').value;else if(k==='afterload')rec[k]=phys.vascularTone;else if(k==='preload')rec[k]=phys.preload;else if(k==='contractility')rec[k]=phys.contractility;else rec[k]=+(($(k)&&$(k).value)||state[k]||0)});v25.history.push(rec);if(v25.history.length>1800)v25.history.shift();try{simCaptureSnapshot()}catch(err){console.warn('Snapshot non disponibile:',err)}}
 const v26Groups=[
  ['vitals',['hr','etco2','spo2']],
  ['pressure',['sap','dap','map']],

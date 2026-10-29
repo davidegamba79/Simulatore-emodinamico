@@ -417,7 +417,7 @@ const studentStatusKey='recoverCaneStudentStatusV2891',studentHistoryKey='recove
 let studentLastStatusAt=0,studentLastHistoryAt=0;
 function simPublishStudentStatus(){
  if(document.body.classList.contains('student'))return;
- try{localStorage.setItem(studentStatusKey,JSON.stringify({paused:simClock.paused,elapsed:(simClock.virtual-v25.start)/1000,sample:v25.history[v25.history.length-1]||null,events:v25.events.slice(-30)}))}
+ try{localStorage.setItem(studentStatusKey,JSON.stringify({paused:simClock.paused,anesthesiaPhase:v25.induction.phase,elapsed:(simClock.virtual-v25.start)/1000,sample:v25.history[v25.history.length-1]||null,events:v25.events.slice(-30)}))}
  catch(err){console.warn('Sincronizzazione studenti:',err)}
 }
 function simPublishStudentHistory(){
@@ -428,6 +428,7 @@ function simPublishStudentHistory(){
 function simStudentApplyStatus(d){
  if(!d||!document.body.classList.contains('student'))return;
  if(Number.isFinite(d.elapsed))simClock.virtual=v25.start+Math.max(0,d.elapsed)*1000;
+ if(d.anesthesiaPhase)v25.induction.phase=d.anesthesiaPhase;
  if(d.sample&&Number.isFinite(d.sample.t)){
   v25.history=v25.history.filter(x=>x.t<d.sample.t);
   v25.history.push(d.sample);
@@ -514,6 +515,7 @@ window.addEventListener('storage',e=>{
   if(e.key===studentHistoryKey){try{simStudentApplyHistory(JSON.parse(e.newValue));const p=localStorage.getItem(studentStatusKey);if(p)simStudentApplyStatus(JSON.parse(p))}catch(err){console.warn(err)}return}
  }
  if(e.key==='recoverCaneState'&&document.body.classList.contains('student')){let d=JSON.parse(e.newValue);state=d.state;active=d.active;$('name').value=d.name;$('weight').value=d.weight;$('rhythm').value=d.rhythm;Object.entries(state).forEach(([k,v])=>{if($(k))$(k).value=v});document.querySelectorAll('[data-toggle]').forEach(x=>x.checked=active[x.dataset.toggle]);
+if(d.anesthesiaPhase)v25.induction.phase=d.anesthesiaPhase;
 if(d.caseState&&d.caseState.active){caseState=d.caseState;$('studentCaseBanner').style.display='block';$('studentCaseMinute').textContent=caseState.minute;$('studentCasePresentation').textContent=d.casePresentation;$('studentCaseEvolution').textContent=d.caseEvolutionText}else{$('studentCaseBanner').style.display='none'}
 render()}});
 

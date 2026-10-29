@@ -28,8 +28,10 @@ function avECG(t,r,hr){
     -.22*p(c.qrsOffset+.036,c.cycle,.019)+.16*p(c.qrsOffset+Math.min(.20,c.cycle*.24),c.cycle,.075);
  }
  if(r.startsWith("Blocco AV II grado")){
-  // P:P ogni meta' ciclo ventricolare; QRS solo dopo la prima P.
-  return P-.078*p(c.qrsOffset-.034,c.cycle,.013)+.70*p(c.qrsOffset,c.cycle,.017)
+  // P condotta prima del QRS; P bloccata al centro dell’intervallo T-P, senza QRS o polso associati.
+  const conductedP=.195*p(c.pOffset,c.cycle,.037);
+  const blockedP=.23*p(c.cycle*.78,c.cycle,.039);
+  return conductedP+blockedP-.078*p(c.qrsOffset-.034,c.cycle,.013)+.70*p(c.qrsOffset,c.cycle,.017)
     -.21*p(c.qrsOffset+.040,c.cycle,.020)+.15*p(c.qrsOffset+Math.min(.20,c.cycle*.18),c.cycle,.065);
  }
  // Terzo grado: P a 95/min del tutto indipendenti da QRS di scappamento piu' larghi.

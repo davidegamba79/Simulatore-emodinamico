@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="./styles.css">
 <link rel="stylesheet" href="./styles-v2.css?v=2895">
 <title>Simulatore emodinamico</title>
-<style id="student-panel-2893">body.student #timeControls,body.student #premedPanel{display:none!important}</style>
+<style id="student-panel-2893">body.student #timeControls,body.student #premedPanel,body.student #inductionPanel{display:none!important}</style>
 <style id="therapy-layout-2861">
 /* Applied in the document to avoid stale stylesheet caching */
 #therapyV25{container-type:normal!important}
@@ -258,8 +258,8 @@ window.addEventListener('DOMContentLoaded',()=>{
  const showInductionStatus=()=>{
   const i=v25.induction,el=$p('inductionStatus'),intubate=$p('inductionIntubate');
   if(!el)return;
-  if(intubate)intubate.disabled=i.phase!=='induction';
-  if(i.phase==='legacy'||i.phase==='premed'){el.textContent='In attesa di induzione EV. Durata preimpostata: 10 minuti, modificabile.';return}
+  if(intubate)intubate.disabled=i.phase!=='induction';$p('inductionStart').disabled=!['legacy','premed'].includes(i.phase);
+  if(i.phase==='legacy'||i.phase==='premed'){el.textContent='In attesa di induzione EV. Finestra impostata: '+$p('inductionMinutes').value+' minuti.';return}
   const elapsed=Math.max(0,((window.simVirtualNow?window.simVirtualNow():performance.now())-i.startedAt)/1000);
   const time=String(Math.floor(elapsed/60)).padStart(2,'0')+':'+String(Math.floor(elapsed%60)).padStart(2,'0');
   if(i.phase==='maintenance'){el.textContent='Mantenimento avviato: MAC e capnografia disponibili. Persistono gli effetti residui di '+i.drug+'.';return}

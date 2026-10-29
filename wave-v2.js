@@ -17,11 +17,11 @@ function avTiming(r,ventHR){
   const pOffset=cycle*.10;
   return {cycle,pPeriod:cycle/2,pOffset,qrsOffset:pOffset+Math.min(.23,cycle*.19)};
  }
- return {cycle,pPeriod:60/95,pOffset:.12,qrsOffset:cycle*.21};
+ return {cycle,pPeriod:60/120,pOffset:.12,qrsOffset:cycle*.21};
 }
 function avECG(t,r,hr){
  const c=avTiming(r,hr),p=(offset,period,sigma)=>periodicG(t,offset,period,sigma);
- const P=.195*p(c.pOffset,c.pPeriod,.037);
+ const P=(r==="Blocco AV III grado"?.24:.195)*p(c.pOffset,c.pPeriod,r==="Blocco AV III grado"?.031:.037);
  if(r==="Blocco AV I grado"){
   // Conduzione 1:1: PR ~0,32 s a 80 bpm (marcatamente prolungato).
   return P-.085*p(c.qrsOffset-.035,c.cycle,.012)+.69*p(c.qrsOffset,c.cycle,.016)
@@ -116,18 +116,7 @@ function draw(){
    x?g.lineTo(x,C(y,.035,.965)*h):g.moveTo(x,C(y,.035,.965)*h);
   }
   g.stroke();
-  if(av&&id==="ecg"){
-   // Etichette P per rendere chiara la dissociazione nelle esercitazioni.
-   g.font="10px sans-serif";g.fillStyle="#8bd6b5";g.textAlign="center";
-   const first=Math.floor((now-timing.pOffset)/timing.pPeriod)-1;
-   for(let k=first;k<first+Math.ceil(sec/timing.pPeriod)+4;k++){
-    const tP=timing.pOffset+k*timing.pPeriod;
-    if(tP<now+.045||tP>now+sec-.045)continue;
-    const pToQ=Math.abs(((tP-timing.qrsOffset+timing.cycle/2)%timing.cycle+timing.cycle)%timing.cycle-timing.cycle/2);
-    if(rh==="Blocco AV III grado"&&pToQ<.13)continue;
-    g.fillText("P",(tP-now)/sec*w,.33*h);
-   }
-  }
+
  });
  R(draw);
 }

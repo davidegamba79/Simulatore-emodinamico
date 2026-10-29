@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#071016">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="stylesheet" href="./styles.css">
-<link rel="stylesheet" href="./styles-v2.css?v=2894">
+<link rel="stylesheet" href="./styles-v2.css?v=2895">
 <title>Simulatore emodinamico</title>
 <style id="student-panel-2893">body.student #timeControls,body.student #premedPanel{display:none!important}</style>
 <style id="therapy-layout-2861">
@@ -113,7 +113,7 @@
  </div>
 
  <div class="wave" data-key="ecg"><span class="wlabel green">ECG</span><div class="values green"><span class="big" id="vhr">90</span><br>bpm</div><canvas id="ecg"></canvas></div>
- <div class="wave" id="awakeCapnoNotice" style="display:none;min-height:70px;align-items:center;padding:15px;color:#e9c46a;border:1px solid #24414d;border-radius:8px">Paziente non intubato — capnografia non disponibile durante la premedicazione</div><div class="wave" data-key="capno"><span class="wlabel yellow">EtCO₂</span><div class="values yellow"><span class="big" id="vet">38</span> mmHg<br><span id="vrr">18</span> /min</div><canvas id="capno"></canvas></div>
+ <div class="wave" id="awakeCapnoNotice" style="display:none;min-height:70px;align-items:center;padding:15px;color:#e9c46a;border:1px solid #24414d;border-radius:8px">Paziente non intubato — capnografia non disponibile durante premedicazione e induzione</div><div class="wave" data-key="capno"><span class="wlabel yellow">EtCO₂</span><div class="values yellow"><span class="big" id="vet">38</span> mmHg<br><span id="vrr">18</span> /min</div><canvas id="capno"></canvas></div>
  <div class="wave" data-key="art"><span class="wlabel red">ART — pressione invasiva</span><div class="values red"><span class="big" id="vart">118/68</span><br>MAP <span id="vmap">85</span> mmHg</div><canvas id="art"></canvas></div>
  <div class="wave" data-key="pleth"><span class="wlabel cyan">SpO₂</span><div class="values cyan"><span class="big" id="vspo2">98</span>%</div><canvas id="pleth"></canvas></div>
 
@@ -123,7 +123,19 @@
 
 <div class="card" id="timeControls" style="margin-bottom:8px"><h2>Tempo simulato</h2><div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><label>Velocità <select id="simSpeed"><option value="1">1× reale</option><option value="5">5×</option><option value="20">20×</option><option value="60">60×</option></select></label><button type="button" id="simPause">Pausa</button><button type="button" id="simBack10">−10 min</button><button type="button" id="simBack5">−5 min</button><button type="button" id="simBack1">−1 min</button><button type="button" id="simAdvance1">+1 min</button><button type="button" id="simAdvance5">+5 min</button><button type="button" id="simAdvance10">+10 min</button><strong id="simTimeReadout">00:00</strong></div><small style="color:var(--muted)">Pausa congela anche ECG, pletismografia, capnografia e pressione arteriosa per la discussione didattica. I salti temporali aggiornano emodinamica e trend.</small></div>
 <section class="card" id="premedPanel"><h2>Premedicazione anestesiologica — cane</h2><div class="premed-form"><label>Farmaco<select id="premedDrug"><option>Acepromazina</option><option>Dexmedetomidina</option><option>Midazolam</option><option>Metadone</option><option>Butorfanolo</option><option>Ketamina</option></select></label><label>Dosaggio (inserimento manuale)<input id="premedDose" type="number" min="0" step="any" placeholder="Dose"></label><label>Unità<select id="premedUnit"><option>mg/kg</option><option>µg/kg</option></select></label><label>Via<input id="premedRoute" value="IM" readonly aria-label="Via intramuscolare" title="Premedicazione standardizzata esclusivamente IM"></label><button type="button" id="premedAdd">Aggiungi alla combinazione</button></div><div id="premedCombination" class="status" style="margin-top:8px">Nessun farmaco nella combinazione.</div><div class="row" style="margin-top:8px"><button type="button" id="premedGive">Somministra combinazione</button><button type="button" id="premedClear">Svuota combinazione</button></div><div class="status" id="premedElapsed" style="margin-top:8px">Tempo dalla premedicazione: —</div><div class="status" id="premedStatus" style="margin-top:8px">Nessuna somministrazione registrata.</div><small style="color:var(--muted)">Modulo iniziale: registra dosi e tempi nei trend. Effetti emodinamici didattici progressivi: non costituiscono una previsione clinica validata.</small></section>
- <section class="card" id="therapyV25"><h2>Terapie dinamiche — V2.8.94</h2>
+ <section class="card" id="inductionPanel"><h2>Induzione anestesiologica EV — cane</h2>
+  <div class="premed-form">
+   <label>Induttore<select id="inductionDrug"><option>Propofol</option><option>Alfaxalone</option></select></label>
+   <label>Dose totale (mg/kg)<input id="inductionDose" type="number" min="0.1" max="12" step="0.1" value="3"></label>
+   <label>Somministrazione EV (secondi)<input id="inductionSeconds" type="number" min="10" max="300" step="5" value="60"></label>
+   <label>Finestra didattica (minuti)<input id="inductionMinutes" type="number" min="1" max="30" step="1" value="10"></label>
+   <button type="button" id="inductionStart">Avvia induzione</button>
+  </div>
+  <div class="row" style="margin-top:8px"><button type="button" id="inductionIntubate" disabled>Intuba e avvia mantenimento</button></div>
+  <div id="inductionStatus" class="status" style="margin-top:8px">In attesa di induzione. L'istruttore può avviarla in qualsiasi momento.</div>
+  <small style="color:var(--muted)">Dose e velocità EV indipendenti. Fino all'intubazione non sono disponibili EtCO₂ né MAC. Effetti farmacocinetici e cardiovascolari didattici da calibrare: non utilizzare per decisioni cliniche.</small>
+ </section>
+ <section class="card" id="therapyV25"><h2>Terapie dinamiche — V2.8.95</h2>
   <div class="therapy-grid">
    <div class="therapy"><div><b>Fluid challenge</b><small>2 mL/kg in 30 secondi</small></div><button id="v25FluidBolus">Somministra</button></div>
    <div class="therapy"><div><b>Cristalloidi</b><small>Infusione continua</small></div><label>mL/kg/h<input id="v25FluidRate" type="number" min="0" max="50" step="1" value="2"></label><button id="v25FluidBtn">Avvia</button></div>
@@ -135,7 +147,7 @@
  </section>
 
  <div class="card trend-card" id="trendV25">
-  <div class="trend-head"><h2>Trend monitor — V2.8.94</h2><b id="v25Clock">00:00</b></div>
+  <div class="trend-head"><h2>Trend monitor — V2.8.95</h2><b id="v25Clock">00:00</b></div>
   <div class="trend-controls"><label>Finestra<select id="v25Window"><option value="120">2 min</option><option value="300">5 min</option><option value="600">10 min</option><option value="1800">30 min</option></select></label></div>
   <div id="v26TrendGrid" class="v26-trend-grid">
    <div class="v26-chart"><h3>Parametri vitali</h3><canvas id="trend-vitals"></canvas><div class="v26-legend" id="legend-vitals"></div></div>
@@ -165,9 +177,9 @@
 </div>
 </main>
 
-<script src="./app.js?v=2894"></script>
+<script src="./app.js?v=2895"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./wave-v2.js?v=2894"></script>
+<script src="./wave-v2.js?v=2895"></script>
 <script>
 window.addEventListener('DOMContentLoaded',()=>{
  const $p=id=>document.getElementById(id);
@@ -190,15 +202,17 @@ window.addEventListener('DOMContentLoaded',()=>{
  };
  window.premedDexEffect=()=>{const now=window.simVirtualNow?window.simVirtualNow():performance.now();return Math.min(1,administrations.filter(x=>x.drug==='Dexmedetomidina').reduce((sum,x)=>{const age=Math.max(0,(now-x.at)/1000),onset=x.route==='EV'?15:180;return sum+Math.min(1,x.dose/3)*(1-Math.exp(-age/onset))*Math.exp(-Math.max(0,age-onset)/3000)},0))};
  // Fase sveglia fino a 20:00 dalla prima somministrazione IM, valutata sul tempo virtuale.
- window.isPremedAwake=()=>administrations.length>0&&((window.simVirtualNow?window.simVirtualNow():performance.now())-administrations[0].at)<20*60*1000;
+ window.isPremedAwake=()=>v25.induction.phase==='premed';
+ window.isInductionPhase=()=>v25.induction.phase==='induction';
+ window.simNonIntubated=()=>['premed','induction'].includes(v25.induction.phase);
  const elapsedEl=$p('premedElapsed');
  const capnoMonitorEnabled=()=>{const t=document.querySelector('[data-toggle="capno"]');return !t||t.checked};
- const showPremedElapsed=()=>{if(!elapsedEl)return;const now=window.simVirtualNow?window.simVirtualNow():performance.now();const awake=window.isPremedAwake();window.premedAwakePhase=awake;
+ const showPremedElapsed=()=>{if(!elapsedEl)return;const now=window.simVirtualNow?window.simVirtualNow():performance.now();const awake=window.simNonIntubated();window.premedAwakePhase=awake;
   const macInput=$p('mac'),phaseStatus=$p('anesthesiaPhaseStatus');
   if(macInput)macInput.disabled=awake;
-  if(phaseStatus)phaseStatus.textContent=awake?'Fase sveglia premedicata (0–20 min): MAC escluso dai calcoli; baroriflesso non anestetizzato.':'Fase anestetizzata: MAC attivo; persistono gli effetti residui della premedicazione.';const cap=document.querySelector('[data-key="capno"]'),notice=$p('awakeCapnoNotice');if(cap)cap.style.display=(awake||!capnoMonitorEnabled())?'none':'';if(notice)notice.style.display=awake?'flex':'none';if(!administrations.length){elapsedEl.textContent='Tempo dalla premedicazione: —';return}
+  if(phaseStatus)phaseStatus.textContent=v25.induction.phase==='premed'?'Premedicazione: cane non anestetizzato; MAC escluso. Induzione avviabile manualmente.':v25.induction.phase==='induction'?'Induzione EV: MAC escluso; effetti farmacologici in evoluzione.':'Mantenimento: MAC attivo; persistono gli effetti residui dei farmaci.';const cap=document.querySelector('[data-key="capno"]'),notice=$p('awakeCapnoNotice');if(cap)cap.style.display=(awake||!capnoMonitorEnabled())?'none':'';if(notice)notice.style.display=awake?'flex':'none';if(!administrations.length){elapsedEl.textContent='Tempo dalla premedicazione: —';return}
  const seconds=Math.max(0,Math.floor((now-administrations[0].at)/1000)),mm=String(Math.floor(seconds/60)).padStart(2,'0'),ss=String(seconds%60).padStart(2,'0');
- elapsedEl.textContent='Tempo dalla prima somministrazione: '+mm+':'+ss+' (tempo virtuale; riferimento clinico: 20:00)';
+ elapsedEl.textContent='Tempo dalla prima somministrazione: '+mm+':'+ss+' (tempo virtuale; induzione avviata manualmente dall’istruttore)';
  };
  window.updatePremedElapsed=showPremedElapsed;
  setInterval(showPremedElapsed,200);
@@ -233,11 +247,44 @@ window.addEventListener('DOMContentLoaded',()=>{
    if(!Number.isFinite(normalized)||normalized<=0){rejected.push(x.drug);return}
    accepted.push({...x,dose:normalized,unit:p.unit,at:(window.simVirtualNow?window.simVirtualNow():performance.now())});
   });
-  administrations.push(...accepted);
+  administrations.push(...accepted);if(accepted.length&&v25.induction.phase==='legacy')v25.induction.phase='premed';
   if(typeof v25Event==='function')v25Event(txt);
   $p('premedStatus').textContent=(accepted.length?'Somministrata: '+accepted.map(x=>x.drug+' '+x.dose+' '+x.unit+' '+x.route).join(' + '):'Nessun farmaco somministrato.')+(rejected.length?' · Non riconosciuti: '+rejected.join(', '):'');
   items.length=0;renderCombo();showPremedElapsed()
  };
+ // La finestra di 10 minuti e' osservazionale; non equivale a una infusione di 10 minuti.
+ const inductionDrug=$p('inductionDrug'),inductionDose=$p('inductionDose');
+ inductionDrug.onchange=()=>{inductionDose.value=inductionDrug.value==='Propofol'?'3':'2'};
+ const showInductionStatus=()=>{
+  const i=v25.induction,el=$p('inductionStatus'),intubate=$p('inductionIntubate');
+  if(!el)return;
+  if(intubate)intubate.disabled=i.phase!=='induction';
+  if(i.phase==='legacy'||i.phase==='premed'){el.textContent='In attesa di induzione EV. Durata preimpostata: 10 minuti, modificabile.';return}
+  const elapsed=Math.max(0,((window.simVirtualNow?window.simVirtualNow():performance.now())-i.startedAt)/1000);
+  const time=String(Math.floor(elapsed/60)).padStart(2,'0')+':'+String(Math.floor(elapsed%60)).padStart(2,'0');
+  if(i.phase==='maintenance'){el.textContent='Mantenimento avviato: MAC e capnografia disponibili. Persistono gli effetti residui di '+i.drug+'.';return}
+  const administering=elapsed<i.administrationSeconds;
+  const finished=elapsed>=i.windowMinutes*60;
+  el.textContent=i.drug+' '+i.dose+' mg/kg EV in '+i.administrationSeconds+' s · '+time+' · '+(administering?'Somministrazione in corso':finished?'Finestra didattica terminata: in attesa di intubazione':'Osservazione emodinamica')+' · Rischio apnea: '+i.apneaRisk;
+ };
+ $p('inductionStart').onclick=()=>{
+  if(!['legacy','premed'].includes(v25.induction.phase)){$p('inductionStatus').textContent='Induzione già avviata. Per una nuova simulazione ricaricare la pagina.';return}
+  const drug=inductionDrug.value,dose=Number(inductionDose.value),seconds=Number($p('inductionSeconds').value),minutes=Number($p('inductionMinutes').value);
+  if(!['Propofol','Alfaxalone'].includes(drug)||!Number.isFinite(dose)||dose<.1||dose>12||!Number.isFinite(seconds)||seconds<10||seconds>300||!Number.isInteger(minutes)||minutes<1||minutes>30){$p('inductionStatus').textContent='Verificare dose (0,1–12 mg/kg), somministrazione (10–300 s) e finestra (1–30 min).';return}
+  v25.induction={phase:'induction',startedAt:window.simVirtualNow(),drug,dose,administrationSeconds:seconds,windowMinutes:minutes,
+   pk:{central:0,fast:0,slow:0,ce:0,cv:0},effects:{preload:0,tone:0,contractility:0,hr:0,active:false},apneaRisk:'—'};
+  $p('inductionStart').disabled=true;
+  if(typeof v25Event==='function')v25Event('Induzione EV: '+drug+' '+dose+' mg/kg in '+seconds+' s; finestra '+minutes+' min');
+  showPremedElapsed();showInductionStatus();
+ };
+ $p('inductionIntubate').onclick=()=>{
+  if(v25.induction.phase!=='induction')return;
+  v25.induction.phase='maintenance';
+  if(typeof v25Event==='function')v25Event('Intubazione eseguita — inizio mantenimento inalatorio');
+  showPremedElapsed();showInductionStatus();
+ };
+ setInterval(showInductionStatus,250);showInductionStatus();
+
 });
 </script></body>
 </html>

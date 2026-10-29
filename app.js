@@ -37,6 +37,9 @@ document.querySelectorAll('input,select').forEach(x=>{
 let previousRhythm=$('rhythm').value;
 $('rhythm').addEventListener('change',()=>{
  const rhythm=$('rhythm').value;
+ // Ristabilisce il range corretto prima di assegnare una nuova FC (es. da BAV III a TV).
+ $('hr').min=rhythm===AV2||rhythm===AV3?20:0;
+ $('hr').max=rhythm===AV2?100:rhythm===AV3?65:260;
  if(rhythm==='Tachicardia ventricolare con polso'||rhythm==='Tachicardia ventricolare senza polso'){
   if(!previousRhythm.startsWith('Tachicardia ventricolare'))$('hr').value=180;
   manualSet('hr',true);

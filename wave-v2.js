@@ -19,7 +19,9 @@ function avTiming(r,ventHR){
   const pOffset=cycle*.28;
   return {cycle,pPeriod:cycle/2,pOffset,blockedPOffset:pOffset+cycle/2,qrsOffset:pOffset+Math.min(.16,cycle*.14)};
  }
- // Frequenza atriale 118/min, volutamente non multipla della FC ventricolare:\n // le P scorrono progressivamente rispetto ai QRS (dissociazione AV completa).\n return {cycle,pPeriod:60/118,pOffset:.12,qrsOffset:cycle*.21};
+ // Frequenza atriale 118/min, non multipla della FC ventricolare.
+ // Le onde P scorrono progressivamente rispetto ai QRS (dissociazione AV completa).
+ return {cycle,pPeriod:60/118,pOffset:.12,qrsOffset:cycle*.21};
 }
 function avECG(t,r,hr){
  const c=avTiming(r,hr),p=(offset,period,sigma)=>periodicG(t,offset,period,sigma);

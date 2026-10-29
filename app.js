@@ -242,6 +242,7 @@ function interpret(){if($('rhythm').value==='Artefatto massaggio cardiaco 120/mi
   $('interpretation').textContent='Assenza di perfusione — arresto cardiocircolatorio.';
   return;
  }
+ const advancedAV=[$('rhythm').value].some(r=>r===AV2||r===AV3);
  let P=phys.preload,C=window.macEffectiveContractility||phys.contractility,V=window.macEffectiveTone||phys.vascularTone,m=map(),ppv=+state.ppv,co=+state.co;
  const hr=+state.hr,sv=+state.sv,pulsePressure=(+state.sap)-(+state.dap);
  const tachyLowFlow=$('rhythm').value==='Tachicardia sinusale'&&hr>=180&&(sv<=25||pulsePressure<=25);

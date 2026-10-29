@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#071016">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="stylesheet" href="./styles.css">
-<link rel="stylesheet" href="./styles-v2.css?v=2895">
+<link rel="stylesheet" href="./styles-v2.css?v=2896">
 <title>Simulatore emodinamico</title>
 <style id="student-panel-2893">body.student #timeControls,body.student #premedPanel,body.student #inductionPanel{display:none!important}</style>
 <style id="therapy-layout-2861">
@@ -134,8 +134,22 @@
   <div class="row" style="margin-top:8px"><button type="button" id="inductionIntubate" disabled>Intuba e avvia mantenimento</button></div>
   <div id="inductionStatus" class="status" style="margin-top:8px">In attesa di induzione. L'istruttore può avviarla in qualsiasi momento.</div>
   <small style="color:var(--muted)">Dose e velocità EV indipendenti. Fino all'intubazione non sono disponibili EtCO₂ né MAC. Effetti farmacocinetici e cardiovascolari didattici da calibrare: non utilizzare per decisioni cliniche.</small>
+  <div id="inductionReport" style="margin-top:15px;border-top:1px solid #29404b;padding-top:12px">
+   <h3 style="margin:0 0 8px">Riepilogo automatico dell'induzione</h3>
+   <div id="inductionReportInfo" class="status" style="margin-bottom:8px">Il report inizia con «Avvia induzione».</div>
+   <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums">
+     <thead><tr><th style="text-align:left">Tempo</th><th>FC</th><th>SAP</th><th>DAP</th><th>MAP</th><th>CO</th><th>SV</th><th>SVR</th></tr></thead>
+     <tbody id="inductionReportRows"><tr><td colspan="8">Nessuna induzione registrata.</td></tr></tbody>
+    </table>
+   </div>
+   <small style="color:var(--muted)">FC in bpm; pressioni in mmHg; CO in L/min; SV in mL; SVR in dyn·s/cm⁵. Campioni ai tempi indicati dal tempo virtuale.</small>
+   <div id="inductionReportExtrema" class="status" style="margin-top:8px">MAP minima, SVR minima e FC massima: —</div>
+   <button type="button" id="inductionExportCsv" disabled style="margin-top:8px">Esporta report CSV</button>
+   <small style="display:block;color:var(--muted);margin-top:6px">Valori prodotti dal modello didattico, non dati clinici validati. Per confrontare gli induttori, verificare che i valori preinduzione siano equivalenti.</small>
+  </div>
  </section>
- <section class="card" id="therapyV25"><h2>Terapie dinamiche — V2.8.95</h2>
+ <section class="card" id="therapyV25"><h2>Terapie dinamiche — V2.8.96</h2>
   <div class="therapy-grid">
    <div class="therapy"><div><b>Fluid challenge</b><small>2 mL/kg in 30 secondi</small></div><button id="v25FluidBolus">Somministra</button></div>
    <div class="therapy"><div><b>Cristalloidi</b><small>Infusione continua</small></div><label>mL/kg/h<input id="v25FluidRate" type="number" min="0" max="50" step="1" value="2"></label><button id="v25FluidBtn">Avvia</button></div>
@@ -147,7 +161,7 @@
  </section>
 
  <div class="card trend-card" id="trendV25">
-  <div class="trend-head"><h2>Trend monitor — V2.8.95</h2><b id="v25Clock">00:00</b></div>
+  <div class="trend-head"><h2>Trend monitor — V2.8.96</h2><b id="v25Clock">00:00</b></div>
   <div class="trend-controls"><label>Finestra<select id="v25Window"><option value="120">2 min</option><option value="300">5 min</option><option value="600">10 min</option><option value="1800">30 min</option></select></label></div>
   <div id="v26TrendGrid" class="v26-trend-grid">
    <div class="v26-chart"><h3>Parametri vitali</h3><canvas id="trend-vitals"></canvas><div class="v26-legend" id="legend-vitals"></div></div>
@@ -177,9 +191,9 @@
 </div>
 </main>
 
-<script src="./app.js?v=2895"></script>
+<script src="./app.js?v=2896"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./wave-v2.js?v=2895"></script>
+<script src="./wave-v2.js?v=2896"></script>
 <script>
 window.addEventListener('DOMContentLoaded',()=>{
  const $p=id=>document.getElementById(id);
@@ -273,6 +287,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   if(!['Propofol','Alfaxalone'].includes(drug)||!Number.isFinite(dose)||dose<.1||dose>12||!Number.isFinite(seconds)||seconds<10||seconds>300||!Number.isInteger(minutes)||minutes<1||minutes>30){$p('inductionStatus').textContent='Verificare dose (0,1–12 mg/kg), somministrazione (10–300 s) e finestra (1–30 min).';return}
   v25.induction={phase:'induction',startedAt:window.simVirtualNow(),drug,dose,administrationSeconds:seconds,windowMinutes:minutes,
    pk:{central:0,fast:0,slow:0,ce:0,cv:0},effects:{preload:0,tone:0,contractility:0,hr:0,active:false},apneaRisk:'—'};
+  inductionStartReport();
   $p('inductionStart').disabled=true;
   if(typeof v25Event==='function')v25Event('Induzione EV: '+drug+' '+dose+' mg/kg in '+seconds+' s; finestra '+minutes+' min');
   showPremedElapsed();showInductionStatus();
@@ -283,7 +298,8 @@ window.addEventListener('DOMContentLoaded',()=>{
   if(typeof v25Event==='function')v25Event('Intubazione eseguita — inizio mantenimento inalatorio');
   showPremedElapsed();showInductionStatus();
  };
- setInterval(showInductionStatus,250);showInductionStatus();
+ $p('inductionExportCsv').onclick=inductionExportCsv;
+ setInterval(showInductionStatus,250);showInductionStatus();inductionRenderReport();
 
 });
 </script></body>

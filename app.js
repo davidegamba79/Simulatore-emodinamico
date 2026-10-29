@@ -18,7 +18,7 @@ function render(){
  const hrInput=$('hr');hrInput.min=isAV2||isAV3?20:0;hrInput.max=isAV2?100:isAV3?65:260;
  $('hrCaption').textContent=isAV2||isAV3?'FC ventricolare (bpm)':'FC (bpm)';
  const avInfo=$('avBlockInfo');avInfo.style.display=currentRhythm.startsWith('Blocco AV')?'block':'none';
- avInfo.textContent=currentRhythm===AV1?'PR prolungato (~0,32 s a 80 bpm): tutte le onde P sono condotte.':isAV2?'Conduzione 2:1: una P su due non produce un QRS né una pulsazione. FC atriale circa '+(2*hrInput.value)+'/min.':isAV3?'Dissociazione AV: onde P regolari a circa 95/min; ritmo di scappamento ventricolare indipendente.':'';
+ avInfo.textContent=currentRhythm===AV1?'PR prolungato (~0,32 s a 80 bpm): tutte le onde P sono condotte.':isAV2?'Conduzione 2:1: una P su due non produce un QRS né una pulsazione. FC atriale circa '+(2*hrInput.value)+'/min.':isAV3?'Dissociazione AV: onde P regolari a circa 120/min; ritmo di scappamento ventricolare indipendente.':'';
  state.hr=+$('hr').value; $('hrOut').textContent=($('rhythm').value==='Fibrillazione ventricolare'||$('rhythm').value==='Asistolia'||cpr)?'—':(($('rhythm').value==='Tachicardia ventricolare senza polso'||$('rhythm').value==='PEA / attività elettrica'||$('rhythm').value==='Asistolia')?state.hr+' elettr.':state.hr);
  ['etco2','rr','sap','dap','spo2',...hemoDefs.map(x=>x[0])].forEach(k=>state[k]=+$(k).value);
  $('vhr').textContent=($('rhythm').value==='Fibrillazione ventricolare'||$('rhythm').value==='Asistolia'||cpr)?'—':(($('rhythm').value==='Tachicardia ventricolare senza polso'||$('rhythm').value==='PEA / attività elettrica'||$('rhythm').value==='Asistolia')?state.hr+' elettr.':state.hr);$('vet').textContent=(+state.etco2).toFixed(1).replace('.0','');$('vrr').textContent=state.rr;

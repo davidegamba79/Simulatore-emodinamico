@@ -18,7 +18,7 @@ function render(){
  const hrInput=$('hr');hrInput.min=isAV2||isAV3?20:0;hrInput.max=isAV2?100:isAV3?65:260;
  $('hrCaption').textContent=isAV2||isAV3?'FC ventricolare (bpm)':'FC (bpm)';
  const avInfo=$('avBlockInfo');avInfo.style.display=currentRhythm.startsWith('Blocco AV')?'block':'none';
- avInfo.textContent=currentRhythm===AV1?'PR prolungato: tutte le onde P sono condotte.':isAV2?'Conduzione 2:1: una P su due non produce un QRS. FC atriale circa '+(2*hrInput.value)+'/min.':isAV3?'Dissociazione AV: onde P indipendenti dai QRS, ritmo di scappamento.':'';
+ avInfo.textContent=currentRhythm===AV1?'PR prolungato (~0,32 s a 80 bpm): tutte le onde P sono condotte.':isAV2?'Conduzione 2:1: una P su due non produce un QRS né una pulsazione. FC atriale circa '+(2*hrInput.value)+'/min.':isAV3?'Dissociazione AV: onde P regolari a circa 95/min; ritmo di scappamento ventricolare indipendente.':'';
  state.hr=+$('hr').value; $('hrOut').textContent=($('rhythm').value==='Fibrillazione ventricolare'||$('rhythm').value==='Asistolia'||cpr)?'—':(($('rhythm').value==='Tachicardia ventricolare senza polso'||$('rhythm').value==='PEA / attività elettrica'||$('rhythm').value==='Asistolia')?state.hr+' elettr.':state.hr);
  ['etco2','rr','sap','dap','spo2',...hemoDefs.map(x=>x[0])].forEach(k=>state[k]=+$(k).value);
  $('vhr').textContent=($('rhythm').value==='Fibrillazione ventricolare'||$('rhythm').value==='Asistolia'||cpr)?'—':(($('rhythm').value==='Tachicardia ventricolare senza polso'||$('rhythm').value==='PEA / attività elettrica'||$('rhythm').value==='Asistolia')?state.hr+' elettr.':state.hr);$('vet').textContent=(+state.etco2).toFixed(1).replace('.0','');$('vrr').textContent=state.rr;
@@ -201,7 +201,12 @@ function setPhysInputs(){
 function physiology(){
  // Anche in modalità manuale gli slider aggiornano il modello emodinamico.
  phys.preload=+$('preload').value;phys.contractility=+$('contractility').value;phys.vascularTone=+$('vascularTone').value;phys.compliance=+$('compliance').value;
- let P=phys.preload/100,mac=clamp(+$('mac').value||1,.6,2),md=mac-1,macC=Math.exp(-.28*md-.08*Math.max(md,0)*Math.max(md,0)),macV=Math.exp(-.35*md-.10*Math.max(md,0)*Math.max(md,0)),C=(phys.contractility/100)*macC,V=(phys.vascularTone/100)*macV,A=phys.compliance/100;window.macEffectiveContractility=C*100;window.macEffectiveTone=V*100;
+ const avRhythm=$('rhythm').value,ventRate=+$('hr').value||80;
+ const advancedAV=avRhythm===AV2||avRhythm===AV3;
+ let P=phys.preload/100,mac=clamp(+$('mac').value||1,.6,2),md=mac-1,macC=Math.exp(-.28*md-.08*Math.max(md,0)*Math.max(md,0)),macV=Math.exp(-.35*md-.10*Math.max(md,0)*Math.max(md,0));
+ // Compenso vasocostrittore moderato e attenuato dall'anestesia: non corregge la perdita dei battiti ventricolari.
+ const avCompensation=advancedAV?clamp((80-ventRate)*(avRhythm===AV3?.0040:.0033),0,avRhythm===AV3?.16:.10)*clamp(1-.35*Math.max(0,mac-1),.6,1):0;
+ let C=(phys.contractility/100)*macC,V=(phys.vascularTone/100)*macV*(1+avCompensation),A=phys.compliance/100;window.macEffectiveContractility=C*100;window.macEffectiveTone=V*100;
  const calc=hr=>{hr=Math.max(1,hr);let filling=clamp(Math.pow(P,.72),.25,1.45),tp=hr>110?clamp(1/(1+.008*(hr-110)*clamp(1+.9*Math.max(0,1-P)+.65*Math.max(0,1-A),.7,2)),.38,1):1;tp*=hr>140?1/(1+.004*(hr-140)):1;let bf=hr<70?clamp(1+(70-hr)/250,1,1.16):1,ap=clamp(Math.pow(V,-.22),.72,1.22),sv=clamp(36*filling*Math.pow(C,.78)*ap*tp*bf,5,70),co=clamp(sv*hr/1000,.25,7.5),svr=clamp(1800*V,450,3400),map=clamp(co*svr/80,20,155),pp=clamp((sv/36)*(50/A)*Math.pow(V,-.28),12,85),
  // Compliance arteriosa e runoff: con SVR elevate il decadimento diastolico
  // e' minore. Il termine della pressione pulsatoria si riduce moderatamente.
@@ -243,7 +248,7 @@ function interpret(){if($('rhythm').value==='Artefatto massaggio cardiaco 120/mi
  $('iPre').textContent=P<75?'↓':P>125?'↑':'↔';
  $('iAfter').textContent=V<75?'↓':V>125?'↑':'↔';
  $('iContr').textContent=C<75?'↓':C>125?'↑':'↔';
- $('iFluid').textContent=ppv>=15?'Probabile':'Bassa';
+ $('iFluid').textContent=advancedAV?'Non valutabile':ppv>=15?'Probabile':'Bassa';
  $('iPerf').textContent=tachyLowFlow?'Da rivalutare':(m<60||co<1.8)?'Ridotta':m>70&&co>=2.2?'Adeguata':'Borderline';
  let txt=[];
  if(tachyLowFlow)txt.push('tachicardia marcata: possibile compromissione della portata cardiaca per ridotto riempimento ventricolare; valutare SV e pressione differenziale');
@@ -251,7 +256,8 @@ function interpret(){if($('rhythm').value==='Artefatto massaggio cardiaco 120/mi
  if(V<70)txt.push('basso tono vascolare');
  if(V>135)txt.push('afterload elevato');
  if(C<70)txt.push('ridotta contrattilità');
- if(ppv>=15)txt.push('elevata variazione respiratoria: possibile fluid responsiveness');
+ if(advancedAV)txt.push('blocco AV avanzato: la portata cardiaca dipende dalla FC ventricolare, senza polso per le P non condotte');
+ if(!advancedAV&&ppv>=15)txt.push('elevata variazione respiratoria: possibile fluid responsiveness');
  if(m<60)txt.push('pressione di perfusione ridotta');
  if(!txt.length)txt.push('profilo emodinamico relativamente stabile');
  $('interpretation').textContent=txt.join(' · ')+'.';

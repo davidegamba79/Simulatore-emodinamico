@@ -437,7 +437,7 @@ function simStudentApplyStatus(d){
  if(Array.isArray(d.events))v25.events=d.events;
  simClock.paused=Boolean(d.paused);
  if(typeof window.simWaveSetPaused==='function')window.simWaveSetPaused(simClock.paused);
- v25Draw();v25RenderEvents();simTimeDisplay();
+ v25Draw();v25RenderEvents();simTimeDisplay();render();
 }
 function simStudentApplyHistory(d){
  if(!d||!document.body.classList.contains('student'))return;

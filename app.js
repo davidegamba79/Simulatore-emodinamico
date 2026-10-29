@@ -375,7 +375,8 @@ function inductionExportCsv(){
  const meta=[['Farmaco',i.drug],['Dose mg/kg',i.dose],['Somministrazione secondi',i.administrationSeconds],['Finestra minuti',i.windowMinutes]];
  const head=['Fase','Secondi effettivi','FC bpm','SAP mmHg','DAP mmHg','MAP mmHg','CO L/min','SV mL','SVR dyn s/cm5'];
  const rows=inductionRows().map(r=>[r.label,r.sec==null?'':r.sec.toFixed(1),...inductionKeys.map(k=>r[k]==null?'':r[k])]);
- const csv='\uFEFF'+[...meta,head,...rows].map(row=>row.map(esc).join(';')).join('\r\n');
+ const extrema=[['MAP minima',i.report.minMap?.sec??'',i.report.minMap?.value??''],['SVR minima',i.report.minSvr?.sec??'',i.report.minSvr?.value??''],['FC massima',i.report.maxHr?.sec??'',i.report.maxHr?.value??'']];
+ const csv='\uFEFF'+[...meta,head,...rows,[],['Estremo','Secondi','Valore'],...extrema].map(row=>row.map(esc).join(';')).join('\r\n');
  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');
  a.href=url;a.download='induzione-'+i.drug.toLowerCase()+'-v2896.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }

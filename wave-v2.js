@@ -14,8 +14,10 @@ function avTiming(r,ventHR){
  if(r==="Blocco AV I grado")
   return {cycle,pPeriod:cycle,pOffset:Math.min(.085,cycle*.10),qrsOffset:Math.min(.405,cycle*.56)};
  if(r.startsWith("Blocco AV II grado")){
-  const pOffset=cycle*.10;
-  return {cycle,pPeriod:cycle/2,pOffset,qrsOffset:pOffset+Math.min(.23,cycle*.19)};
+  // Due onde P equidistanti per ciclo ventricolare: la seconda non e' condotta.
+  // La P bloccata e' ben separata dall'onda T, nella pausa T-P.
+  const pOffset=cycle*.28;
+  return {cycle,pPeriod:cycle/2,pOffset,blockedPOffset:pOffset+cycle/2,qrsOffset:pOffset+Math.min(.16,cycle*.14)};
  }
  return {cycle,pPeriod:60/120,pOffset:.12,qrsOffset:cycle*.21};
 }
@@ -30,9 +32,9 @@ function avECG(t,r,hr){
  if(r.startsWith("Blocco AV II grado")){
   // P condotta prima del QRS; P bloccata al centro dell’intervallo T-P, senza QRS o polso associati.
   const conductedP=.195*p(c.pOffset,c.cycle,.037);
-  const blockedP=.23*p(c.cycle*.78,c.cycle,.039);
+  const blockedP=.23*p(c.blockedPOffset,c.cycle,.039);
   return conductedP+blockedP-.078*p(c.qrsOffset-.034,c.cycle,.013)+.70*p(c.qrsOffset,c.cycle,.017)
-    -.21*p(c.qrsOffset+.040,c.cycle,.020)+.15*p(c.qrsOffset+Math.min(.20,c.cycle*.18),c.cycle,.065);
+    -.21*p(c.qrsOffset+.040,c.cycle,.020)+.15*p(c.qrsOffset+Math.min(.17,c.cycle*.14),c.cycle,.055);
  }
  // Terzo grado: P a 95/min del tutto indipendenti da QRS di scappamento piu' larghi.
  return P-.12*p(c.qrsOffset-.053,c.cycle,.027)+.68*p(c.qrsOffset,c.cycle,.033)

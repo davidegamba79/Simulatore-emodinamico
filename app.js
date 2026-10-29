@@ -81,7 +81,7 @@ const presets={
 $('presets').innerHTML=Object.keys(presets).map(p=>`<button data-p="${p}">${p}</button>`).join('');
 function applyPreset(p){
  const o=presets[p];if(!o)return;
- if((p==='Paziente sano'||p==='Paziente anestetizzato')&&typeof v25!=='undefined'&&['premed','induction'].includes(v25.induction.phase)){
+ if((p==='Paziente sano'||p==='Paziente anestetizzato')&&typeof v25!=='undefined'&&(['premed','induction'].includes(v25.induction.phase)||(v25.induction.phase==='maintenance'&&v25.induction.startedAt>0))){
   alert('Per cambiare il paziente di partenza dopo la somministrazione di farmaci, ricarica la pagina. In questo modo la farmacocinetica non viene alterata.');return;
  }
  const isHealthy=p==='Paziente sano',isAnesthetized=p==='Paziente anestetizzato';

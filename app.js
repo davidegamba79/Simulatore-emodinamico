@@ -382,6 +382,49 @@ function simRewind(minutes){
  v25.events=v25.events.filter(x=>!Number.isFinite(x.t)||x.t<=elapsed);
  while(simSnapshots.length&&simSnapshots[simSnapshots.length-1].time>snap.time)simSnapshots.pop();
  render();v25Draw();simTimeDisplay();
+ simPublishStudentHistory();simPublishStudentStatus();
+}
+// Sync stato e trend: la console istruttore e' l'unica sorgente.
+const studentStatusKey='recoverCaneStudentStatusV2891',studentHistoryKey='recoverCaneStudentHistoryV2891';
+let studentLastStatusAt=0,studentLastHistoryAt=0;
+function simPublishStudentStatus(){
+ if(document.body.classList.contains('student'))return;
+ try{localStorage.setItem(studentStatusKey,JSON.stringify({paused:simClock.paused,elapsed:(simClock.virtual-v25.start)/1000,sample:v25.history[v25.history.length-1]||null,events:v25.events.slice(-30)}))}
+ catch(err){console.warn('Sincronizzazione studenti:',err)}
+}
+function simPublishStudentHistory(){
+ if(document.body.classList.contains('student'))return;
+ try{localStorage.setItem(studentHistoryKey,JSON.stringify({history:v25.history,events:v25.events,elapsed:(simClock.virtual-v25.start)/1000,paused:simClock.paused}))}
+ catch(err){console.warn('Cronologia studenti:',err)}
+}
+function simStudentApplyStatus(d){
+ if(!d||!document.body.classList.contains('student'))return;
+ if(Number.isFinite(d.elapsed))simClock.virtual=v25.start+Math.max(0,d.elapsed)*1000;
+ if(d.sample&&Number.isFinite(d.sample.t)){
+  v25.history=v25.history.filter(x=>x.t<d.sample.t);
+  v25.history.push(d.sample);
+  if(v25.history.length>1800)v25.history.splice(0,v25.history.length-1800);
+ }
+ if(Array.isArray(d.events))v25.events=d.events;
+ simClock.paused=Boolean(d.paused);
+ if(typeof window.simWaveSetPaused==='function')window.simWaveSetPaused(simClock.paused);
+ v25Draw();v25RenderEvents();simTimeDisplay();
+}
+function simStudentApplyHistory(d){
+ if(!d||!document.body.classList.contains('student'))return;
+ if(Array.isArray(d.history))v25.history=d.history;
+ if(Array.isArray(d.events))v25.events=d.events;
+ if(Number.isFinite(d.elapsed))simClock.virtual=v25.start+Math.max(0,d.elapsed)*1000;
+ simClock.paused=Boolean(d.paused);
+ if(typeof window.simWaveSetPaused==='function')window.simWaveSetPaused(simClock.paused);
+ v25Draw();v25RenderEvents();simTimeDisplay();
+}
+function simStudentRestore(){
+ if(!document.body.classList.contains('student'))return;
+ try{
+  const h=localStorage.getItem(studentHistoryKey);if(h)simStudentApplyHistory(JSON.parse(h));
+  const p=localStorage.getItem(studentStatusKey);if(p)simStudentApplyStatus(JSON.parse(p));
+ }catch(err){console.warn('Ripristino studenti:',err)}
 }
 function simTimeSetup(){
  $('simSpeed').onchange=()=>{simClock.speed=Number($('simSpeed').value)||1};
@@ -390,6 +433,7 @@ function simTimeSetup(){
   $('simPause').textContent=simClock.paused?'Riprendi':'Pausa';
   // Ferma anche ECG, pletismografia, capnografia e curva arteriosa.
   if(typeof window.simWaveSetPaused==='function')window.simWaveSetPaused(simClock.paused);
+  simPublishStudentHistory();simPublishStudentStatus();
  };
  [[1,'simBack1'],[5,'simBack5'],[10,'simBack10']].forEach(([minutes,id])=>{$(id).onclick=()=>simRewind(minutes)});
  [[1,'simAdvance1'],[5,'simAdvance5'],[10,'simAdvance10']].forEach(([minutes,id])=>{
@@ -402,7 +446,7 @@ function simTimeSetup(){
     const span=Math.min(left,10);
     simAdvancePhysics(span);left-=span;simTimeDisplay();
     if(left>0)setTimeout(batch,0);
-    else{simClock.busy=false;simClock.accumulator=0;simClock.real=performance.now();buttons.forEach(k=>$(k).disabled=false)}
+    else{simClock.busy=false;simClock.accumulator=0;simClock.real=performance.now();buttons.forEach(k=>$(k).disabled=false);simPublishStudentHistory();simPublishStudentStatus()}
    }
    batch();
   };
@@ -423,6 +467,8 @@ function v25Loop(now){
   }
  }
  simTimeDisplay();
+ if(now-studentLastStatusAt>=1000){studentLastStatusAt=now;simPublishStudentStatus()}
+ if(now-studentLastHistoryAt>=5000){studentLastHistoryAt=now;simPublishStudentHistory()}
  requestAnimationFrame(v25Loop);
 }
 v25Setup();simTimeSetup();try{simCaptureSnapshot()}catch(err){console.warn('Snapshot iniziale:',err)}requestAnimationFrame(v25Loop);
@@ -432,8 +478,14 @@ $('modeBtn').onclick=()=>{document.body.classList.toggle('student');let s=docume
 $('studentBtn').onclick=()=>{let u=new URL(location.href);u.searchParams.set('student','1');window.open(u.toString(),'_blank')};
 $('fullBtn').onclick=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();else document.exitFullscreen?.()};
 if(new URLSearchParams(location.search).get('student')==='1'){$('modeBtn').click()}
+window.addEventListener('DOMContentLoaded',()=>{if(document.body.classList.contains('student'))simStudentRestore();else{simPublishStudentHistory();simPublishStudentStatus()}});
 
-window.addEventListener('storage',e=>{if(e.key==='recoverCaneState'&&document.body.classList.contains('student')){let d=JSON.parse(e.newValue);state=d.state;active=d.active;$('name').value=d.name;$('weight').value=d.weight;$('rhythm').value=d.rhythm;Object.entries(state).forEach(([k,v])=>{if($(k))$(k).value=v});document.querySelectorAll('[data-toggle]').forEach(x=>x.checked=active[x.dataset.toggle]);
+window.addEventListener('storage',e=>{
+ if(document.body.classList.contains('student')&&e.newValue){
+  if(e.key===studentStatusKey){try{simStudentApplyStatus(JSON.parse(e.newValue))}catch(err){console.warn(err)}return}
+  if(e.key===studentHistoryKey){try{simStudentApplyHistory(JSON.parse(e.newValue));const p=localStorage.getItem(studentStatusKey);if(p)simStudentApplyStatus(JSON.parse(p))}catch(err){console.warn(err)}return}
+ }
+ if(e.key==='recoverCaneState'&&document.body.classList.contains('student')){let d=JSON.parse(e.newValue);state=d.state;active=d.active;$('name').value=d.name;$('weight').value=d.weight;$('rhythm').value=d.rhythm;Object.entries(state).forEach(([k,v])=>{if($(k))$(k).value=v});document.querySelectorAll('[data-toggle]').forEach(x=>x.checked=active[x.dataset.toggle]);
 if(d.caseState&&d.caseState.active){caseState=d.caseState;$('studentCaseBanner').style.display='block';$('studentCaseMinute').textContent=caseState.minute;$('studentCasePresentation').textContent=d.casePresentation;$('studentCaseEvolution').textContent=d.caseEvolutionText}else{$('studentCaseBanner').style.display='none'}
 render()}});
 

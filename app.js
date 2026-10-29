@@ -385,7 +385,12 @@ function simRewind(minutes){
 }
 function simTimeSetup(){
  $('simSpeed').onchange=()=>{simClock.speed=Number($('simSpeed').value)||1};
- $('simPause').onclick=()=>{simClock.paused=!simClock.paused;$('simPause').textContent=simClock.paused?'Riprendi':'Pausa'};
+ $('simPause').onclick=()=>{
+  simClock.paused=!simClock.paused;
+  $('simPause').textContent=simClock.paused?'Riprendi':'Pausa';
+  // Ferma anche ECG, pletismografia, capnografia e curva arteriosa.
+  if(typeof window.simWaveSetPaused==='function')window.simWaveSetPaused(simClock.paused);
+ };
  [[1,'simBack1'],[5,'simBack5'],[10,'simBack10']].forEach(([minutes,id])=>{$(id).onclick=()=>simRewind(minutes)});
  [[1,'simAdvance1'],[5,'simAdvance5'],[10,'simAdvance10']].forEach(([minutes,id])=>{
   $(id).onclick=()=>{

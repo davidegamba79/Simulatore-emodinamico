@@ -1,5 +1,17 @@
 /* V2.8.28 expanded pressure-calibrated peripheral IBP contour */
 (()=>{const R=requestAnimationFrame.bind(window),E=i=>document.getElementById(i),N=i=>+(E(i)?.value||0),C=(v,a,b)=>Math.max(a,Math.min(b,v)),G=(x,m,s)=>Math.exp(-.5*((x-m)/s)**2),t0=performance.now()/1000;
+let wavePaused=false,wavePauseAt=0,wavePausedTotal=0;
+// Il tempo delle onde e' indipendente dalla velocita' della simulazione.
+// Quando si mette in pausa, il canvas resta identico; alla ripresa
+// si esclude il tempo trascorso durante la pausa, senza salti di fase.
+window.simWaveSetPaused=paused=>{
+ paused=Boolean(paused);
+ if(paused===wavePaused)return;
+ const now=performance.now()/1000;
+ if(paused)wavePauseAt=now;
+ else wavePausedTotal+=now-wavePauseAt;
+ wavePaused=paused;
+};
 function fit(c){let d=devicePixelRatio||1,r=c.getBoundingClientRect();c.width=Math.floor(r.width*d);c.height=Math.floor(r.height*d);let g=c.getContext("2d");g.setTransform(d,0,0,d,0,0);return[g,r.width,r.height]}
 function ecg(q,r){if(r.includes("Artefatto massaggio")){const cyc=Math.floor(window.__cprWaveTime||0),mod=.83+.17*Math.sin(cyc*1.71)+.09*Math.sin(cyc*2.93),shift=.025*Math.sin(cyc*1.13),noise=.022*Math.sin(2*Math.PI*(7*q+cyc*.37))+.017*Math.sin(2*Math.PI*(13*q+cyc*.19));return mod*(.40*G(q,.18+shift,.078)-.32*G(q,.31+shift,.09)+.25*G(q,.49-shift,.12)-.13*G(q,.68,.1))+noise;}if(r==="Asistolia")return .003*Math.sin(q*20);if(r.includes("Fibrillazione")){let t=q/Math.max(.001,(N("hr")||80)/60);let slow=.5+.5*Math.sin(t*1.13+.9*Math.sin(t*.37)),amp=.45+.8*slow;let s=.095*Math.sin(t*33+1.4*Math.sin(t*2.3))+.075*Math.sin(t*49+1.1*Math.sin(t*1.7))+.05*Math.sin(t*71+.8*Math.sin(t*3.1))+.028*Math.sin(t*113);return amp*s;}if(r.includes("Tachicardia ventricolare"))return .34*Math.sin(2*Math.PI*q)+.13*Math.sin(4*Math.PI*q);return .06*G(q,.12,.034)-.07*G(q,.255,.015)+.47*G(q,.286,.013)-.16*G(q,.319,.017)+.13*G(q,.57,.072)}
 
@@ -81,8 +93,9 @@ return C((baseline*(1-nor)+norContour*nor*norSystolicBoost)*end*peak,0,1.5)*pp}
 function pleth(q){if(E("rhythm")?.value==="Artefatto massaggio cardiaco 120/min")return .16*G(q,.3,.13);if((E("rhythm")?.value==="Fibrillazione ventricolare"||E("rhythm")?.value==="Tachicardia ventricolare senza polso"||E("rhythm")?.value==="PEA / attività elettrica"||E("rhythm")?.value==="Asistolia"))return 0;let co=C(N("co")/3.2,.08,1.8),pp=C((N("sap")-N("dap"))/50,.15,1.7),tone=C((window.macEffectiveTone||N("vascularTone"))/100,.3,2),z=Math.max(0,q-.1),v=q>.1?(1-Math.exp(-z/.055))*Math.exp(-z*(2.7+.45*tone)):0;return (v+.08*G(q,.53,.075))*C(Math.sqrt(co*pp/tone),.08,1.35)}
 function cap(q){let m=E("capnoPattern")?.value||"Normale";if(m.includes("Disconnessione"))return 0;let b=m.includes("Rebreathing")?.18:0,v=0;if(m.includes("Broncospasmo")){if(q<.07)v=0;else if(q<.42)v=C((q-.07)/.35,0,1)**1.8;else if(q<.69)v=.96+.06*(q-.42)/.27;else if(q<.82){let z=(q-.69)/.13;v=1.02*(1-z*z*(3-2*z))}}else{if(q<.08)v=0;else if(q<.14){let z=(q-.08)/.06;v=.94*(z*z*(3-2*z))}else if(q<.72){let z=(q-.14)/.58;v=.94+.09*z+.010*Math.sin(Math.PI*z)}else if(q<.78){let z=(q-.72)/.06;v=1.03*(1-(z*z*(3-2*z)))}else v=0;if(m.includes("Oscillazioni"))v+=.045*Math.sin(q*42)*C((q-.14)*4,0,1)*C((.78-q)*8,0,1)}return b+(1-b)*C(v,0,1.1)}
 function draw(){
+ if(wavePaused){R(draw);return;}
  const hr=Math.max(1,N("hr")||90),rr=Math.max(1,N("rr")||18),et=C(N("etco2")||38,3,80);
- const rh=E("rhythm")?.value||"Ritmo sinusale",av=rh.startsWith("Blocco AV "),timing=av?avTiming(rh,hr):null,now=performance.now()/1000-t0;
+ const rh=E("rhythm")?.value||"Ritmo sinusale",av=rh.startsWith("Blocco AV "),timing=av?avTiming(rh,hr):null,now=performance.now()/1000-t0-wavePausedTotal;
  [["ecg","#39ef8b",6],["pleth","#3bd6ff",6],["capno","#ffd34e",12],["art","#ff5364",6]].forEach(([id,col,sec])=>{
   const c=E(id);if(!c||c.offsetParent===null)return;
   const [g,w,h]=fit(c);g.clearRect(0,0,w,h);g.strokeStyle=col;g.lineWidth=2;g.beginPath();

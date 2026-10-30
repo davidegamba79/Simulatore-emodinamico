@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#071016">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="stylesheet" href="./styles.css">
-<link rel="stylesheet" href="./styles-v2.css?v=28100">
+<link rel="stylesheet" href="./styles-v2.css?v=28101">
 <title>Simulatore emodinamico</title>
 <style id="student-panel-2893">body.student #timeControls,body.student #premedPanel,body.student #inductionPanel{display:none!important}</style>
 <style id="therapy-layout-2861">
@@ -149,7 +149,7 @@
    <small style="display:block;color:var(--muted);margin-top:6px">Valori prodotti dal modello didattico, non dati clinici validati. Per confrontare gli induttori, verificare che i valori preinduzione siano equivalenti.</small>
   </div>
  </section>
- <section class="card" id="therapyV25"><h2>Terapie dinamiche — V2.8.100</h2>
+ <section class="card" id="therapyV25"><h2>Terapie dinamiche — V2.8.101</h2>
   <div class="therapy-grid">
    <div class="therapy"><div><b>Fluid challenge</b><small>2 mL/kg in 30 secondi</small></div><button id="v25FluidBolus">Somministra</button></div>
    <div class="therapy"><div><b>Cristalloidi</b><small>Infusione continua</small></div><label>mL/kg/h<input id="v25FluidRate" type="number" min="0" max="50" step="1" value="2"></label><button id="v25FluidBtn">Avvia</button></div>
@@ -161,12 +161,12 @@
  </section>
 
  <div class="card trend-card" id="trendV25">
-  <div class="trend-head"><h2>Trend monitor — V2.8.100</h2><b id="v25Clock">00:00</b></div>
+  <div class="trend-head"><h2>Trend monitor — V2.8.101</h2><b id="v25Clock">00:00</b></div>
   <div class="trend-controls"><label>Finestra<select id="v25Window"><option value="120">2 min</option><option value="300">5 min</option><option value="600">10 min</option><option value="1800">30 min</option></select></label></div>
   <div id="v26TrendGrid" class="v26-trend-grid">
    <div class="v26-chart"><h3>Parametri vitali</h3><canvas id="trend-vitals"></canvas><div class="v26-legend" id="legend-vitals"></div></div>
    <div class="v26-chart"><h3>Pressioni</h3><canvas id="trend-pressure"></canvas><div class="v26-legend" id="legend-pressure"></div></div>
-   <div class="v26-chart"><h3>Flusso</h3><canvas id="trend-flow"></canvas><div class="v26-legend" id="legend-flow"></div></div>
+   <div class="v26-chart"><h3>Portata cardiaca</h3><canvas id="trend-flow"></canvas><div class="v26-legend" id="legend-flow"></div></div>
    <div class="v26-chart"><h3>Gittata sistolica</h3><canvas id="trend-stroke"></canvas><div class="v26-legend" id="legend-stroke"></div></div>
    <div class="v26-chart"><h3>Resistenze</h3><canvas id="trend-resistance"></canvas><div class="v26-legend" id="legend-resistance"></div></div>
    <div class="v26-chart"><h3>Fluid responsiveness</h3><canvas id="trend-fluid"></canvas><div class="v26-legend" id="legend-fluid"></div></div>
@@ -191,9 +191,9 @@
 </div>
 </main>
 
-<script src="./app.js?v=28100"></script>
+<script src="./app.js?v=28101"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./wave-v2.js?v=28100"></script>
+<script src="./wave-v2.js?v=28101"></script>
 <script>
 window.addEventListener('DOMContentLoaded',()=>{
  const $p=id=>document.getElementById(id);

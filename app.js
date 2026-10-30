@@ -78,7 +78,7 @@ const presets={
 'Dopo fluid challenge':{hr:115,sap:108,dap:62,co:3.0,sv:26,ppv:9,svv:10},
 'Dopo vasopressore':{hr:105,sap:120,dap:72,co:2.8,svr:2100,ea:2.6}
 };
-$('presets').innerHTML=Object.keys(presets).map(p=>`<button data-p="${p}">${p}</button>`).join('');
+$('presets').innerHTML=['Paziente sano','Paziente anestetizzato'].map(p=>`<button data-p="${p}">${p}</button>`).join('');
 function applyPreset(p){
  const o=presets[p];if(!o)return;
  if((p==='Paziente sano'||p==='Paziente anestetizzato')&&typeof v25!=='undefined'&&(['premed','induction'].includes(v25.induction.phase)||(v25.induction.phase==='maintenance'&&v25.induction.startedAt>0))){

@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#071016">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="stylesheet" href="./styles.css">
-<link rel="stylesheet" href="./styles-v2.css?v=2897">
+<link rel="stylesheet" href="./styles-v2.css?v=2898">
 <title>Simulatore emodinamico</title>
 <style id="student-panel-2893">body.student #timeControls,body.student #premedPanel,body.student #inductionPanel{display:none!important}</style>
 <style id="therapy-layout-2861">
@@ -149,7 +149,7 @@
    <small style="display:block;color:var(--muted);margin-top:6px">Valori prodotti dal modello didattico, non dati clinici validati. Per confrontare gli induttori, verificare che i valori preinduzione siano equivalenti.</small>
   </div>
  </section>
- <section class="card" id="therapyV25"><h2>Terapie dinamiche — V2.8.97</h2>
+ <section class="card" id="therapyV25"><h2>Terapie dinamiche — V2.8.98</h2>
   <div class="therapy-grid">
    <div class="therapy"><div><b>Fluid challenge</b><small>2 mL/kg in 30 secondi</small></div><button id="v25FluidBolus">Somministra</button></div>
    <div class="therapy"><div><b>Cristalloidi</b><small>Infusione continua</small></div><label>mL/kg/h<input id="v25FluidRate" type="number" min="0" max="50" step="1" value="2"></label><button id="v25FluidBtn">Avvia</button></div>
@@ -161,7 +161,7 @@
  </section>
 
  <div class="card trend-card" id="trendV25">
-  <div class="trend-head"><h2>Trend monitor — V2.8.97</h2><b id="v25Clock">00:00</b></div>
+  <div class="trend-head"><h2>Trend monitor — V2.8.98</h2><b id="v25Clock">00:00</b></div>
   <div class="trend-controls"><label>Finestra<select id="v25Window"><option value="120">2 min</option><option value="300">5 min</option><option value="600">10 min</option><option value="1800">30 min</option></select></label></div>
   <div id="v26TrendGrid" class="v26-trend-grid">
    <div class="v26-chart"><h3>Parametri vitali</h3><canvas id="trend-vitals"></canvas><div class="v26-legend" id="legend-vitals"></div></div>
@@ -191,9 +191,9 @@
 </div>
 </main>
 
-<script src="./app.js?v=2897"></script>
+<script src="./app.js?v=2898"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./wave-v2.js?v=2897"></script>
+<script src="./wave-v2.js?v=2898"></script>
 <script>
 window.addEventListener('DOMContentLoaded',()=>{
  const $p=id=>document.getElementById(id);
@@ -222,6 +222,18 @@ window.addEventListener('DOMContentLoaded',()=>{
  const elapsedEl=$p('premedElapsed');
  const capnoMonitorEnabled=()=>{const t=document.querySelector('[data-toggle="capno"]');return !t||t.checked};
  const showPremedElapsed=()=>{if(!elapsedEl)return;const now=window.simVirtualNow?window.simVirtualNow():performance.now();const awake=window.simNonIntubated();window.premedAwakePhase=awake;
+  const patientStatus=$p('patientPresetStatus');
+  if(patientStatus){
+   const phase=v25.induction.phase;
+   const clinical=typeof caseState!=='undefined'&&caseState.active;
+   const legacyAnesthetized=typeof patientModel!=='undefined'&&patientModel==='anesthetized';
+   patientStatus.textContent=clinical?'Caso clinico · profilo emodinamico dedicato':
+    phase==='induction'?'Paziente · induzione anestesiologica in corso':
+    phase==='maintenance'?'Paziente · anestesia generale · mantenimento':
+    phase==='premed'?'Paziente sano · premedicato · non ancora indotto':
+    legacyAnesthetized?'Paziente anestetizzato · preset manuale':
+    'Paziente sano · sveglio · non premedicato';
+  }
   const macInput=$p('mac'),phaseStatus=$p('anesthesiaPhaseStatus');
   if(macInput)macInput.disabled=awake;
   if(phaseStatus)phaseStatus.textContent=v25.induction.phase==='awake'?'Paziente sano sveglio, non premedicato: MAC escluso.':v25.induction.phase==='premed'?'Premedicazione: cane non anestetizzato; MAC escluso. Induzione avviabile manualmente.':v25.induction.phase==='induction'?'Induzione EV: MAC escluso; effetti farmacologici in evoluzione.':'Mantenimento: MAC attivo; persistono gli effetti residui dei farmaci.';const cap=document.querySelector('[data-key="capno"]'),notice=$p('awakeCapnoNotice');if(cap)cap.style.display=(awake||!capnoMonitorEnabled())?'none':'';if(notice)notice.style.display=awake?'flex':'none';if(!administrations.length){elapsedEl.textContent='Tempo dalla premedicazione: —';return}
@@ -261,7 +273,7 @@ window.addEventListener('DOMContentLoaded',()=>{
    if(!Number.isFinite(normalized)||normalized<=0){rejected.push(x.drug);return}
    accepted.push({...x,dose:normalized,unit:p.unit,at:(window.simVirtualNow?window.simVirtualNow():performance.now())});
   });
-  administrations.push(...accepted);if(accepted.length&&v25.induction.phase==='legacy')v25.induction.phase='premed';
+  administrations.push(...accepted);if(accepted.length&&['legacy','awake'].includes(v25.induction.phase))v25.induction.phase='premed';
   if(typeof v25Event==='function')v25Event(txt);
   $p('premedStatus').textContent=(accepted.length?'Somministrata: '+accepted.map(x=>x.drug+' '+x.dose+' '+x.unit+' '+x.route).join(' + '):'Nessun farmaco somministrato.')+(rejected.length?' · Non riconosciuti: '+rejected.join(', '):'');
   items.length=0;renderCombo();showPremedElapsed()

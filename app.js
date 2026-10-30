@@ -258,7 +258,8 @@ function physiology(){
  // e' minore. Il termine della pressione pulsatoria si riduce moderatamente.
  dap=clamp(map-pp/3,12,125),sap=clamp(dap+pp,25,210);return{hr,sv,co,svr,map,pp,dap,sap}};
  let shownHR=+$('hr').value||80;let hr=(typeof v25!=='undefined'&&Number.isFinite(v25.continuousHR)&&v25.lastShownHR===shownHR)?v25.continuousHR:shownHR;let r=calc(hr),rh=$('rhythm').value,reflex=['Ritmo sinusale','Tachicardia sinusale','Bradicardia sinusale',AV1].includes(rh);
- if(reflex&&!manualLocks.hr){let pressureDrive=clamp((refMAP-r.map)*1.15,-30,85),flowDrive=clamp((refCO-r.co)*18,-18,45),reflexGain=awakePremed?1.25:((typeof window.isInductionPhase==='function'&&window.isInductionPhase())?.75:(mac<=1.6?1:clamp(1-.55*((mac-1.6)/.4),.45,1))),dobResponse=(typeof v25!=='undefined'&&v25.inf.dob)?clamp((r.co-refCO)*18,0,14):0,target=refHR+reflexGain*((pressureDrive+flowDrive)>0?(awakePremed?0.36:0.25)*(pressureDrive+flowDrive):(pressureDrive+flowDrive))-dobResponse+(typeof v25!=='undefined'?(v25.fx.hr||0):0);let ephActive=typeof v25!=='undefined'&&v25.ephedrineAt&&simClock.virtual-v25.ephedrineAt<420000;if(ephActive){let pressorRise=Math.max(0,r.map-v25.ephedrineBaselineMAP);let ephElapsed=(simClock.virtual-v25.ephedrineAt)/1000;let gain=clamp((ephElapsed-2)/9,0,1);target-=clamp(pressorRise*1.45*gain,0,65);}
+ if(reflex&&!manualLocks.hr){const unpremedicatedPropofol=typeof v25!=='undefined'&&v25.induction.phase==='induction'&&v25.induction.drug==='Propofol'&&v25.induction.premedicated===false;
+ let pressureDrive=clamp((refMAP-r.map)*1.15,-30,85),flowDrive=clamp((refCO-r.co)*18,-18,45),reflexGain=unpremedicatedPropofol?1:(awakePremed?1.25:((typeof window.isInductionPhase==='function'&&window.isInductionPhase())?.75:(mac<=1.6?1:clamp(1-.55*((mac-1.6)/.4),.45,1)))),dobResponse=(typeof v25!=='undefined'&&v25.inf.dob)?clamp((r.co-refCO)*18,0,14):0,target=refHR+reflexGain*((pressureDrive+flowDrive)>0?(unpremedicatedPropofol?.72:(awakePremed?.36:.25))*(pressureDrive+flowDrive):(pressureDrive+flowDrive))-dobResponse+(typeof v25!=='undefined'?(v25.fx.hr||0):0);let ephActive=typeof v25!=='undefined'&&v25.ephedrineAt&&simClock.virtual-v25.ephedrineAt<420000;if(ephActive){let pressorRise=Math.max(0,r.map-v25.ephedrineBaselineMAP);let ephElapsed=(simClock.virtual-v25.ephedrineAt)/1000;let gain=clamp((ephElapsed-2)/9,0,1);target-=clamp(pressorRise*1.45*gain,0,65);}
  // Riflesso barocettivo nel cane: la bradicardia segue l'aumento delle SVR
  // e della pressione indotto dalla dexmedetomidina, non una riduzione FC fissa.
  const dex=typeof window.premedDexEffect==='function'?window.premedDexEffect():0;
@@ -337,9 +338,10 @@ function v25Setup(){
  $('v25Window').addEventListener('change',v25Draw)
 }
 // PK-PD didattica: 3 compartimenti + sito d'effetto e compartimento vascolare rapido.
- // I coefficienti di distribuzione/EC50 sono stime di sviluppo, NON parametri PK-PD validati.
+ // Ricalibrazione propofol: risposta vascolare sigmoide sensibile al picco di concentrazione,
+ // non alla sola dose cumulativa; coefficienti didattici NON validati per uso clinico.
  const inductionPK={
-  Propofol:{vc:.40,vf:.70,vs:3.10,qf:.55,qs:.13,cl:.055,ke0:.723,kv:3.5,ecv:2.1,ech:1.9,tone:-39,preload:-13,contractility:-22,hr:-7},
+  Propofol:{vc:.40,vf:.70,vs:3.10,qf:.55,qs:.13,cl:.055,ke0:.723,kv:3.5,ecv:4.5,vascularHill:5,ech:1.9,tone:-46,preload:-13,contractility:-22,hr:-7},
   Alfaxalone:{vc:.30,vf:.55,vs:1.20,qf:.45,qs:.10,cl:.059,ke0:1.0,kv:3.5,ecv:1.8,ech:1.65,tone:-27,preload:-7,contractility:-15,hr:12}
  };
  function v25InductionStep(dt,now){
@@ -354,7 +356,8 @@ function v25Setup(){
   const plasma=k.central/p.vc;
   k.ce=Math.max(0,k.ce+(plasma-k.ce)*(1-Math.exp(-p.ke0*minutes)));
   k.cv=Math.max(0,k.cv+(plasma-k.cv)*(1-Math.exp(-p.kv*minutes)));
-  const vascular=k.cv/(p.ecv+k.cv),hypnotic=k.ce/(p.ech+k.ce);
+  const vascularHill=p.vascularHill||1;
+  const vascular=Math.pow(k.cv,vascularHill)/(Math.pow(p.ecv,vascularHill)+Math.pow(k.cv,vascularHill)),hypnotic=k.ce/(p.ech+k.ce);
   i.effects={preload:p.preload*vascular,tone:p.tone*vascular,contractility:p.contractility*hypnotic,hr:p.hr*hypnotic,active:age>=0&&(age<=i.administrationSeconds||k.ce>.025||k.cv>.025)};
   const rateMgMin=i.dose*60/Math.max(1,i.administrationSeconds);
   i.apneaRisk=hypnotic>.53&&rateMgMin>(i.drug==='Propofol'?2:1)?'Elevato (stima qualitativa)':hypnotic>.32?'Presente (stima qualitativa)':'Basso / non quantificato';

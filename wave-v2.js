@@ -90,7 +90,11 @@ let norContour=q<.46?early-dip+rebound:early*(1-after)+post*after+rebound;
 let end=C((1-q)/.23,0,1);end=end*end*(3-2*end);
 let peak=C(1+.14*(dp-1)+.07*(sv-1),.75,1.35);let norSystolicBoost=1+nor*.32*G(q,peakAt,.082);
 return C((baseline*(1-nor)+norContour*nor*norSystolicBoost)*end*peak,0,1.5)*pp}
-function pleth(q){if(E("rhythm")?.value==="Artefatto massaggio cardiaco 120/min")return .16*G(q,.3,.13);if((E("rhythm")?.value==="Fibrillazione ventricolare"||E("rhythm")?.value==="Tachicardia ventricolare senza polso"||E("rhythm")?.value==="PEA / attività elettrica"||E("rhythm")?.value==="Asistolia"))return 0;let co=C(N("co")/3.2,.08,1.8),pp=C((N("sap")-N("dap"))/50,.15,1.7),tone=C((window.macEffectiveTone||N("vascularTone"))/100,.3,2),z=Math.max(0,q-.1),v=q>.1?(1-Math.exp(-z/.055))*Math.exp(-z*(2.7+.45*tone)):0;return (v+.08*G(q,.53,.075))*C(Math.sqrt(co*pp/tone),.08,1.35)}
+function pleth(q){if(E("rhythm")?.value==="Artefatto massaggio cardiaco 120/min")return .16*G(q,.3,.13);if((E("rhythm")?.value==="Fibrillazione ventricolare"||E("rhythm")?.value==="Tachicardia ventricolare senza polso"||E("rhythm")?.value==="PEA / attività elettrica"||E("rhythm")?.value==="Asistolia"))return 0;let co=C(N("co")/3.2,.08,1.8),pp=C((N("sap")-N("dap"))/50,.15,1.7),tone=C((window.macEffectiveTone||N("vascularTone"))/100,.3,2),z=Math.max(0,q-.1),v=q>.1?(1-Math.exp(-z/.055))*Math.exp(-z*(2.7+.45*tone)):0;
+// La curva pletismografica deve ricongiungersi al basale al termine di ogni
+// ciclo: senza la coda a zero, il modulo (%) provoca un salto verticale.
+const tail=C((q-.65)/.35,0,1),fade=1-tail*tail*(3-2*tail);
+return (v+.08*G(q,.53,.075))*fade*C(Math.sqrt(co*pp/tone),.08,1.35)}
 function cap(q){let m=E("capnoPattern")?.value||"Normale";if(m.includes("Disconnessione"))return 0;let b=m.includes("Rebreathing")?.18:0,v=0;if(m.includes("Broncospasmo")){if(q<.07)v=0;else if(q<.42)v=C((q-.07)/.35,0,1)**1.8;else if(q<.69)v=.96+.06*(q-.42)/.27;else if(q<.82){let z=(q-.69)/.13;v=1.02*(1-z*z*(3-2*z))}}else{if(q<.08)v=0;else if(q<.14){let z=(q-.08)/.06;v=.94*(z*z*(3-2*z))}else if(q<.72){let z=(q-.14)/.58;v=.94+.09*z+.010*Math.sin(Math.PI*z)}else if(q<.78){let z=(q-.72)/.06;v=1.03*(1-(z*z*(3-2*z)))}else v=0;if(m.includes("Oscillazioni"))v+=.045*Math.sin(q*42)*C((q-.14)*4,0,1)*C((.78-q)*8,0,1)}return b+(1-b)*C(v,0,1.1)}
 function draw(){
  if(wavePaused){R(draw);return;}

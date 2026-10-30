@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#071016">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="stylesheet" href="./styles.css">
-<link rel="stylesheet" href="./styles-v2.css?v=28103">
+<link rel="stylesheet" href="./styles-v2.css?v=28105">
 <title>Simulatore emodinamico</title>
 <style id="student-panel-2893">body.student #timeControls,body.student #premedPanel,body.student #inductionPanel{display:none!important}</style>
 <style id="therapy-layout-2861">
@@ -27,7 +27,46 @@
 @media(min-width:1550px){#therapyV25 .therapy-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
 @media(max-width:640px){#therapyV25 .therapy-grid{grid-template-columns:1fr!important}}
 </style>
-<style>#premedPanel .premed-form{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;align-items:end}#premedPanel input,#premedPanel select{padding:8px}#premedPanel button{min-height:40px}@media(max-width:1000px){#premedPanel .premed-form{grid-template-columns:repeat(2,minmax(0,1fr))}}</style></head>
+<style>#premedPanel .premed-form{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;align-items:end}#premedPanel input,#premedPanel select{padding:8px}#premedPanel button{min-height:40px}@media(max-width:1000px){#premedPanel .premed-form{grid-template-columns:repeat(2,minmax(0,1fr))}}</style>
+<style id="ipad-instructor-tabs-28105">
+/* Solo console docente: il monitor studenti su schermo esteso resta invariato. */
+body:not(.student) .controls{align-content:start;grid-auto-rows:max-content;min-width:0}
+body:not(.student) .instructor-console-top{position:sticky;top:66px;z-index:4;background:#0b1a22;border:1px solid #294653;border-radius:12px;padding:10px;box-shadow:0 8px 18px #0005}
+.instructor-console-top .quick-values{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-bottom:8px}
+.instructor-console-top .quick-values>div{background:#071219;border:1px solid #1e3844;border-radius:7px;padding:6px;min-width:0}
+.instructor-console-top .quick-values small{display:block;color:#a2bac6;font-size:10px}
+.instructor-console-top .quick-values b{display:block;font-size:17px;font-variant-numeric:tabular-nums}
+.instructor-console-top .quick-phase{color:#c4d9e2;font-size:11px;line-height:1.4;margin-bottom:7px}
+.instructor-tab-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+.instructor-tab-nav button{min-width:0;min-height:46px;padding:7px 2px;font-size:12px;line-height:1.2}
+.instructor-tab-nav button[aria-selected="true"]{background:#18523c;border-color:#42c28b;color:#fff}
+.instructor-tab-panel{display:grid;gap:10px;align-content:start;min-width:0}
+.instructor-tab-panel[hidden]{display:none!important}
+.instructor-tab-panel>.card{min-width:0;margin:0}
+.instructor-tab-panel .premed-form{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.instructor-tab-panel .premed-form>button{grid-column:1/-1}
+.instructor-tab-panel #inductionReport{overflow-x:auto}
+.instructor-tab-panel #inductionReport table{min-width:570px}
+.instructor-tab-panel #therapyV25 .therapy-grid{grid-template-columns:1fr!important}
+.instructor-advanced{border:1px solid #29404d;border-radius:10px;padding:9px}
+.instructor-advanced>summary{cursor:pointer;font-size:13px;font-weight:700;color:#d3e9f1;padding:4px;min-height:34px;touch-action:manipulation}
+.instructor-advanced-content{display:grid;gap:10px;padding-top:10px}
+body:not(.student) #timeControls{padding:9px;margin:0!important}
+body:not(.student) #timeControls h2{font-size:13px;margin-bottom:7px}
+body:not(.student) #timeControls .time-primary{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+body:not(.student) #timeControls .time-primary label{flex:1;min-width:110px}
+body:not(.student) #timeControls .time-primary button{min-height:44px}
+body:not(.student) #timeControls .time-primary strong{font-size:16px;font-variant-numeric:tabular-nums}
+body:not(.student) #timeControls .time-jumps{margin-top:6px}
+body:not(.student) #timeControls .time-jumps summary{cursor:pointer;min-height:32px;color:#bcd0d8;font-size:12px}
+body:not(.student) #timeControls .time-jumps>div{display:flex;flex-wrap:wrap;gap:6px}
+body:not(.student) #timeControls .time-jumps button{min-height:42px}
+body:not(.student) .monitor{min-width:0}
+@media(min-width:901px){body:not(.student) .grid{grid-template-columns:minmax(350px,390px) minmax(0,1fr)}}
+@media(max-width:900px){body:not(.student) .instructor-console-top{top:58px}body:not(.student) .controls{order:0}body:not(.student) .monitor{order:1}}
+@media(max-width:520px){.instructor-console-top .quick-values b{font-size:15px}.instructor-tab-nav button{font-size:11px}body:not(.student) .instructor-console-top{top:54px}}
+</style>
+</head>
 <body>
 
 <header>
@@ -149,7 +188,7 @@
    <small style="display:block;color:var(--muted);margin-top:6px">Valori prodotti dal modello didattico, non dati clinici validati. Per confrontare gli induttori, verificare che i valori preinduzione siano equivalenti.</small>
   </div>
  </section>
- <section class="card" id="therapyV25"><h2>Terapie dinamiche — V2.8.104</h2>
+ <section class="card" id="therapyV25"><h2>Terapie dinamiche — V2.8.105</h2>
   <div class="therapy-grid">
    <div class="therapy"><div><b>Fluid challenge</b><small>2 mL/kg in 30 secondi</small></div><button id="v25FluidBolus">Somministra</button></div>
    <div class="therapy"><div><b>Cristalloidi</b><small>Infusione continua</small></div><label>mL/kg/h<input id="v25FluidRate" type="number" min="0" max="50" step="1" value="2"></label><button id="v25FluidBtn">Avvia</button></div>
@@ -161,7 +200,7 @@
  </section>
 
  <div class="card trend-card" id="trendV25">
-  <div class="trend-head"><h2>Trend monitor — V2.8.104</h2><b id="v25Clock">00:00</b></div>
+  <div class="trend-head"><h2>Trend monitor — V2.8.105</h2><b id="v25Clock">00:00</b></div>
   <div class="trend-controls"><label>Finestra<select id="v25Window"><option value="120">2 min</option><option value="300">5 min</option><option value="600">10 min</option><option value="1800">30 min</option></select></label></div>
   <div id="v26TrendGrid" class="v26-trend-grid">
    <div class="v26-chart"><h3>Parametri vitali</h3><canvas id="trend-vitals"></canvas><div class="v26-legend" id="legend-vitals"></div></div>
@@ -191,9 +230,9 @@
 </div>
 </main>
 
-<script src="./app.js?v=28103"></script>
+<script src="./app.js?v=28105"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./wave-v2.js?v=28104"></script>
+<script src="./wave-v2.js?v=28105"></script>
 <script>
 window.addEventListener('DOMContentLoaded',()=>{
  const $p=id=>document.getElementById(id);
@@ -315,5 +354,98 @@ window.addEventListener('DOMContentLoaded',()=>{
  setInterval(showInductionStatus,250);showInductionStatus();inductionRenderReport();
 
 });
-</script></body>
+</script>
+<script id="ipad-instructor-tabs-script-28105">
+window.addEventListener('DOMContentLoaded',()=>{
+ // Non modificare mai la struttura della finestra studenti (schermo esteso iPad).
+ if(document.body.classList.contains('student'))return;
+ const aside=document.querySelector('aside.controls'),monitor=document.querySelector('section.monitor');
+ if(!aside||!monitor)return;
+ const get=id=>document.getElementById(id);
+ const top=document.createElement('div');top.className='instructor-console-top';
+ top.innerHTML='<div class="quick-values" aria-label="Parametri paziente in tempo reale">'+
+  '<div><small>FC · bpm</small><b id="quickHr">—</b></div>'+
+  '<div><small>MAP · mmHg</small><b id="quickMap">—</b></div>'+
+  '<div><small>CO · L/min</small><b id="quickCo">—</b></div>'+
+  '<div><small>SVR</small><b id="quickSvr">—</b></div></div>'+
+  '<div class="quick-phase" id="quickPhase">Paziente sano · sveglio</div>'+
+  '<nav class="instructor-tab-nav" aria-label="Sezioni console docente" role="tablist"></nav>';
+ aside.prepend(top);
+ const nav=top.querySelector('nav');
+ const groups=[
+  {id:'patient',label:'Paziente'},
+  {id:'anesthesia',label:'Anestesia'},
+  {id:'therapy',label:'Terapie'},
+  {id:'trends',label:'Trend'}
+ ];
+ const panels={};
+ for(const group of groups){
+  const b=document.createElement('button');b.type='button';b.textContent=group.label;
+  b.id='instructor-tab-'+group.id;b.setAttribute('role','tab');
+  b.setAttribute('aria-controls','instructor-panel-'+group.id);
+  nav.append(b);
+  const panel=document.createElement('div');panel.className='instructor-tab-panel';
+  panel.id='instructor-panel-'+group.id;panel.setAttribute('role','tabpanel');
+  panel.setAttribute('aria-labelledby',b.id);
+  aside.append(panel);panels[group.id]=panel;
+  b.addEventListener('click',()=>activate(group.id));
+ }
+ const add=(id,group)=>{const el=get(id);if(el)panels[group].append(el)};
+ // Elementi esistenti: spostati, non clonati. ID e listener rimangono gli stessi.
+ const asideCards=Array.from(aside.querySelectorAll(':scope > section.card'));
+ const findCard=title=>asideCards.find(el=>el.querySelector('h2')?.textContent.trim()===title);
+ const moveCard=(title,group)=>{const el=findCard(title);if(el)panels[group].append(el)};
+ moveCard('Paziente','patient');
+ moveCard('Preset manuali','patient');
+ moveCard('Modalità Caso clinico','patient');
+ moveCard('Monitoraggio attivo — istruttore','patient');
+ const advanced=document.createElement('details');advanced.className='instructor-advanced';
+ advanced.innerHTML='<summary>Regolazioni manuali e motore fisiologico</summary><div class="instructor-advanced-content"></div>';
+ const inner=advanced.querySelector('div');
+ for(const title of ['ECG','Capnografia','Pressione','MostCare Up / PRAM — simulazione','SpO₂','Motore fisiologico — emodinamica']){
+  const el=findCard(title);if(el)inner.append(el);
+ }
+ panels.patient.append(advanced);
+ add('premedPanel','anesthesia');add('inductionPanel','anesthesia');
+ moveCard('Anestesia inalatoria','anesthesia');
+ add('therapyV25','therapy');moveCard('Interventi / trend','therapy');
+ add('trendV25','trends');
+ const interpretation=get('interpretation')?.closest('.card');
+ if(interpretation)panels.trends.append(interpretation);
+ // Tempo sempre accessibile, indipendentemente dalla scheda selezionata.
+ const time=get('timeControls');
+ if(time){
+  top.after(time);
+  const row=time.querySelector('div[style*="display:flex"]');
+  if(row){
+   row.classList.add('time-primary');
+   const jumpButtons=['simBack10','simBack5','simBack1','simAdvance1','simAdvance5','simAdvance10'];
+   const details=document.createElement('details');details.className='time-jumps';
+   details.innerHTML='<summary>Salti temporali e avanzamento rapido</summary><div></div>';
+   for(const id of jumpButtons){const b=get(id);if(b)details.querySelector('div').append(b)}
+   time.append(details);
+  }
+ }
+ function activate(id){
+  for(const group of groups){
+   const selected=group.id===id;
+   panels[group.id].hidden=!selected;
+   const b=get('instructor-tab-'+group.id);
+   b.setAttribute('aria-selected',String(selected));b.tabIndex=selected?0:-1;
+  }
+  // I canvas dei trend vengono ridisegnati dal ciclo esistente appena visibili.
+ }
+ activate('anesthesia');
+ const refresh=()=>{
+  const read=id=>get(id)?.textContent.trim()||'—';
+  get('quickHr').textContent=read('vhr');
+  get('quickMap').textContent=read('vmap');
+  get('quickCo').textContent=read('m_co');
+  get('quickSvr').textContent=read('m_svr');
+  get('quickPhase').textContent=read('patientPresetStatus');
+ };
+ refresh();setInterval(refresh,600);
+});
+</script>
+</body>
 </html>

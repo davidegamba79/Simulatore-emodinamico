@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#071016">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="stylesheet" href="./styles.css">
-<link rel="stylesheet" href="./styles-v2.css?v=28105">
+<link rel="stylesheet" href="./styles-v2.css?v=28106">
 <title>Simulatore emodinamico</title>
 <style id="student-panel-2893">body.student #timeControls,body.student #premedPanel,body.student #inductionPanel{display:none!important}</style>
 <style id="therapy-layout-2861">
@@ -65,6 +65,55 @@ body:not(.student) .monitor{min-width:0}
 @media(min-width:901px){body:not(.student) .grid{grid-template-columns:minmax(350px,390px) minmax(0,1fr)}}
 @media(max-width:900px){body:not(.student) .instructor-console-top{top:58px}body:not(.student) .controls{order:0}body:not(.student) .monitor{order:1}}
 @media(max-width:520px){.instructor-console-top .quick-values b{font-size:15px}.instructor-tab-nav button{font-size:11px}body:not(.student) .instructor-console-top{top:54px}}
+</style>
+
+<style id="ipad-persistent-monitor-28106">
+/* Console docente iPad: monitor clinico sempre visibile durante lo scroll dei comandi.
+   Il display studenti, su schermo esteso, non e' coinvolto. */
+body:not(.student) .grid{align-items:start}
+body:not(.student) .monitor{
+ position:sticky!important;
+ top:calc(var(--instructor-header-height, 80px) + 8px)!important;
+ align-self:start!important;
+ max-height:calc(100dvh - var(--instructor-header-height, 80px) - 20px)!important;
+ overflow-y:auto!important;
+ overflow-x:hidden!important;
+ overscroll-behavior:contain;
+ -webkit-overflow-scrolling:touch;
+ scrollbar-width:thin;
+}
+body:not(.student) .hemo-wrap{padding:9px}
+body:not(.student) .hemo-wrap h2{font-size:13px;margin-bottom:7px}
+body:not(.student) .hemo-wrap .hemo{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+body:not(.student) .hemo-wrap .metric{min-width:0;padding:6px}
+body:not(.student) .hemo-wrap .metric b{font-size:17px}
+body:not(.student) .hemo-wrap .metric small{font-size:10px;overflow-wrap:anywhere}
+@media(min-width:1180px){
+ body:not(.student) .hemo-wrap .hemo{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media(min-width:700px) and (max-width:900px){
+ body:not(.student) .grid{grid-template-columns:minmax(300px,40%) minmax(0,1fr)!important;gap:9px}
+ body:not(.student) .controls{order:0}
+ body:not(.student) .monitor{order:1}
+ body:not(.student) main{padding:8px}
+ body:not(.student) .hemo-wrap .metric b{font-size:15px}
+ body:not(.student) .hemo-wrap .metric small{font-size:9px}
+}
+@media(max-height:820px) and (min-width:700px){
+ body:not(.student) .monitor .wave{height:70px!important;min-height:70px!important}
+ body:not(.student) .hemo-wrap .metric{padding:4px 6px}
+ body:not(.student) .hemo-wrap .metric b{font-size:15px}
+ body:not(.student) .hemo-wrap .metric small{font-size:9px}
+ body:not(.student) .hemo-wrap{padding:7px}
+ body:not(.student) .hemo-wrap h2{margin-bottom:5px}
+}
+@media(max-width:699px){
+ /* Su schermi piccoli la colonna del monitor precede i controlli. */
+ body:not(.student) .grid{display:flex!important;flex-direction:column;gap:8px}
+ body:not(.student) .monitor{order:0;width:100%;max-height:44dvh!important;top:calc(var(--instructor-header-height, 80px) + 5px)!important;z-index:3}
+ body:not(.student) .controls{order:1;width:100%}
+ body:not(.student) .monitor .wave{height:62px!important;min-height:62px!important}
+}
 </style>
 </head>
 <body>
@@ -188,7 +237,7 @@ body:not(.student) .monitor{min-width:0}
    <small style="display:block;color:var(--muted);margin-top:6px">Valori prodotti dal modello didattico, non dati clinici validati. Per confrontare gli induttori, verificare che i valori preinduzione siano equivalenti.</small>
   </div>
  </section>
- <section class="card" id="therapyV25"><h2>Terapie dinamiche — V2.8.105</h2>
+ <section class="card" id="therapyV25"><h2>Terapie dinamiche — V2.8.106</h2>
   <div class="therapy-grid">
    <div class="therapy"><div><b>Fluid challenge</b><small>2 mL/kg in 30 secondi</small></div><button id="v25FluidBolus">Somministra</button></div>
    <div class="therapy"><div><b>Cristalloidi</b><small>Infusione continua</small></div><label>mL/kg/h<input id="v25FluidRate" type="number" min="0" max="50" step="1" value="2"></label><button id="v25FluidBtn">Avvia</button></div>
@@ -200,7 +249,7 @@ body:not(.student) .monitor{min-width:0}
  </section>
 
  <div class="card trend-card" id="trendV25">
-  <div class="trend-head"><h2>Trend monitor — V2.8.105</h2><b id="v25Clock">00:00</b></div>
+  <div class="trend-head"><h2>Trend monitor — V2.8.106</h2><b id="v25Clock">00:00</b></div>
   <div class="trend-controls"><label>Finestra<select id="v25Window"><option value="120">2 min</option><option value="300">5 min</option><option value="600">10 min</option><option value="1800">30 min</option></select></label></div>
   <div id="v26TrendGrid" class="v26-trend-grid">
    <div class="v26-chart"><h3>Parametri vitali</h3><canvas id="trend-vitals"></canvas><div class="v26-legend" id="legend-vitals"></div></div>
@@ -230,9 +279,9 @@ body:not(.student) .monitor{min-width:0}
 </div>
 </main>
 
-<script src="./app.js?v=28105"></script>
+<script src="./app.js?v=28106"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./wave-v2.js?v=28105"></script>
+<script src="./wave-v2.js?v=28106"></script>
 <script>
 window.addEventListener('DOMContentLoaded',()=>{
  const $p=id=>document.getElementById(id);
@@ -359,6 +408,10 @@ window.addEventListener('DOMContentLoaded',()=>{
 window.addEventListener('DOMContentLoaded',()=>{
  // Non modificare mai la struttura della finestra studenti (schermo esteso iPad).
  if(document.body.classList.contains('student'))return;
+ const header=document.querySelector('body > header');
+ const syncHeaderHeight=()=>document.documentElement.style.setProperty('--instructor-header-height',Math.ceil(header?.getBoundingClientRect().height||80)+'px');
+ syncHeaderHeight();window.addEventListener('resize',syncHeaderHeight);
+ if(header&&typeof ResizeObserver!=='undefined')new ResizeObserver(syncHeaderHeight).observe(header);
  const aside=document.querySelector('aside.controls'),monitor=document.querySelector('section.monitor');
  if(!aside||!monitor)return;
  const get=id=>document.getElementById(id);

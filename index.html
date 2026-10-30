@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#071016">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="stylesheet" href="./styles.css">
-<link rel="stylesheet" href="./styles-v2.css?v=28107">
+<link rel="stylesheet" href="./styles-v2.css?v=28108">
 <title>Simulatore emodinamico</title>
 <style id="student-panel-2893">body.student #timeControls,body.student #premedPanel,body.student #inductionPanel{display:none!important}</style>
 <style id="therapy-layout-2861">
@@ -113,6 +113,58 @@ body:not(.student) .hemo-wrap .metric small{font-size:10px;overflow-wrap:anywher
  body:not(.student) .monitor{order:0;width:100%;max-height:44dvh!important;top:calc(var(--instructor-header-height, 80px) + 5px)!important;z-index:3}
  body:not(.student) .controls{order:1;width:100%}
  body:not(.student) .monitor .wave{height:62px!important;min-height:62px!important}
+}
+</style>
+
+<style id="student-readonly-tabs-28108">
+/* La console studenti e' soltanto una vista: onde e PRAM sempre visibili. */
+body.student main{height:calc(100dvh - var(--student-header-height, 76px));padding:8px 12px;overflow:hidden}
+body.student .grid{height:100%;min-height:0;display:block}
+body.student .monitor{height:100%;min-height:0;overflow:hidden;display:flex!important;flex-direction:column!important;gap:7px!important}
+body.student .student-fixed-monitor{flex:0 0 auto;display:flex;flex-direction:column;gap:4px;min-height:0;max-height:64%;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
+body.student .student-fixed-monitor .wave{height:78px!important;min-height:78px!important;flex-shrink:0}
+body.student .student-fixed-monitor .hemo-wrap{padding:8px}
+body.student .student-fixed-monitor .hemo-wrap h2{font-size:12px;margin-bottom:5px}
+body.student .student-fixed-monitor .hemo{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
+body.student .student-fixed-monitor .metric{min-width:0;padding:5px}
+body.student .student-fixed-monitor .metric b{font-size:17px;overflow-wrap:anywhere}
+body.student .student-fixed-monitor .metric small{font-size:10px}
+body.student .student-tabs-shell{flex:1;min-height:0;display:flex;flex-direction:column;border:1px solid #29404d;border-radius:12px;background:#0a1820;overflow:hidden}
+body.student .student-tabs-nav{display:flex;align-items:center;gap:8px;flex:0 0 auto;padding:8px 10px;border-bottom:1px solid #29404d}
+body.student .student-tabs-nav button{min-height:42px;min-width:150px;font-size:13px}
+body.student .student-tabs-nav button[aria-selected="true"]{background:#16513b;border-color:#3ec18a;color:#fff}
+body.student .student-readonly-badge{margin-left:auto;color:#b5cbd5;font-size:12px}
+body.student .student-tab-panel{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:8px;scrollbar-width:thin}
+body.student .student-tab-panel[hidden]{display:none!important}
+body.student #trendV25{margin:0!important}
+body.student #trendV25 .trend-controls{display:none!important}
+body.student #trendV25 .v26-trend-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+body.student #trendV25 .v26-chart canvas{height:155px!important}
+body.student #therapyV25,body.student #timeControls,body.student #premedPanel,body.student #inductionPanel{display:none!important}
+body.student[data-student-external="true"] #modeBtn{display:none!important}
+body.student .student-meds-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+body.student .student-meds-summary .student-meds-group{background:#0c1d26;border:1px solid #23404c;border-radius:10px;padding:10px;min-width:0}
+body.student .student-meds-group h3{font-size:15px;margin:0 0 9px;color:#d7e9f1}
+body.student .student-meds-list{display:flex;flex-direction:column;gap:6px}
+body.student .student-meds-event{display:grid;grid-template-columns:50px minmax(0,1fr);gap:8px;align-items:start;padding:6px;border-bottom:1px solid #19323e}
+body.student .student-meds-event time{color:#a6bbc6;font-size:12px;font-variant-numeric:tabular-nums}
+body.student .student-meds-event span{color:#e0edf2;font-size:13px;line-height:1.4;overflow-wrap:anywhere}
+body.student .student-meds-empty{color:#91aab5;font-size:13px}
+body.student .student-active-therapy{padding:9px 11px;margin-bottom:10px;background:#0b2521;border-left:3px solid #38c58c;border-radius:6px;font-size:13px;line-height:1.55;color:#d4f2e6}
+@media(max-width:850px){
+ body.student .student-fixed-monitor .hemo{grid-template-columns:repeat(4,minmax(0,1fr))}
+ body.student .student-fixed-monitor .wave{height:67px!important;min-height:67px!important}
+ body.student .student-meds-summary{grid-template-columns:1fr}
+ body.student #trendV25 .v26-trend-grid{grid-template-columns:1fr}
+}
+@media(max-height:850px){
+ body.student .student-fixed-monitor{max-height:62%}
+ body.student .student-fixed-monitor .wave{height:62px!important;min-height:62px!important}
+ body.student .student-fixed-monitor .metric{padding:3px 5px}
+ body.student .student-fixed-monitor .metric b{font-size:14px}
+ body.student .student-fixed-monitor .metric small{font-size:9px}
+ body.student .student-fixed-monitor .hemo-wrap{padding:5px}
+ body.student .student-fixed-monitor .hemo-wrap h2{margin-bottom:3px}
 }
 </style>
 </head>
@@ -237,7 +289,7 @@ body:not(.student) .hemo-wrap .metric small{font-size:10px;overflow-wrap:anywher
    <small style="display:block;color:var(--muted);margin-top:6px">Valori prodotti dal modello didattico, non dati clinici validati. Per confrontare gli induttori, verificare che i valori preinduzione siano equivalenti.</small>
   </div>
  </section>
- <section class="card" id="therapyV25"><h2>Terapie dinamiche — V2.8.107</h2>
+ <section class="card" id="therapyV25"><h2>Terapie dinamiche — V2.8.108</h2>
   <div class="therapy-grid">
    <div class="therapy"><div><b>Fluid challenge</b><small>2 mL/kg in 30 secondi</small></div><button id="v25FluidBolus">Somministra</button></div>
    <div class="therapy"><div><b>Cristalloidi</b><small>Infusione continua</small></div><label>mL/kg/h<input id="v25FluidRate" type="number" min="0" max="50" step="1" value="2"></label><button id="v25FluidBtn">Avvia</button></div>
@@ -249,7 +301,7 @@ body:not(.student) .hemo-wrap .metric small{font-size:10px;overflow-wrap:anywher
  </section>
 
  <div class="card trend-card" id="trendV25">
-  <div class="trend-head"><h2>Trend monitor — V2.8.107</h2><b id="v25Clock">00:00</b></div>
+  <div class="trend-head"><h2>Trend monitor — V2.8.108</h2><b id="v25Clock">00:00</b></div>
   <div class="trend-controls"><label>Finestra<select id="v25Window"><option value="120">2 min</option><option value="300">5 min</option><option value="600">10 min</option><option value="1800">30 min</option></select></label></div>
   <div id="v26TrendGrid" class="v26-trend-grid">
    <div class="v26-chart"><h3>Parametri vitali</h3><canvas id="trend-vitals"></canvas><div class="v26-legend" id="legend-vitals"></div></div>
@@ -279,9 +331,9 @@ body:not(.student) .hemo-wrap .metric small{font-size:10px;overflow-wrap:anywher
 </div>
 </main>
 
-<script src="./app.js?v=28107"></script>
+<script src="./app.js?v=28108"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./wave-v2.js?v=28107"></script>
+<script src="./wave-v2.js?v=28108"></script>
 <script>
 window.addEventListener('DOMContentLoaded',()=>{
  const $p=id=>document.getElementById(id);
@@ -498,6 +550,119 @@ window.addEventListener('DOMContentLoaded',()=>{
   get('quickPhase').textContent=read('patientPresetStatus');
  };
  refresh();setInterval(refresh,600);
+});
+</script>
+
+<script id="student-readonly-tabs-script-28108">
+window.addEventListener('DOMContentLoaded',()=>{
+ if(!document.body.classList.contains('student'))return;
+ const isExternal=new URLSearchParams(location.search).get('student')==='1';
+ document.body.dataset.studentExternal=String(isExternal);
+ const header=document.querySelector('body > header');
+ const syncHeader=()=>document.documentElement.style.setProperty('--student-header-height',Math.ceil(header?.getBoundingClientRect().height||76)+'px');
+ syncHeader();window.addEventListener('resize',syncHeader);
+ if(header&&typeof ResizeObserver!=='undefined')new ResizeObserver(syncHeader).observe(header);
+ const monitor=document.querySelector('section.monitor');
+ if(!monitor)return;
+ const badge=document.getElementById('syncBadge');if(badge)badge.textContent='Monitor studenti · sola lettura · sincronizzato';
+ const fixed=document.createElement('div');fixed.className='student-fixed-monitor';
+ for(const el of Array.from(monitor.children)){
+  if(el.classList.contains('wave')||el.classList.contains('hemo-wrap')||el.classList.contains('student-only'))fixed.append(el);
+ }
+ monitor.prepend(fixed);
+ const shell=document.createElement('section');shell.className='student-tabs-shell';
+ const nav=document.createElement('nav');nav.className='student-tabs-nav';nav.setAttribute('role','tablist');nav.setAttribute('aria-label','Visualizzazioni monitor studenti');
+ shell.append(nav);
+ const panels={};
+ for(const [key,title] of [['trends','Trend'],['meds','Farmaci e terapie']]){
+  const b=document.createElement('button');b.type='button';b.id='student-tab-'+key;b.textContent=title;
+  b.setAttribute('role','tab');b.setAttribute('aria-controls','student-panel-'+key);nav.append(b);
+  const panel=document.createElement('div');panel.className='student-tab-panel';panel.id='student-panel-'+key;
+  panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby',b.id);shell.append(panel);
+  panels[key]=panel;b.addEventListener('click',()=>selectTab(key));
+ }
+ const readOnly=document.createElement('span');readOnly.className='student-readonly-badge';readOnly.textContent='Sola lettura';nav.append(readOnly);
+ const trend=document.getElementById('trendV25');if(trend)panels.trends.append(trend);
+ const interpretation=document.getElementById('interpretation')?.closest('.card');if(interpretation)panels.trends.append(interpretation);
+ const windowSelect=document.getElementById('v25Window');if(windowSelect){windowSelect.value='600';windowSelect.disabled=true}
+ const current=document.createElement('div');current.className='student-active-therapy';current.textContent='In attesa dei dati terapeutici della console docente.';
+ panels.meds.append(current);
+ const summary=document.createElement('div');summary.className='student-meds-summary';panels.meds.append(summary);
+ const containers={};
+ for(const [key,title] of [['anesthesia','Farmaci anestetici e mantenimento'],['therapy','Terapie emodinamiche e fluidi']]){
+  const group=document.createElement('section');group.className='student-meds-group';
+  const heading=document.createElement('h3');heading.textContent=title;group.append(heading);
+  const list=document.createElement('div');list.className='student-meds-list';group.append(list);
+  summary.append(group);containers[key]=list;
+ }
+ monitor.append(shell);
+ function selectTab(key){
+  for(const name of Object.keys(panels)){
+   const active=name===key;panels[name].hidden=!active;
+   const btn=document.getElementById('student-tab-'+name);
+   btn.setAttribute('aria-selected',String(active));btn.tabIndex=active?0:-1;
+  }
+  if(key==='trends'&&typeof v25Draw==='function')requestAnimationFrame(()=>v25Draw());
+ }
+ selectTab('trends');
+ let allEvents=[],lastTreatment=null;
+ const fmtTime=sec=>{const n=Math.max(0,Math.floor(Number(sec)||0));return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')};
+ const categorize=txt=>{
+  if(/^(Premedicazione combinata:|Induzione EV:|Intubazione eseguita|MAC impostato)/i.test(txt))return 'anesthesia';
+  if(/^(Cristalloidi|Dobutamina|Noradrenalina|Fluid challenge|Efedrina|Atropina)/i.test(txt))return 'therapy';
+  return null;
+ };
+ function renderEvents(){
+  for(const key of Object.keys(containers)){
+   const list=containers[key];list.replaceChildren();
+   const events=allEvents.filter(e=>typeof e.txt==='string'&&categorize(e.txt)===key);
+   if(!events.length){const p=document.createElement('p');p.className='student-meds-empty';p.textContent=key==='anesthesia'?'Nessun farmaco anestetico somministrato.':'Nessuna terapia somministrata.';list.append(p);continue}
+   for(const e of events){
+    const item=document.createElement('div');item.className='student-meds-event';
+    const time=document.createElement('time');time.textContent=fmtTime(e.t);
+    const description=document.createElement('span');description.textContent=e.txt;
+    item.append(time,description);list.append(item);
+   }
+  }
+ }
+ function updateEvents(events,replace){
+  if(!Array.isArray(events))return;
+  const merged=replace?[]:allEvents.slice();
+  const seen=new Set(merged.map(e=>String(e.t)+'|'+e.txt));
+  for(const e of events){
+   if(!e||!Number.isFinite(Number(e.t))||typeof e.txt!=='string')continue;
+   const k=String(e.t)+'|'+e.txt;if(!seen.has(k)){merged.push({t:Number(e.t),txt:e.txt});seen.add(k)}
+  }
+  allEvents=merged.sort((a,b)=>a.t-b.t);renderEvents();
+ }
+ function updateTreatments(t){
+  if(!t||typeof t!=='object')return;lastTreatment=t;
+  const items=[];
+  const phases={awake:'Paziente sveglio',premed:'Premedicazione',induction:'Induzione EV',maintenance:'Mantenimento'};
+  items.push('Fase: '+(phases[t.phase]||'—'));
+  if(t.phase==='maintenance'&&Number.isFinite(t.mac))items.push('Anestesia inalatoria: '+Number(t.mac).toFixed(1).replace('.',',')+' MAC');
+  const inf=t.infusions||{},rates=t.rates||{};
+  for(const [key,label,unit] of [['fluid','Cristalloidi','mL/kg/h'],['dob','Dobutamina','µg/kg/min'],['nor','Noradrenalina','µg/kg/min']]){
+   if(inf[key])items.push(label+' in corso: '+rates[key]+' '+unit);
+  }
+  if(!inf.fluid&&!inf.dob&&!inf.nor)items.push('Nessuna infusione continua attiva');
+  current.textContent=items.join(' · ');
+ }
+ // Le informazioni arrivano solo dalla console istruttore: mai scrivere in localStorage.
+ window.addEventListener('storage',e=>{
+  if(!e.newValue)return;
+  if(e.key==='recoverCaneStudentHistoryV2891'){
+   try{const data=JSON.parse(e.newValue);updateEvents(data.events,true)}catch(err){console.warn('Riepilogo terapie studenti:',err)}
+  }
+  if(e.key==='recoverCaneStudentStatusV2891'){
+   try{const data=JSON.parse(e.newValue);updateEvents(data.events,false);updateTreatments(data.treatments)}catch(err){console.warn('Stato terapie studenti:',err)}
+  }
+ });
+ try{
+  const h=localStorage.getItem('recoverCaneStudentHistoryV2891');if(h)updateEvents(JSON.parse(h).events,true);
+  const st=localStorage.getItem('recoverCaneStudentStatusV2891');
+  if(st){const d=JSON.parse(st);updateEvents(d.events,false);updateTreatments(d.treatments)}
+ }catch(err){console.warn('Ripristino riepilogo terapie studenti:',err)}
 });
 </script>
 </body>

@@ -436,8 +436,7 @@ const v26Groups=[
  ['resistance',['svr']],
  ['fluid',['ppv','svv']],
  ['contractility',['dpdt','cce']],
- ['coupling',['ea','cpo']],
- ['physiology',['preload','afterload','contractility','mac']]
+ ['coupling',['ea','cpo']]
 ];
 const v26Colors=['#3bd6ff','#39ef8b','#ffd34e','#ff5364','#c78cff'];
 const v26MonitorColors={hr:'#39ef8b',etco2:'#ffd34e',spo2:'#3bd6ff',sap:'#ff5364',dap:'#ff914d',map:'#ffce4b'};

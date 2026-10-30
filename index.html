@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#071016">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="stylesheet" href="./styles.css">
-<link rel="stylesheet" href="./styles-v2.css?v=28108">
+<link rel="stylesheet" href="./styles-v2.css?v=28109">
 <title>Simulatore emodinamico</title>
 <style id="student-panel-2893">body.student #timeControls,body.student #premedPanel,body.student #inductionPanel{display:none!important}</style>
 <style id="therapy-layout-2861">
@@ -150,6 +150,7 @@ body.student .student-meds-event{display:grid;grid-template-columns:50px minmax(
 body.student .student-meds-event time{color:#a6bbc6;font-size:12px;font-variant-numeric:tabular-nums}
 body.student .student-meds-event span{color:#e0edf2;font-size:13px;line-height:1.4;overflow-wrap:anywhere}
 body.student .student-meds-empty{color:#91aab5;font-size:13px}
+body.student .student-inhaled-status:not([hidden]){padding:9px 10px;margin:0 0 10px;border-radius:7px;border-left:3px solid #48c69a;background:#103329;color:#e3f8ee;font-size:14px;font-weight:650}
 body.student .student-active-therapy{padding:9px 11px;margin-bottom:10px;background:#0b2521;border-left:3px solid #38c58c;border-radius:6px;font-size:13px;line-height:1.55;color:#d4f2e6}
 @media(max-width:850px){
  body.student .student-fixed-monitor .hemo{grid-template-columns:repeat(4,minmax(0,1fr))}
@@ -289,7 +290,7 @@ body.student .student-active-therapy{padding:9px 11px;margin-bottom:10px;backgro
    <small style="display:block;color:var(--muted);margin-top:6px">Valori prodotti dal modello didattico, non dati clinici validati. Per confrontare gli induttori, verificare che i valori preinduzione siano equivalenti.</small>
   </div>
  </section>
- <section class="card" id="therapyV25"><h2>Terapie dinamiche — V2.8.108</h2>
+ <section class="card" id="therapyV25"><h2>Terapie dinamiche — V2.8.109</h2>
   <div class="therapy-grid">
    <div class="therapy"><div><b>Fluid challenge</b><small>2 mL/kg in 30 secondi</small></div><button id="v25FluidBolus">Somministra</button></div>
    <div class="therapy"><div><b>Cristalloidi</b><small>Infusione continua</small></div><label>mL/kg/h<input id="v25FluidRate" type="number" min="0" max="50" step="1" value="2"></label><button id="v25FluidBtn">Avvia</button></div>
@@ -301,7 +302,7 @@ body.student .student-active-therapy{padding:9px 11px;margin-bottom:10px;backgro
  </section>
 
  <div class="card trend-card" id="trendV25">
-  <div class="trend-head"><h2>Trend monitor — V2.8.108</h2><b id="v25Clock">00:00</b></div>
+  <div class="trend-head"><h2>Trend monitor — V2.8.109</h2><b id="v25Clock">00:00</b></div>
   <div class="trend-controls"><label>Finestra<select id="v25Window"><option value="120">2 min</option><option value="300">5 min</option><option value="600">10 min</option><option value="1800">30 min</option></select></label></div>
   <div id="v26TrendGrid" class="v26-trend-grid">
    <div class="v26-chart"><h3>Parametri vitali</h3><canvas id="trend-vitals"></canvas><div class="v26-legend" id="legend-vitals"></div></div>
@@ -331,9 +332,9 @@ body.student .student-active-therapy{padding:9px 11px;margin-bottom:10px;backgro
 </div>
 </main>
 
-<script src="./app.js?v=28108"></script>
+<script src="./app.js?v=28109"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./wave-v2.js?v=28108"></script>
+<script src="./wave-v2.js?v=28109"></script>
 <script>
 window.addEventListener('DOMContentLoaded',()=>{
  const $p=id=>document.getElementById(id);
@@ -592,6 +593,7 @@ window.addEventListener('DOMContentLoaded',()=>{
  for(const [key,title] of [['anesthesia','Farmaci anestetici e mantenimento'],['therapy','Terapie emodinamiche e fluidi']]){
   const group=document.createElement('section');group.className='student-meds-group';
   const heading=document.createElement('h3');heading.textContent=title;group.append(heading);
+  if(key==='anesthesia'){const inhaled=document.createElement('div');inhaled.id='studentIsofluraneStatus';inhaled.className='student-inhaled-status';inhaled.hidden=true;group.append(inhaled)}
   const list=document.createElement('div');list.className='student-meds-list';group.append(list);
   summary.append(group);containers[key]=list;
  }
@@ -640,7 +642,9 @@ window.addEventListener('DOMContentLoaded',()=>{
   const items=[];
   const phases={awake:'Paziente sveglio',premed:'Premedicazione',induction:'Induzione EV',maintenance:'Mantenimento'};
   items.push('Fase: '+(phases[t.phase]||'—'));
-  if(t.phase==='maintenance'&&Number.isFinite(t.mac))items.push('Anestesia inalatoria: '+Number(t.mac).toFixed(1).replace('.',',')+' MAC');
+  const inhaled=document.getElementById('studentIsofluraneStatus');
+  if(inhaled){const intubated=t.phase==='maintenance';inhaled.hidden=!intubated;if(intubated)inhaled.textContent='Alogenato (isofluorano) · '+(Number.isFinite(t.mac)?Number(t.mac).toFixed(1).replace('.',',')+' MAC':'MAC non disponibile')+' · mantenimento inalatorio';}
+  if(t.phase==='maintenance'&&Number.isFinite(t.mac))items.push('Alogenato (isofluorano): '+Number(t.mac).toFixed(1).replace('.',',')+' MAC');
   const inf=t.infusions||{},rates=t.rates||{};
   for(const [key,label,unit] of [['fluid','Cristalloidi','mL/kg/h'],['dob','Dobutamina','µg/kg/min'],['nor','Noradrenalina','µg/kg/min']]){
    if(inf[key])items.push(label+' in corso: '+rates[key]+' '+unit);

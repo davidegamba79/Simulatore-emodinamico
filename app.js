@@ -431,9 +431,9 @@ function v25Sample(t){let rec={t};v25Metrics.forEach(([k])=>{if(['ppv','svv'].in
 const v26Groups=[
  ['vitals',['hr','etco2','spo2']],
  ['pressure',['sap','dap','map']],
- ['flow',['co','ci']],
- ['stroke',['sv','svi']],
- ['resistance',['svr','svri']],
+ ['flow',['co']],
+ ['stroke',['sv']],
+ ['resistance',['svr']],
  ['fluid',['ppv','svv']],
  ['contractility',['dpdt','cce']],
  ['coupling',['ea','cpo']],

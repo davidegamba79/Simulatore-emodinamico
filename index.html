@@ -169,11 +169,12 @@ body.student .student-active-therapy{padding:9px 11px;margin-bottom:10px;backgro
  body.student .student-fixed-monitor .hemo-wrap h2{margin-bottom:3px}
 }
 </style>
+<style id="app-version-label">.app-version{display:inline-block;vertical-align:middle;margin:0 2px;padding:3px 7px;border:1px solid #3c766a;border-radius:7px;background:#12372f;color:#baf5d5;font-size:12px;font-weight:750;letter-spacing:.02em;white-space:nowrap}</style>
 </head>
 <body>
 
 <header>
- <div><h1>SIMULATORE EMODINAMICO V2.9 — <span id="modeTitle">Console istruttore</span></h1><div class="badge" id="syncBadge">Monitor locale sincronizzato</div></div>
+ <div><h1>SIMULATORE EMODINAMICO <span class="app-version">V2.9</span> — <span id="modeTitle">Console istruttore</span></h1><div class="badge" id="syncBadge">Monitor locale sincronizzato</div></div>
  <div class="row">
   <button class="tiny instructor-only" id="studentBtn">Apri Monitor studenti</button>
   <button class="tiny" id="modeBtn">Modalità studenti</button>
@@ -303,7 +304,7 @@ body.student .student-active-therapy{padding:9px 11px;margin-bottom:10px;backgro
  </section>
 
  <div class="card trend-card" id="trendV25">
-  <div class="trend-head"><h2>Trend monitor — V2.8.110</h2><b id="v25Clock">00:00</b></div>
+  <div class="trend-head"><h2>Trend monitor</h2><b id="v25Clock">00:00</b></div>
   <div class="trend-controls"><label>Finestra<select id="v25Window"><option value="120">2 min</option><option value="300">5 min</option><option value="600">10 min</option><option value="1800">30 min</option></select></label></div>
   <div id="v26TrendGrid" class="v26-trend-grid">
    <div class="v26-chart"><h3>Parametri vitali</h3><canvas id="trend-vitals"></canvas><div class="v26-legend" id="legend-vitals"></div></div>

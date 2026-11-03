@@ -1,4 +1,4 @@
-/* V2.9.29 — Paw temporale con zero reale e morfologia riproducibile. */
+/* V2.9.30 — Paw VCV con raccordo inspiratorio progressivo senza scalino. */
 (function(){
  'use strict';
  const el=id=>document.getElementById(id);
@@ -246,10 +246,15 @@
  // volume e flusso sono coerenti e l'integrale resta esattamente Vt.
  // VCV: rampa di flusso morbida all'inizio e alla fine di Ti.
  // L'integrale della curva resta esattamente Vt.
+ // Una salita di 35-85 ms produceva un "gradino" nella Paw temporale:
+ // la componente resistiva cresceva quasi istantaneamente alla
+ // risoluzione del monitor. La rampa progressiva (fino a 180 ms)
+ // inizia con flusso e derivata nulli, senza cambiare il Vt erogato.
+ // Ai Ti molto brevi i raccordi si accorciano proporzionalmente.
  function vcvFill(seconds,flowTi){
   const ti=Math.max(.15,flowTi),t=clamp(seconds,0,ti);
-  const rise=Math.min(.085,Math.max(.035,ti*.075));
-  const fall=Math.min(.11,Math.max(.05,ti*.095));
+  const rise=Math.min(.18,Math.max(.055,ti*.30),ti*.42);
+  const fall=Math.min(.11,Math.max(.045,ti*.085),ti*.25);
   const area=ti-(rise+fall)/2;
   if(t<=rise){
    const u=t/rise;
@@ -758,7 +763,11 @@
   const speed=typeof window.simClinicalWavePixelsPerSecond==='function'?window.simClinicalWavePixelsPerSecond(type):12.5*96/25.4;
   // La pausa inspiratoria modifica solo la forma dell'onda, senza bande o marcatori grafici.
   ctx.beginPath();
-  for(let x=0;x<w;x+=2){
+  // Paw usa un campione per pixel: con due pixel per campione una
+  // rampa inspiratoria rapida appare come un salto verticale.
+  // Flusso e volume mantengono la frequenza di campionamento precedente.
+  const pixelStep=type==='Pressure'?1:2;
+  for(let x=0;x<w;x+=pixelStep){
    const phase=(((seconds+x/speed)/cycle)%1+1)%1,v=sample(d,type,phase);
    const y=type==='Flow'?baseline-v/max*h*.38:
     spontaneousPressure?baseline-v/max*h*.36:baseline-v/max*h*.75;

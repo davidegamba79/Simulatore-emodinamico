@@ -1,4 +1,4 @@
-/* V2.9.5 — velocita' di scansione cliniche, senza modalita' didattica. */
+/* V2.9.6 — velocita' cliniche ed EtCO2 bianca su tutti i monitor. */
 (()=>{const R=requestAnimationFrame.bind(window),E=i=>document.getElementById(i),N=i=>+(E(i)?.value||0),C=(v,a,b)=>Math.max(a,Math.min(b,v)),G=(x,m,s)=>Math.exp(-.5*((x-m)/s)**2),t0=performance.now()/1000;
 let wavePaused=false,wavePauseAt=0,wavePausedTotal=0;
 // Il tempo delle onde e' indipendente dalla velocita' della simulazione.
@@ -123,7 +123,7 @@ function draw(){
  const respActive=typeof window.simVentValid==='function'&&window.simVentValid();
  const respPulse=Math.max(1,N('sap')-N('dap')),respSpv=C(N('spv'),0,35),respRate=Math.max(1,N('rr')||12);
  const respiratoryPulse=ts=>respActive?C(1+respSpv/(2*respPulse)*Math.sin(2*Math.PI*ts*respRate/60-.3),.7,1.3):1;
- [["ecg","#39ef8b"],["pleth","#3bd6ff"],["capno","#ffd34e"],["art","#ff5364"]].forEach(([id,col])=>{
+ [["ecg","#39ef8b"],["pleth","#3bd6ff"],["capno","#f8fbff"],["art","#ff5364"]].forEach(([id,col])=>{
   const c=E(id);if(!c||c.offsetParent===null)return;
   const [g,w,h]=fit(c);g.clearRect(0,0,w,h);g.strokeStyle=col;g.lineWidth=2;g.beginPath();
   for(let x=0;x<w;x++){

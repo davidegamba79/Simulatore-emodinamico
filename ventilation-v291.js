@@ -296,7 +296,10 @@
     volume=d.vt*(1+Math.cos(Math.PI*u))/2;
     flow=-d.vt/1000*Math.PI/(2*Math.max(.1,d.te))*Math.sin(Math.PI*u);
    }
-   pressure=-2*Math.sin(2*Math.PI*clamp(phase,0,1));
+   // Pressione subatmosferica durante l'inspirazione spontanea,
+   // lieve pressione positiva espiratoria; transizioni continue.
+   pressure=inspir?-2*Math.sin(Math.PI*clamp(t/d.ti,0,1)):
+    1.2*Math.sin(Math.PI*clamp(expSeconds/d.te,0,1));
   }
   if(type==='Volume')return volume;
   if(type==='Pressure')return pressure;

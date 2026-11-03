@@ -1,4 +1,4 @@
-/* V2.9.4 — onde a scala temporale costante (pixel/secondo) e sincronizzate. */
+/* V2.9.5 — velocita' di scansione cliniche, senza modalita' didattica. */
 (()=>{const R=requestAnimationFrame.bind(window),E=i=>document.getElementById(i),N=i=>+(E(i)?.value||0),C=(v,a,b)=>Math.max(a,Math.min(b,v)),G=(x,m,s)=>Math.exp(-.5*((x-m)/s)**2),t0=performance.now()/1000;
 let wavePaused=false,wavePauseAt=0,wavePausedTotal=0;
 // Il tempo delle onde e' indipendente dalla velocita' della simulazione.
@@ -12,10 +12,18 @@ window.simWaveSetPaused=paused=>{
  else wavePausedTotal+=now-wavePauseAt;
  wavePaused=paused;
 };
-// La scala orizzontale e' indipendente dalla larghezza della finestra:
- // 70 pixel equivalgono sempre a un secondo. Una finestra piu' ampia mostra piu' tempo.
- const WAVE_PIXELS_PER_SECOND=70;
- window.simWavePixelsPerSecond=WAVE_PIXELS_PER_SECOND;
+// Velocita' convenzionali di monitoraggio (mm/s), rese in CSS pixel.
+ // CSS usa 96 px per pollice: la scala temporale resta stabile al resize,
+ // ma la misura fisica in mm sul vetro dipende dal display e dal browser.
+ const CSS_PIXELS_PER_MM=96/25.4;
+ const CLINICAL_SPEED_MM_S=Object.freeze({
+  ecg:25,art:25,pleth:25,capno:12.5,
+  Pressure:12.5,Flow:12.5,Volume:12.5
+ });
+ const clinicalPps=key=>(CLINICAL_SPEED_MM_S[key]||25)*CSS_PIXELS_PER_MM;
+ window.simClinicalWaveSpeed=CLINICAL_SPEED_MM_S;
+ window.simClinicalWavePixelsPerSecond=clinicalPps;
+ window.simWavePixelsPerSecond=clinicalPps('ecg');
  function fit(c){
   const r=c.getBoundingClientRect(),d=Math.min(2,window.devicePixelRatio||1);
   const w=Math.max(1,Math.round(r.width*d)),h=Math.max(1,Math.round(r.height*d));
@@ -119,7 +127,7 @@ function draw(){
   const c=E(id);if(!c||c.offsetParent===null)return;
   const [g,w,h]=fit(c);g.clearRect(0,0,w,h);g.strokeStyle=col;g.lineWidth=2;g.beginPath();
   for(let x=0;x<w;x++){
-   const ts=now+x/WAVE_PIXELS_PER_SECOND;let q,y;
+   const ts=now+x/clinicalPps(id);let q,y;
    if(id==="capno"){
     q=((ts/(60/rr))%1+1)%1;y=.86-cap(q)*C(et/40,.12,1.65)*.60;
    }else if(av){

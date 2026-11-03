@@ -1,4 +1,4 @@
-/* V2.9.2 — modello cardiopolmonare didattico con pausa inspiratoria e driving pressure. Non validato per decisioni cliniche. */
+/* V2.9.3 — spirometria PV/FV, monitor respiratorio e dati paziente sincronizzati. Modello didattico. */
 (function(){
  'use strict';
  const el=id=>document.getElementById(id);
@@ -12,6 +12,9 @@
   'Levriero':'dolicho','Pastore tedesco':'meso','Bassotto':'meso'
  };
  let lastData=null;
+ const respDisplayKey='recoverCaneRespDisplayV293';
+ const patientFields=['name','weight','patientAge','patientBreed','patientMorph','patientBodyType','patientBCS'];
+ const patientCopies=new Map();
  function calc(){
   const weight=clamp(n('weight',25),1,100),age=clamp(n('patientAge',6),.1,22),bcs=clamp(n('patientBCS',5),1,9);
   const morph=el('patientMorph')?.value||'meso';
@@ -69,11 +72,75 @@
   }
   refresh();
  };
+ function syncPatientCopies(){
+  for(const [id,copy] of patientCopies){
+   const original=el(id);
+   if(original&&copy&&copy!==document.activeElement)copy.value=original.value;
+  }
+  const context=el('ventPatientContext'),preset=el('patientPresetStatus');
+  if(context&&preset)context.textContent=preset.textContent;
+ }
+ function createPatientMirror(){
+  if(document.body.classList.contains('student'))return;
+  const vent=el('ventilationPanel');
+  if(!vent||!vent.parentElement||el('ventPatientCard'))return;
+  const card=document.createElement('section');card.className='card vent-patient-card';card.id='ventPatientCard';
+  card.innerHTML='<h2>Dati paziente · ventilazione</h2><small style="color:var(--muted)">Modificabili anche qui; i valori restano sincronizzati con la scheda Paziente.</small><div class="cols" id="ventPatientFields" style="margin-top:9px"></div><div class="status" id="ventPatientContext" style="margin-top:8px"></div>';
+  const box=card.querySelector('#ventPatientFields');
+  for(const id of patientFields){
+   const original=el(id),label=original?.closest('label');
+   if(!original||!label)continue;
+   const copyLabel=label.cloneNode(true),copy=copyLabel.querySelector('input,select');
+   if(!copy)continue;
+   copy.id='ventCopy_'+id;
+   copy.value=original.value;
+   copy.removeAttribute('name');
+   copy.addEventListener('input',()=>{
+    original.value=copy.value;
+    original.dispatchEvent(new Event('input',{bubbles:true}));
+    syncPatientCopies();
+   });
+   copy.addEventListener('change',()=>{
+    original.value=copy.value;
+    original.dispatchEvent(new Event('change',{bubbles:true}));
+    syncPatientCopies();
+   });
+   box.append(copyLabel);patientCopies.set(id,copy);
+   original.addEventListener('input',syncPatientCopies);
+   original.addEventListener('change',syncPatientCopies);
+  }
+  vent.parentElement.insertBefore(card,vent);
+  syncPatientCopies();
+ }
+ function setRespDisplay(options,write=false){
+  const pressure=Boolean(options?.pressure),flow=Boolean(options?.flow);
+  document.body.dataset.respPressure=String(pressure);
+  document.body.dataset.respFlow=String(flow);
+  if(el('showVentPressure'))el('showVentPressure').checked=pressure;
+  if(el('showVentFlow'))el('showVentFlow').checked=flow;
+  if(write&&!document.body.classList.contains('student')){
+   try{localStorage.setItem(respDisplayKey,JSON.stringify({pressure,flow}))}catch(err){console.warn('Preferenze onde respiratorie:',err)}
+  }
+ }
+ function setupRespDisplay(){
+  let initial={pressure:false,flow:false};
+  try{initial=JSON.parse(localStorage.getItem(respDisplayKey)||'null')||initial}catch(err){}
+  setRespDisplay(initial);
+  for(const [id,key] of [['showVentPressure','pressure'],['showVentFlow','flow']]){
+   const input=el(id);if(!input)continue;
+   input.addEventListener('change',()=>setRespDisplay({pressure:key==='pressure'?input.checked:el('showVentPressure')?.checked,flow:key==='flow'?input.checked:el('showVentFlow')?.checked},true));
+  }
+  window.addEventListener('storage',e=>{
+   if(e.key!==respDisplayKey||!e.newValue)return;
+   try{setRespDisplay(JSON.parse(e.newValue))}catch(err){}
+  });
+ }
  function refresh(){
   const d=calc();lastData=d;
+  syncPatientCopies();
   // RR e' la frequenza del ventilatore (o spontanea, se non intubato).
   if(el('rr')&&Number(el('rr').value)!==d.rate)el('rr').value=d.rate;
-  const vals={ventPip:fmt(d.pip),ventPplat:fmt(d.plateauMeasured),ventDriving:fmt(d.drivingMeasured),ventVt:fmt(d.vt,0),ventMinute:fmt(d.minute,2),ventCrs:fmt(d.crs)};
+  const vals={ventPip:fmt(d.pip),ventPplat:fmt(d.plateauMeasured),ventDriving:fmt(d.drivingMeasured),ventVt:fmt(d.vt,0),ventMinute:fmt(d.minute,2),ventCrs:fmt(d.crs),ventMainPip:fmt(d.pip),ventMainVolumeValue:fmt(d.vt,0),ventMainFlowValue:fmt(d.controlled?d.mode==='VCV'?d.vt/1000/d.flowTi:(d.pip-d.peep)/Math.max(1.5,d.raw):d.vt/1000/d.ti,2)};
   for(const [id,value] of Object.entries(vals))if(el(id))el(id).textContent=value;
   const status=el('ventStatus');
   if(status)status.textContent=!d.intubated?'Paziente non intubato: respirazione spontanea nel modello. VCV/PCV saranno attive dopo l’intubazione.':d.controlled?d.mode+' attiva · PEEP '+fmt(d.peep,0)+' cmH₂O · I:E 1:'+d.ie+(d.hold?' · pausa inspiratoria '+fmt(d.holdSeconds,2)+' s':' · nessuna pausa inspiratoria'):'Paziente intubato · ventilazione spontanea.';
@@ -109,9 +176,12 @@
   card.innerHTML='<h2>Ventilazione · monitor di sola lettura</h2><div id="studentVentHeadline" class="status">In attesa dei dati dalla console docente</div>'+
    '<div class="vent-readouts" id="studentVentReadouts">'+
    [['Pip','PIP','cmH₂O'],['Pplat','Pplat','cmH₂O'],['Driving','Driving P','cmH₂O'],['Vt','Vt','mL'],['Minute','V̇E','L/min'],['Crs','Crs','mL/cmH₂O']].map(x=>'<div><small>'+x[1]+'</small><b id="studentVent'+x[0]+'">—</b><small>'+x[2]+'</small></div>').join('')+'</div>'+
-   '<div class="vent-wave-stack">'+
-   [['Pressure','Pressione vie aeree'],['Flow','Flusso'],['Volume','Volume']].map(x=>'<div><small>'+x[1]+'</small><canvas id="studentVentWave'+x[0]+'"></canvas></div>').join('')+'</div>'+
-   '<small style="display:block;margin-top:10px;color:var(--muted)">Pplat e driving pressure compaiono solo con pausa inspiratoria attiva. Valori simulati, non validati per uso clinico.</small>';
+   '<h3 style="font-size:14px;margin:12px 0 6px">Spirometria — loop respiratori</h3>'+
+   '<div class="vent-loop-grid">'+
+   '<div class="vent-loop-card"><strong>Pressione / Volume</strong><canvas id="studentVentLoopPV" aria-label="Loop pressione volume"></canvas></div>'+
+   '<div class="vent-loop-card"><strong>Flusso / Volume</strong><canvas id="studentVentLoopFV" aria-label="Loop flusso volume"></canvas></div></div>'+
+   '<div class="vent-loop-legend"><span class="insp">● Inspirazione</span><span class="exp">● Espirazione</span></div>'+
+   '<small style="display:block;margin-top:10px;color:var(--muted)">Le onde Paw, flusso e volume sono nel monitor principale insieme a IBP, EtCO₂ e SpO₂. Pplat e driving pressure richiedono la pausa inspiratoria.</small>';
   panel.append(card);
  }
  function sample(d,type,phase){
@@ -180,6 +250,8 @@
  }
  window.addEventListener('DOMContentLoaded',()=>{
   studentPanel();
+  createPatientMirror();
+  setupRespDisplay();
   for(const id of [...ventIds,'weight','patientAge','patientBreed','patientMorph','patientBodyType','patientBCS']){
    const field=el(id);if(!field)continue;
    field.addEventListener('change',onControlsChanged);

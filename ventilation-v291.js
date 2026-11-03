@@ -1,4 +1,4 @@
-/* V2.9.14 — default ventilazione controllata Vt 10 mL/kg, PEEP 0 cmH2O. */
+/* V2.9.15 — spazio morto didattico modulato da eta', BCS e conformazione. */
 (function(){
  'use strict';
  const el=id=>document.getElementById(id);
@@ -70,11 +70,21 @@
   const cdyn=controlled&&pip>peep?vt/(pip-peep):null;
   const cstat=hold&&plateau>peep?vt/(plateau-peep):null;
   const rawMeasured=hold&&mode==='VCV'&&flow>0?(pip-plateau)/flow:null;
-  const minute=vt/1000*rate,alveolarMinute=Math.max(.05,(vt-weight*2)/1000*rate);
+  // Spazio morto fisiologico efficace, in mL/kg: riferimento 2 mL/kg
+  // per Golden Retriever adulto, BCS 5/9, mesocefalo/mesomorfo.
+  // Eta', BCS e conformazione modulano la ventilazione alveolare.
+  // La razza selezionata imposta automaticamente il morfotipo craniale
+  // (breedMorph): NON e' una previsione clinica specifica di razza.
+  const ageDeadspace=age<1?1.06:age>8?clamp(1+.022*(age-8),1,1.25):1;
+  const bcsDeadspace=bcs>=6?1+.035*(bcs-5):bcs<=3?1.035:1;
+  const morphDeadspace=morph==='brachy'?1.13:morph==='dolicho'?.96:1;
+  const bodyDeadspace=bodyType==='brachy'?1.07:bodyType==='dolicho'?.98:1;
+  const deadspaceMlKg=clamp(2*ageDeadspace*bcsDeadspace*morphDeadspace*bodyDeadspace,1.7,3.4);
+  const minute=vt/1000*rate,alveolarMinute=Math.max(.05,(vt-weight*deadspaceMlKg)/1000*rate);
   const pmean=controlled?peep+(plateau-peep)*ti/(ti+te)*.60:0;
   const preloadSensitivity=clamp(1+Math.max(0,100-(typeof phys!=='undefined'?phys.preload:100))*.012,1,1.9);
   const preloadFactor=controlled?clamp(1-.011*Math.max(0,pmean-2)*preloadSensitivity-.005*Math.max(0,(plateau||0)-19),.68,1):1;
-  return {mode,chosen,intubated,postInduction,controlled,rate,peep,ie,ti,te,flowTi,hold,holdSeconds,fio2,weight,age,bcs,morph,bodyType,crs,raw,tau,vt,pip,plateau,driving,plateauMeasured,drivingMeasured,cdyn,cstat,rawMeasured,minute,alveolarMinute,pmean,preloadFactor};
+  return {mode,chosen,intubated,postInduction,controlled,rate,peep,ie,ti,te,flowTi,hold,holdSeconds,fio2,weight,age,bcs,morph,bodyType,crs,raw,tau,vt,pip,plateau,driving,plateauMeasured,drivingMeasured,cdyn,cstat,rawMeasured,minute,alveolarMinute,deadspaceMlKg,pmean,preloadFactor};
  }
  window.simVentCalc=calc;
  window.simVentValid=()=>{

@@ -6,12 +6,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Sim Emod. V2.9.5">
+<meta name="apple-mobile-web-app-title" content="Sim Emod. V2.9.6">
 <meta name="theme-color" content="#071016">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="stylesheet" href="./styles.css">
 <link rel="stylesheet" href="./styles-v2.css?v=2900">
-<title>Simulatore Emodinamico — V2.9.5</title>
+<title>Simulatore Emodinamico — V2.9.6</title>
 <style id="student-panel-2893">body.student #timeControls,body.student #premedPanel,body.student #inductionPanel{display:none!important}</style>
 <style id="therapy-layout-2861">
 /* Applied in the document to avoid stale stylesheet caching */
@@ -193,7 +193,7 @@ body.student #student-panel-ventilation .vent-wave-stack canvas{height:110px}
 @media(max-width:520px){.vent-readouts b{font-size:17px}.instructor-tab-nav button{font-size:10px;padding:5px 1px}}
 </style>
 
-<style id="vent-monitor-spirometry-295">
+<style id="vent-monitor-spirometry-296">
 /* Onde respiratorie nel monitor principale, con vista dedicata per la ventilazione. */
 .instructor-tab-nav{grid-template-columns:minmax(0,.95fr) minmax(0,1.13fr) minmax(0,1.65fr) minmax(0,.88fr) minmax(0,.77fr)}
 .instructor-tab-nav button{box-sizing:border-box;max-width:100%;width:100%;min-width:0;white-space:nowrap!important;overflow:hidden;display:flex;align-items:center;justify-content:center;line-height:1.1;font-size:11px;padding:7px 1px;letter-spacing:-.035em}
@@ -212,9 +212,9 @@ body.student .resp-wave-controls{display:none!important}
 #instructorVentLoops{display:none}
 body:not(.student)[data-instructor-tab="ventilation"] #instructorVentLoops{display:block}
 body:not(.student) #instructorVentLoops .vent-loop-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-body:not(.student) #instructorVentLoops .vent-loop-card canvas{height:250px}
+body:not(.student) #instructorVentLoops .vent-loop-card canvas{height:auto!important;aspect-ratio:17 / 12}
 body:not(.student) .resp-wave-controls{margin-top:12px;margin-bottom:0}
-@media(max-width:960px){body:not(.student) #instructorVentLoops .vent-loop-grid{grid-template-columns:1fr}body:not(.student) #instructorVentLoops .vent-loop-card canvas{height:210px}}
+@media(max-width:960px){body:not(.student) #instructorVentLoops .vent-loop-grid{grid-template-columns:1fr}}
 .resp-wave-controls label{display:flex;align-items:center;gap:6px;font-size:12px;color:#c7dce6;min-height:28px}
 .resp-wave-controls input{width:18px;height:18px;accent-color:#48c7a0}
 .resp-wave .wlabel{color:#a8d7ee}
@@ -227,20 +227,45 @@ body:not(.student) .resp-wave-controls{margin-top:12px;margin-bottom:0}
 /* I loop sono nel monitor principale, non tra i controlli ventilatori. */
 .vent-loop-grid .vent-loop-card{background:#040d14;border:1px solid #254450;border-radius:10px;padding:8px;min-width:0}
 .vent-loop-grid .vent-loop-card strong{display:block;font-size:13px;color:#d7eaf1;margin-bottom:3px}
-.vent-loop-grid .vent-loop-card canvas{display:block;width:100%;height:210px}
+.vent-loop-grid .vent-loop-card canvas{display:block;width:100%;height:auto!important;aspect-ratio:17 / 12}
 .vent-loop-legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:7px;font-size:11px;color:#b6d1db}
 .vent-loop-legend .insp{color:#50d9f7}.vent-loop-legend .exp{color:#f6c966}
 body.student[data-student-tab="ventilation"] .student-fixed-monitor .wave{height:55px!important;min-height:55px!important}
 body.student[data-student-tab="ventilation"] .student-fixed-monitor{max-height:69%}
 body:not(.student)[data-instructor-tab="ventilation"] .monitor .wave{height:67px!important;min-height:67px!important}
-@media(max-width:720px){.vent-loop-grid{grid-template-columns:1fr}.vent-loop-grid .vent-loop-card canvas{height:180px}}
+@media(max-width:720px){.vent-loop-grid{grid-template-columns:1fr}}
 @media(max-height:800px){body.student[data-student-tab="ventilation"] .student-fixed-monitor .wave{height:48px!important;min-height:48px!important}}
+/* V2.9.6: EtCO₂ bianca su ogni monitor, docente e studenti. */
+.monitor .wave[data-key="capno"] .wlabel,
+.monitor .wave[data-key="capno"] .values{color:#f8fbff!important}
+/* Scala geometrica invariata: i canvas spirometrici conservano un rapporto 17:12. */
+.vent-loop-card{min-width:0}
+.vent-loop-card canvas{width:100%;aspect-ratio:17 / 12;height:auto!important;display:block}
+/* Sul monitor studenti: onde a sinistra e loop impilati a destra. */
+body.student .student-vent-layout{min-width:0;width:100%}
+body.student .student-vent-wave-column{display:flex;flex-direction:column;gap:4px;min-width:0}
+body.student .student-vent-loops{display:none;min-width:0}
+body.student[data-student-tab="ventilation"] .student-vent-layout{
+ display:grid;grid-template-columns:minmax(0,1fr) minmax(210px,.46fr);gap:9px;align-items:start
+}
+body.student[data-student-tab="ventilation"] .student-vent-loops{display:block}
+body.student[data-student-tab="ventilation"] .student-vent-loops .vent-loop-grid{
+ display:grid;grid-template-columns:1fr;gap:8px;margin:0
+}
+body.student .student-vent-loops .vent-loop-card{padding:6px}
+body.student .student-vent-loops .vent-loop-card strong{font-size:11px;margin-bottom:2px}
+body.student .student-vent-loops .vent-loop-card canvas{aspect-ratio:17 / 12;height:auto!important}
+body.student .student-vent-loops .vent-loop-legend{margin-top:5px;font-size:10px}
+@media(max-width:620px){
+ body.student[data-student-tab="ventilation"] .student-vent-layout{grid-template-columns:1fr}
+ body.student[data-student-tab="ventilation"] .student-vent-loops .vent-loop-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
 </style>
 </head>
 <body>
 
 <header>
- <div><h1>SIMULATORE EMODINAMICO <span class="app-version">V2.9.5</span> — <span id="modeTitle">Console istruttore</span></h1><div class="badge" id="syncBadge">Monitor locale sincronizzato</div></div>
+ <div><h1>SIMULATORE EMODINAMICO <span class="app-version">V2.9.6</span> — <span id="modeTitle">Console istruttore</span></h1><div class="badge" id="syncBadge">Monitor locale sincronizzato</div></div>
  <div class="row">
   <button class="tiny instructor-only" id="studentBtn">Apri Monitor studenti</button>
   <button class="tiny" id="modeBtn">Modalità studenti</button>
@@ -310,8 +335,6 @@ body:not(.student)[data-instructor-tab="ventilation"] .monitor .wave{height:67px
   <label>Pressione inspiratoria sopra PEEP (cmH₂O, PCV)<input id="ventPinsp" type="number" min="4" max="30" step="1" value="8"></label>
   <label>Rapporto I:E<select id="ventIE"><option value="2">1:2</option><option value="3">1:3</option><option value="1">1:1</option></select></label>
   <label>FiO₂<select id="ventFio2"><option value=".21">21%</option><option value=".4">40%</option><option value=".5" selected>50%</option><option value=".6">60%</option><option value=".8">80%</option><option value="1">100%</option></select></label>
-  <label>Compliance respiratoria relativa (%)<input id="ventCompliance" type="number" min="40" max="160" step="5" value="100"></label>
-  <label>Resistenza vie aeree relativa (%)<input id="ventResistance" type="number" min="50" max="250" step="10" value="100"></label>
  </div>
  <div class="vent-hold-controls">
   <label class="vent-hold-toggle"><input id="ventHoldEnabled" type="checkbox"> Attiva pausa di fine inspirazione</label>
@@ -324,7 +347,9 @@ body:not(.student)[data-instructor-tab="ventilation"] .monitor .wave{height:67px
   <div><small>Driving P</small><b id="ventDriving">—</b><small>cmH₂O</small></div>
   <div><small>Vt</small><b id="ventVt">—</b><small>mL</small></div>
   <div><small>V̇E</small><b id="ventMinute">—</b><small>L/min</small></div>
-  <div><small>Crs</small><b id="ventCrs">—</b><small>mL/cmH₂O</small></div>
+  <div><small>Compliance statica (Cstat)</small><b id="ventCstat">—</b><small>mL/cmH₂O</small></div>
+  <div><small>Compliance dinamica (Cdyn)</small><b id="ventCdyn">—</b><small>mL/cmH₂O</small></div>
+  <div><small>Resistenza vie aeree (Raw)</small><b id="ventRaw">—</b><small>cmH₂O/(L/s)</small></div>
  </div>
  <div id="ventInterpretation" class="status" style="margin-top:8px">Modello respiratorio didattico semplificato, non validato per uso clinico.</div>
 
@@ -452,9 +477,9 @@ body:not(.student)[data-instructor-tab="ventilation"] .monitor .wave{height:67px
 </div>
 </main>
 
-<script src="./app.js?v=2950"></script>
+<script src="./app.js?v=2960"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./wave-v2.js?v=2950"></script>
+<script src="./wave-v2.js?v=2960"></script>
 <script>
 window.addEventListener('DOMContentLoaded',()=>{
  const $p=id=>document.getElementById(id);
@@ -695,6 +720,15 @@ window.addEventListener('DOMContentLoaded',()=>{
   if(el.classList.contains('wave')||el.classList.contains('hemo-wrap')||el.classList.contains('student-only'))fixed.append(el);
  }
  monitor.prepend(fixed);
+ // Mantiene tutte le onde in una colonna; nella scheda Ventilazione
+ // i loop spirometrici occupano la colonna adiacente, senza duplicare i tracciati.
+ const waveNodes=Array.from(fixed.children).filter(el=>el.classList.contains('wave'));
+ if(waveNodes.length){
+  const ventLayout=document.createElement('div');ventLayout.className='student-vent-layout';ventLayout.id='studentVentLayout';
+  const waveColumn=document.createElement('div');waveColumn.className='student-vent-wave-column';
+  fixed.insertBefore(ventLayout,waveNodes[0]);ventLayout.append(waveColumn);
+  for(const wave of waveNodes)waveColumn.append(wave);
+ }
  const shell=document.createElement('section');shell.className='student-tabs-shell';
  const nav=document.createElement('nav');nav.className='student-tabs-nav';nav.setAttribute('role','tablist');nav.setAttribute('aria-label','Visualizzazioni monitor studenti');
  shell.append(nav);
@@ -794,6 +828,6 @@ window.addEventListener('DOMContentLoaded',()=>{
  }catch(err){console.warn('Ripristino riepilogo terapie studenti:',err)}
 });
 </script>
-<script src="./ventilation-v291.js?v=2950"></script>
+<script src="./ventilation-v291.js?v=2960"></script>
 </body>
 </html>

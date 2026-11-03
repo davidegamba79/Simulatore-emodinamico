@@ -187,35 +187,65 @@
   panel.append(card);
  }
  function sample(d,type,phase){
-  const cycle=60/d.rate,insp=d.ti/cycle,inspir=phase<insp;
-  const inspSeconds=phase*cycle,expSeconds=Math.max(0,phase*cycle-d.ti);
-  const holdPhase=d.hold&&inspir&&inspSeconds>=d.flowTi;
-  const activeSeconds=Math.min(inspSeconds,d.flowTi);
+  // Il campione alla fase 1 rappresenta la FINE dell'espirazione,
+  // non l'inizio del respiro successivo: essenziale per chiudere i loop.
+  const cycle=60/d.rate,t=clamp(phase,0,1)*cycle;
+  const inspir=t<d.ti;
+  const activeSeconds=Math.min(t,d.flowTi);
   const inspX=clamp(activeSeconds/Math.max(.05,d.flowTi),0,1);
-  const expX=clamp(expSeconds/Math.max(.1,d.te),0,1);
-  const spontX=inspir?clamp(phase/insp,0,1):expX;
-  const volume=d.controlled?
-   (inspir?(holdPhase?d.vt:(d.mode==='PCV'?d.vt*(1-Math.exp(-activeSeconds/Math.max(.03,d.tau)))/(1-Math.exp(-d.flowTi/Math.max(.03,d.tau))):d.vt*inspX)):d.vt*Math.exp(-expSeconds/Math.max(.15,d.tau*2))):
-   (inspir?d.vt*Math.sin(Math.PI*spontX/2):d.vt*Math.cos(Math.PI*spontX/2));
-  if(type==='Volume')return volume;
-  if(type==='Pressure'){
-   if(!d.controlled)return -2*Math.sin(Math.PI*phase*2);
-   if(inspir){
-    // Durante l'occlusione inspiratoria: flusso zero, caduta PIP -> Pplat.
-    if(holdPhase)return d.plateau+(d.pip-d.plateau)*Math.exp(-(inspSeconds-d.flowTi)/.035);
-    return d.mode==='PCV'?d.peep+(d.pip-d.peep)*Math.min(1,inspSeconds/.07):
-      d.peep+(d.plateau-d.peep)*inspX+(d.pip-d.plateau);
-   }
-   return d.peep+(d.plateau-d.peep)*Math.exp(-expSeconds/Math.max(.1,d.tau));
-  }
+  const expSeconds=clamp(t-d.ti,0,d.te);
+  let volume=0,flow=0,pressure=0;
   if(d.controlled){
    if(inspir){
-    if(holdPhase)return 0;
-    return d.mode==='VCV'?d.vt/1000/d.flowTi:(d.pip-d.peep)/Math.max(1.5,d.raw)*Math.exp(-activeSeconds/Math.max(.03,d.tau));
+    const holdPhase=d.hold&&t>=d.flowTi;
+    if(d.mode==='VCV'){
+     volume=d.vt*inspX;
+     flow=holdPhase?0:d.vt/1000/Math.max(.05,d.flowTi);
+    }else{
+     const tau=Math.max(.03,d.tau),den=Math.max(.00001,1-Math.exp(-d.flowTi/tau));
+     volume=d.vt*(1-Math.exp(-activeSeconds/tau))/den;
+     flow=holdPhase?0:d.vt/1000*Math.exp(-activeSeconds/tau)/(tau*den);
+    }
+    if(holdPhase)volume=d.vt;
+    if(holdPhase){
+     // Occlusione inspiratoria: caduta resistiva PIP -> Pplat.
+     pressure=d.plateau+(d.pip-d.plateau)*Math.exp(-(t-d.flowTi)/.035);
+    }else{
+     pressure=d.mode==='PCV'?
+      d.peep+(d.pip-d.peep)*Math.min(1,t/.07):
+      d.peep+(d.plateau-d.peep)*inspX+(d.pip-d.plateau);
+    }
+   }else{
+    // Espirazione passiva: volume e flusso sono derivata e integrale
+    // della stessa curva; al termine del respiro tornano esattamente a zero.
+    const tauE=Math.max(.12,d.tau*2),tail=Math.exp(-d.te/tauE);
+    const decay=Math.exp(-expSeconds/tauE),den=Math.max(.00001,1-tail);
+    const remaining=clamp((decay-tail)/den,0,1);
+    const shapePower=1.15;
+    volume=d.vt*Math.pow(remaining,shapePower);
+    flow=remaining<=0?0:
+     -d.vt/1000*shapePower*Math.pow(remaining,shapePower-1)*decay/(tauE*den);
+    const tauP=Math.max(.08,d.tau),pressureTail=Math.exp(-d.te/tauP);
+    pressure=d.peep+(d.plateau-d.peep)*clamp(
+     (Math.exp(-expSeconds/tauP)-pressureTail)/Math.max(.00001,1-pressureTail),0,1);
    }
-   return -d.vt/1000/Math.max(.12,d.tau*2)*Math.exp(-expSeconds/Math.max(.12,d.tau*2));
+  }else{
+   // Respiro spontaneo regolare: volume e flusso hanno estremi comuni
+   // e il ciclo si chiude senza un salto artificiale.
+   if(inspir){
+    const u=clamp(t/Math.max(.1,d.ti),0,1);
+    volume=d.vt*(1-Math.cos(Math.PI*u))/2;
+    flow=d.vt/1000*Math.PI/(2*Math.max(.1,d.ti))*Math.sin(Math.PI*u);
+   }else{
+    const u=clamp(expSeconds/Math.max(.1,d.te),0,1);
+    volume=d.vt*(1+Math.cos(Math.PI*u))/2;
+    flow=-d.vt/1000*Math.PI/(2*Math.max(.1,d.te))*Math.sin(Math.PI*u);
+   }
+   pressure=-2*Math.sin(2*Math.PI*clamp(phase,0,1));
   }
-  return inspir?d.vt/1000/d.ti*Math.sin(Math.PI*spontX):-d.vt/1000/d.te*Math.sin(Math.PI*expX);
+  if(type==='Volume')return volume;
+  if(type==='Pressure')return pressure;
+  return flow;
  }
  // Curve temporali e loop spirometrici: stessi campioni, un unico modello respiratorio.
  function canvasContext(canvas){

@@ -1,4 +1,4 @@
-/* V2.9.30 — Paw VCV con raccordo inspiratorio progressivo senza scalino. */
+/* V2.9.31 — tracciati e loop con palette didattica; interfaccia ventilatoria essenziale. */
 (function(){
  'use strict';
  const el=id=>document.getElementById(id);
@@ -524,21 +524,6 @@
   for(const [id,value] of Object.entries(vals))if(el(id))el(id).textContent=value;
   const status=el('ventStatus');
   if(status)status.textContent=!d.intubated?'Paziente non intubato: tracciati Paw, flusso e volume non disponibili. Dopo l’intubazione si parte dalla respirazione spontanea.':d.controlled?d.mode+' attiva · PEEP '+fmt(d.peep,0)+' cmH₂O · I:E 1:'+d.ie+' · Ti '+fmt(d.ti,2)+' s'+(d.hold?' · insufflazione '+fmt(d.flowTi,2)+' s + pausa '+fmt(d.holdSeconds,2)+' s':' · nessuna pausa inspiratoria'):'Paziente intubato · respirazione spontanea'+(d.postInduction?' con ipoventilazione post-induzione e possibile aumento dell’EtCO₂.':'')+' Seleziona VCV o PCV per attivare la ventilazione controllata.';
-  const warning=[];
-  if(d.controlled&&d.vt/d.weight>12)warning.push('Vt elevato per il peso');
-  if(d.controlled&&d.vt/d.weight<5)warning.push('Vt ridotto');
-  if(d.controlled&&d.plateau>25)warning.push('pressione di plateau elevata');
-  if(d.controlled&&d.pip>30)warning.push('PIP elevata');
-  if(d.controlled&&d.overdistension>.35)warning.push('possibile sovradistensione con PEEP elevata');
-  if(d.controlled&&d.lungProfile!=='healthy')warning.push('profilo polmonare '+d.lungProfile.replace('_',' '));
-  const interpret=el('ventInterpretation');
-  if(interpret)interpret.textContent='Vt '+fmt(d.vt/d.weight,1)+' mL/kg · FiO₂ '+Math.round(d.fio2*100)+'% · Crs modellata '+fmt(d.crs,1)+' mL/cmH₂O · Cdyn '+fmt(d.cdyn)+' mL/cmH₂O. '+
-   (d.hold?'Cstat '+fmt(d.cstat)+' mL/cmH₂O (pausa inspiratoria); driving pressure = Pplat − PEEP = '+fmt(d.drivingMeasured)+' cmH₂O. ':'Cstat, Pplat e driving pressure richiedono la pausa inspiratoria. ')+
-   (d.rawMeasured!==null?'Raw '+fmt(d.rawMeasured)+' cmH₂O/(L/s), ricavata da (PIP − Pplat)/flusso in VCV. ':d.mode==='PCV'?'Raw non misurabile con questa formula in PCV a flusso decelerante. ':'Raw misurabile in VCV con pausa inspiratoria. ')+
-   (d.mode==='PCV'&&d.hold?'In PCV la pausa interrompe il flusso senza allungare Ti; con costante di tempo breve, Vt e Pplat possono variare poco anche se la pausa è chiaramente visibile. ':'')+
-   (d.controlled&&d.peep>0?'La PEEP modifica compliance, spazio morto, ossigenazione e ritorno venoso in funzione della reclutabilita\u0300. ':'')+
-   (d.controlled&&d.peep>=10?'EtCO₂ in calo non esclude PaCO₂ elevata per aumento del gradiente PaCO₂–EtCO₂. ':'')+
-   (warning.length?'Attenzione: '+warning.join(', ')+'. ':'')+'Stime del modello, non misurazioni cliniche.';
   if(el('ventMode'))el('ventMode').disabled=!d.intubated;
   if(el('ventVtKg'))el('ventVtKg').disabled=d.mode!=='VCV';
   if(el('ventPinsp'))el('ventPinsp').disabled=d.mode!=='PCV';
@@ -605,7 +590,7 @@
   loops.innerHTML='<div class="vent-loop-grid">'+
    '<div class="vent-loop-card"><strong>Pressione / Volume</strong><canvas id="studentVentLoopPV" aria-label="Loop pressione volume"></canvas></div>'+
    '<div class="vent-loop-card"><strong>Flusso / Volume</strong><canvas id="studentVentLoopFV" aria-label="Loop flusso volume"></canvas></div></div>'+
-   '<div class="vent-loop-legend"><span class="insp">● Inspirazione</span><span class="exp">● Espirazione</span></div>';
+   '<div class="vent-loop-legend"><span class="insp">● Inspirazione attuale</span><span class="exp">● Espirazione attuale</span></div>';
   const ref=document.createElement('div');ref.className='vent-loop-ref-status';ref.id='studentVentRefStatus';
   loops.append(ref);
   const refKey=document.createElement('div');refKey.id='studentVentRefKey';refKey.className='vent-loop-ref-key';refKey.textContent='- - - Riferimento memorizzato';refKey.hidden=true;loops.append(refKey);
@@ -856,13 +841,13 @@
    drawLimb(saved.exp,'#b0b9c7',true);
    connectTransition(saved.exp[saved.exp.length-1],saved.insp[0],'#b0b9c7',true);
   }
-  drawLimb(inspPoints,'#50d9f7');
-  connectTransition(inspPoints[inspPoints.length-1],expPoints[0],'#50d9f7');
-  drawLimb(expPoints,'#f6c966');
+  drawLimb(inspPoints,'#4399ff');
+  connectTransition(inspPoints[inspPoints.length-1],expPoints[0],'#4399ff');
+  drawLimb(expPoints,'#c084fc');
   // Fine espirazione e nuovo inizio inspirazione devono coincidere
   // a V=0 e Paw=PEEP (o flusso=0). Un eventuale scarto numerico
   // sub-pixel non produce un artefatto visibile.
-  connectTransition(expPoints[expPoints.length-1],inspPoints[0],'#f6c966');
+  connectTransition(expPoints[expPoints.length-1],inspPoints[0],'#c084fc');
   // Nessun marcatore grafico della pausa inspiratoria: la meccanica
   // resta rappresentata dalla forma dei tracciati e dei loop.
   const phase=((seconds/(60/d.rate))%1+1)%1;
@@ -893,7 +878,7 @@
     performance.now()-window.simWaveFrameTimestamp<400;
    if(fresh&&!paused)waveSeconds=window.simWaveTimeSeconds;
    const timeline=fresh?window.simWaveTimeSeconds:waveSeconds;
-   for(const [type,color] of [['Pressure','#ffd34e'],['Flow','#3bd6ff'],['Volume','#39ef8b']]){
+   for(const [type,color] of [['Pressure','#ffd34e'],['Flow','#ff9a3c'],['Volume','#bd895a']]){
     drawTimeWave(el('ventMain'+type),d,type,color,timeline);
    }
    drawLoop(el('ventLoopPV'),d,'PV',timeline);

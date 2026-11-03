@@ -1,4 +1,4 @@
-/* V2.9.21 — PCV a due costanti di tempo: ramo flusso/volume non lineare. */
+/* V2.9.23 — scale indipendenti bloccate e loop di confronto sincronizzati. */
 (function(){
  'use strict';
  const el=id=>document.getElementById(id);
@@ -48,6 +48,154 @@
  const respDisplayKey='recoverCaneRespDisplayV293';
  const patientFields=['name','weight','patientAge','patientBreed','patientMorph','patientBodyType','patientBCS'];
  const patientCopies=new Map();
+
+ // Le scale sono inizializzate UNA volta, alla prima VCV/PCV intubata.
+ // Poi restano fisse: il solo istruttore puo' modificarle o adattarle.
+ // Il riferimento e' un campione reale del modello al momento del salvataggio,
+ // non un ricalcolo dei parametri correnti.
+ const loopStorageKey='recoverCaneVentLoopsV2923';
+ const loopInputIds={
+  PV:{xMin:'ventPvXMin',xMax:'ventPvXMax',yMin:'ventPvYMin',yMax:'ventPvYMax'},
+  FV:{xMin:'ventFvXMin',xMax:'ventFvXMax',yMin:'ventFvYMin',yMax:'ventFvYMax'}
+ };
+ let loopView={axes:null,reference:null};
+ const isStudent=()=>document.body.classList.contains('student');
+ function loopPoints(d){
+  const N=180,phaseEnd=d.ti/(60/d.rate);
+  const point=phase=>({
+   p:sample(d,'Pressure',phase),v:sample(d,'Volume',phase),f:sample(d,'Flow',phase)
+  });
+  return {
+   insp:Array.from({length:N+1},(_,i)=>point(i===N?Math.max(0,phaseEnd-1e-9):phaseEnd*i/N)),
+   exp:Array.from({length:N+1},(_,i)=>point(phaseEnd+(1-phaseEnd)*i/N))
+  };
+ }
+ function autoLoopAxes(d){
+  const {insp,exp}=loopPoints(d),points=insp.concat(exp);
+  const pressureMin=d.controlled?d.peep-Math.max(1.2,(d.pip-d.peep)*.12):-3;
+  const pressureMax=d.controlled?Math.max(d.peep+6,d.pip+Math.max(1.8,(d.pip-d.peep)*.18)):3.5;
+  const volumeMax=Math.max(50,d.vt*1.2);
+  const flowMax=Math.max(.15,...points.map(p=>Math.abs(p.f)))*1.2;
+  return {
+   PV:{xMin:pressureMin,xMax:pressureMax,yMin:0,yMax:volumeMax},
+   FV:{xMin:0,xMax:volumeMax,yMin:-flowMax,yMax:flowMax}
+  };
+ }
+ function validAxes(a){
+  return a&&['xMin','xMax','yMin','yMax'].every(k=>Number.isFinite(a[k])&&Math.abs(a[k])<=100000)&&
+   a.xMax-a.xMin>.001&&a.yMax-a.yMin>.001;
+ }
+ function safeLoopView(raw){
+  if(!raw||typeof raw!=='object')return null;
+  const axes=raw.axes&&validAxes(raw.axes.PV)&&validAxes(raw.axes.FV)?
+   {PV:{...raw.axes.PV},FV:{...raw.axes.FV}}:null;
+  let reference=null;
+  if(raw.reference&&typeof raw.reference==='object'){
+   const r=raw.reference;
+   const good=arr=>Array.isArray(arr)&&arr.length>=2&&arr.length<=400&&
+    arr.every(p=>p&&['p','v','f'].every(k=>Number.isFinite(p[k])&&Math.abs(p[k])<100000));
+   if(good(r.insp)&&good(r.exp))reference={
+    insp:r.insp.map(p=>({p:p.p,v:p.v,f:p.f})),
+    exp:r.exp.map(p=>({p:p.p,v:p.v,f:p.f})),
+    label:String(r.label||'Loop salvato').slice(0,160)
+   };
+  }
+  return {axes,reference};
+ }
+ function publishLoopView(){
+  if(isStudent())return;
+  try{localStorage.setItem(loopStorageKey,JSON.stringify(loopView))}
+  catch(err){console.warn('Sincronizzazione loop:',err)}
+ }
+ function loopReferenceText(){
+  return loopView.reference?'Riferimento salvato: '+loopView.reference.label:
+   'Nessun loop di riferimento salvato';
+ }
+ function updateLoopLabels(){
+  const text=loopReferenceText();
+  for(const id of ['ventLoopRefStatus','studentVentRefStatus']){
+   const target=el(id);if(target)target.textContent=text;
+  }
+  for(const id of ['ventLoopRefKey','studentVentRefKey']){
+   const target=el(id);if(target)target.hidden=!loopView.reference;
+  }
+ }
+ function syncAxisInputs(force=false){
+  if(!loopView.axes||isStudent())return;
+  for(const kind of ['PV','FV']){
+   for(const [key,id] of Object.entries(loopInputIds[kind])){
+    const field=el(id);if(!field||(!force&&document.activeElement===field))continue;
+    const v=loopView.axes[kind][key];
+    field.value=Number(v.toFixed(kind==='PV'&&key.startsWith('x')?2:kind==='FV'&&key.startsWith('y')?3:1)).toString();
+   }
+  }
+ }
+ function ensureLoopAxes(d){
+  if(!loopView.axes&&d.intubated&&d.controlled&&!isStudent()){
+   loopView.axes=autoLoopAxes(d);
+   syncAxisInputs(true);publishLoopView();
+  }
+  return loopView.axes||autoLoopAxes(d);
+ }
+ function loopMessage(message){
+  const target=el('ventLoopMessage');if(target)target.textContent=message;
+ }
+ function setupLoopView(){
+  if(isStudent()){
+   try{loopView=safeLoopView(JSON.parse(localStorage.getItem(loopStorageKey)||'null'))||loopView}
+   catch(err){console.warn('Lettura loop studenti:',err)}
+   window.addEventListener('storage',e=>{
+    if(e.key!==loopStorageKey)return;
+    try{loopView=safeLoopView(e.newValue?JSON.parse(e.newValue):null)||{axes:null,reference:null};updateLoopLabels()}
+    catch(err){console.warn('Aggiornamento loop studenti:',err)}
+   });
+   updateLoopLabels();return;
+  }
+  // Una nuova simulazione apre i loop senza un riferimento preesistente.
+  loopView={axes:null,reference:null};
+  publishLoopView();
+  for(const kind of ['PV','FV']){
+   for(const [key,id] of Object.entries(loopInputIds[kind])){
+    const field=el(id);if(!field)continue;
+    field.addEventListener('change',()=>{
+     if(!loopView.axes)return;
+     const value=Number(field.value);
+     const next={...loopView.axes[kind],[key]:value};
+     if(field.value.trim()===''||!validAxes(next)){
+      loopMessage('Scala non valida: il massimo deve superare il minimo.');syncAxisInputs(true);return;
+     }
+     loopView.axes[kind]=next;
+     loopMessage('Scala '+(kind==='PV'?'P/V':'F/V')+' aggiornata e bloccata.');
+     syncAxisInputs(true);publishLoopView();
+    });
+   }
+   const fit=el(kind==='PV'?'ventPvFit':'ventFvFit');
+   if(fit)fit.addEventListener('click',()=>{
+    const d=lastData||calc();
+    if(!d.intubated){loopMessage('Intuba il paziente per adattare il loop.');return}
+    if(!loopView.axes)loopView.axes=autoLoopAxes(d);
+    loopView.axes[kind]=autoLoopAxes(d)[kind];
+    syncAxisInputs(true);publishLoopView();
+    loopMessage('Adattata solo la scala '+(kind==='PV'?'P/V':'F/V')+'. Le scale restano fisse.');
+   });
+  }
+  const save=el('ventSaveLoop');
+  if(save)save.addEventListener('click',()=>{
+   const d=lastData||calc();
+   if(!d.intubated){loopMessage('Intuba il paziente prima di salvare un loop.');return}
+   const points=loopPoints(d);
+   loopView.reference={...points,label:d.mode+' · Vt '+fmt(d.vt,0)+' mL · FR '+d.rate+'/min · PEEP '+fmt(d.peep,0)+' cmH₂O'};
+   updateLoopLabels();publishLoopView();
+   loopMessage('Loop P/V e F/V memorizzati: confronto attivo anche sul monitor studenti.');
+  });
+  const clear=el('ventClearLoop');
+  if(clear)clear.addEventListener('click',()=>{
+   loopView.reference=null;updateLoopLabels();publishLoopView();
+   loopMessage('Loop di riferimento rimosso da entrambi i monitor.');
+  });
+  updateLoopLabels();
+  loopMessage('Scale iniziali automatiche alla prima VCV/PCV; poi fisse fino a modifica dalla console.');
+ }
  // Unico modello RC per il volume e il flusso in PCV: risposta
  // a una rampa pressoria finita seguita da pressione costante.
  function pcvFill(seconds,tau,rise){
@@ -284,6 +432,7 @@
  }
  function refresh(){
   const d=calc();lastData=d;
+  ensureLoopAxes(d);
   // I tracciati Paw, flusso, volume e i loop richiedono un tubo
   // endotracheale; la condizione e' condivisa con il monitor studenti.
   document.body.dataset.respIntubated=String(d.intubated);
@@ -293,7 +442,7 @@
   const vals={ventPip:fmt(d.pip),ventPplat:fmt(d.plateauMeasured),ventDriving:fmt(d.drivingMeasured),ventVt:fmt(d.vt,0),ventMinute:fmt(d.minute,2),ventCstat:fmt(d.cstat),ventCdyn:fmt(d.cdyn),ventRaw:fmt(d.rawMeasured),ventMainPip:fmt(d.pip),ventMainVolumeValue:fmt(d.vt,0),ventMainFlowValue:fmt(d.controlled?d.mode==='VCV'?d.vcvPeakFlow:d.pcvPeakFlow:d.vt/1000*Math.PI/(2*d.ti),2)};
   for(const [id,value] of Object.entries(vals))if(el(id))el(id).textContent=value;
   const status=el('ventStatus');
-  if(status)status.textContent=!d.intubated?'Paziente non intubato: tracciati Paw, flusso e volume non disponibili. Dopo l’intubazione si parte dalla respirazione spontanea.':d.controlled?d.mode+' attiva · PEEP '+fmt(d.peep,0)+' cmH₂O · I:E 1:'+d.ie+' · Ti '+fmt(d.ti,2)+' s'+(d.hold?' · insufflazione '+fmt(d.flowTi,2)+' s + pausa '+fmt(d.holdSeconds,2)+' s (evidenziata sulle onde)':' · nessuna pausa inspiratoria'):'Paziente intubato · respirazione spontanea'+(d.postInduction?' con ipoventilazione post-induzione e possibile aumento dell’EtCO₂.':'')+' Seleziona VCV o PCV per attivare la ventilazione controllata.';
+  if(status)status.textContent=!d.intubated?'Paziente non intubato: tracciati Paw, flusso e volume non disponibili. Dopo l’intubazione si parte dalla respirazione spontanea.':d.controlled?d.mode+' attiva · PEEP '+fmt(d.peep,0)+' cmH₂O · I:E 1:'+d.ie+' · Ti '+fmt(d.ti,2)+' s'+(d.hold?' · insufflazione '+fmt(d.flowTi,2)+' s + pausa '+fmt(d.holdSeconds,2)+' s':' · nessuna pausa inspiratoria'):'Paziente intubato · respirazione spontanea'+(d.postInduction?' con ipoventilazione post-induzione e possibile aumento dell’EtCO₂.':'')+' Seleziona VCV o PCV per attivare la ventilazione controllata.';
   const warning=[];
   if(d.controlled&&d.vt/d.weight>12)warning.push('Vt elevato per il peso');
   if(d.controlled&&d.vt/d.weight<5)warning.push('Vt ridotto');
@@ -371,6 +520,9 @@
    '<div class="vent-loop-card"><strong>Pressione / Volume</strong><canvas id="studentVentLoopPV" aria-label="Loop pressione volume"></canvas></div>'+
    '<div class="vent-loop-card"><strong>Flusso / Volume</strong><canvas id="studentVentLoopFV" aria-label="Loop flusso volume"></canvas></div></div>'+
    '<div class="vent-loop-legend"><span class="insp">● Inspirazione</span><span class="exp">● Espirazione</span></div>';
+  const ref=document.createElement('div');ref.className='vent-loop-ref-status';ref.id='studentVentRefStatus';
+  loops.append(ref);
+  const refKey=document.createElement('div');refKey.id='studentVentRefKey';refKey.className='vent-loop-ref-key';refKey.textContent='- - - Riferimento memorizzato';refKey.hidden=true;loops.append(refKey);
   const layout=el('studentVentLayout');
   if(layout)layout.append(loops);
   else panel.append(loops);
@@ -496,31 +648,7 @@
    ...Array.from({length:160},(_,i)=>Math.abs(sample(d,'Flow',i/160))))*1.18:1;
   const max=type==='Pressure'?(spontaneousPressure?4:Math.max(15,(d.pip||5)*1.2)):type==='Volume'?Math.max(50,d.vt*1.2):flowMax;
   const speed=typeof window.simClinicalWavePixelsPerSecond==='function'?window.simClinicalWavePixelsPerSecond(type):12.5*96/25.4;
-  // Evidenzia la vera finestra di occlusione in tutti i tracciati:
-  // in PCV Paw e Vt possono cambiare pochissimo se il polmone ha gia'
-  // raggiunto l'equilibrio, ma la pausa deve comunque essere visibile.
-  if(d.controlled&&d.hold&&d.holdSeconds>0){
-   ctx.save();
-   for(let k=Math.floor(seconds/cycle)-1;k<=Math.ceil((seconds+w/speed)/cycle)+1;k++){
-    const from=(k*cycle+d.flowTi-seconds)*speed;
-    const to=(k*cycle+d.ti-seconds)*speed;
-    const x1=clamp(from,0,w),x2=clamp(to,0,w);
-    if(x2<=x1)continue;
-    ctx.fillStyle='rgba(93,179,207,.16)';
-    ctx.fillRect(x1,1,x2-x1,h-2);
-    ctx.strokeStyle='rgba(117,209,236,.55)';
-    ctx.setLineDash([2,3]);
-    ctx.beginPath();ctx.moveTo(x1,1);ctx.lineTo(x1,h-1);
-    ctx.moveTo(x2,1);ctx.lineTo(x2,h-1);ctx.stroke();
-    ctx.setLineDash([]);
-    if(type==='Pressure'&&x2-x1>14){
-     ctx.fillStyle='#a9eaff';ctx.font='9px system-ui,-apple-system,sans-serif';
-     ctx.fillText('P',x1+3,11);
-    }
-   }
-   ctx.restore();
-  }
-  // I bordi tratteggiati della pausa non devono entrare nel tracciato.
+  // La pausa inspiratoria modifica solo la forma dell'onda, senza bande o marcatori grafici.
   ctx.beginPath();
   for(let x=0;x<w;x+=2){
    const phase=(((seconds+x/speed)/cycle)%1+1)%1,v=sample(d,type,phase);
@@ -547,29 +675,9 @@
   ctx.scale(scale,scale);
   const margin={left:47,right:12,top:19,bottom:37};
   const pw=baseW-margin.left-margin.right,ph=baseH-margin.top-margin.bottom;
-  const N=180,phaseEnd=d.ti/(60/d.rate);
-  // Campionamento separato dei due rami, con entrambi gli estremi:
-  // niente campioni mancanti all'inversione inspirazione/espirazione.
-  const makePoint=phase=>({
-   phase,p:sample(d,'Pressure',phase),v:sample(d,'Volume',phase),f:sample(d,'Flow',phase)
-  });
-  const inspPoints=Array.from({length:N+1},(_,i)=>
-   makePoint(i===N?Math.max(0,phaseEnd-1e-9):phaseEnd*i/N));
-  const expPoints=Array.from({length:N+1},(_,i)=>
-   makePoint(phaseEnd+(1-phaseEnd)*i/N));
-  const points=inspPoints.concat(expPoints);
-  // In spontanea la pressione oscilla intorno a zero: un asse -3/+3,5
-  // evita di comprimere il loop P/V nella parte sinistra del grafico.
-  // Centra il grafico sulla PEEP: evita molto spazio vuoto per PEEP alta
-  // e rende leggibili anche i loop PCV a bassa pressione inspiratoria.
-  const pressureMin=kind==='PV'?(d.controlled?
-   d.peep-Math.max(1.2,(d.pip-d.peep)*.12):-3):0;
-  const pressureMax=kind==='PV'?(d.controlled?
-   Math.max(d.peep+6,d.pip+Math.max(1.8,(d.pip-d.peep)*.18)):3.5):1;
-  const volumeMax=Math.max(50,d.vt*1.2);
-  const flowMax=Math.max(.15,...points.map(p=>Math.abs(p.f)))*1.2;
-  const xmin=kind==='PV'?pressureMin:0,xmax=kind==='PV'?pressureMax:volumeMax;
-  const ymin=kind==='PV'?0:-flowMax,ymax=kind==='PV'?volumeMax:flowMax;
+  const {insp:inspPoints,exp:expPoints}=loopPoints(d);
+  const bounds=ensureLoopAxes(d)[kind];
+  const xmin=bounds.xMin,xmax=bounds.xMax,ymin=bounds.yMin,ymax=bounds.yMax;
   const x=v=>margin.left+(v-xmin)/(xmax-xmin)*pw;
   const y=v=>margin.top+ph-(v-ymin)/(ymax-ymin)*ph;
   ctx.font='10px system-ui,-apple-system,sans-serif';
@@ -596,12 +704,11 @@
   ctx.fillText(kind==='PV'?'Pressione vie aeree (cmH₂O)':'Volume (mL)',margin.left+pw/2,baseH-4);
   ctx.textAlign='left';ctx.fillText(kind==='PV'?'Volume (mL)':'Flusso (L/s)',margin.left,11);
   const toPoint=p=>kind==='PV'?[x(p.p),y(p.v)]:[x(p.v),y(p.f)];
-  const drawLimb=(list,color)=>{
-   ctx.strokeStyle=color;ctx.lineWidth=2.3;ctx.lineJoin='round';ctx.beginPath();
+  const drawLimb=(list,color,dashed=false)=>{
+   ctx.strokeStyle=color;ctx.lineWidth=dashed?1.8:2.3;ctx.lineJoin='round';ctx.setLineDash(dashed?[6,4]:[]);ctx.beginPath();
    list.forEach((p,i)=>{const xy=toPoint(p);if(i===0)ctx.moveTo(...xy);else ctx.lineTo(...xy)});
-   ctx.stroke();
-   const mid=Math.floor(list.length*.58);
-   drawArrow(ctx,toPoint(list[mid-2]),toPoint(list[mid]),color);
+   ctx.stroke();ctx.setLineDash([]);
+   if(!dashed){const mid=Math.floor(list.length*.58);drawArrow(ctx,toPoint(list[mid-2]),toPoint(list[mid]),color)}
   };
   // Le due fasi sono calcolate con lo stesso modello, ma il passaggio
   // dalla valvola inspiratoria a quella espiratoria puo' essere
@@ -616,6 +723,12 @@
    ctx.strokeStyle=color;ctx.lineWidth=2.3;ctx.lineJoin='round';
    ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();
   };
+  // Ritaglia alla finestra degli assi fissi: niente curve sulle etichette.
+  ctx.save();ctx.beginPath();ctx.rect(margin.left,margin.top,pw,ph);ctx.clip();
+  if(loopView.reference){
+   drawLimb(loopView.reference.insp,'#b0b9c7',true);
+   drawLimb(loopView.reference.exp,'#b0b9c7',true);
+  }
   drawLimb(inspPoints,'#50d9f7');
   connectTransition(inspPoints[inspPoints.length-1],expPoints[0],'#50d9f7');
   drawLimb(expPoints,'#f6c966');
@@ -637,7 +750,8 @@
   const marker=toPoint(p);
   ctx.fillStyle='#ffffff';ctx.strokeStyle='#071016';ctx.lineWidth=1.5;
   ctx.beginPath();ctx.arc(marker[0],marker[1],3.7,0,Math.PI*2);ctx.fill();ctx.stroke();
-  ctx.restore();
+  ctx.restore(); // clip del grafico
+  ctx.restore(); // trasformazione geometrica
  }
  let waveSeconds=0,lastNow=performance.now(),lastDraw=0;
  function draw(now){
@@ -679,6 +793,7 @@
   previousVentMode=el('ventMode')?.value||'SPONT';
   createPatientMirror();
   setupRespDisplay();
+  setupLoopView();
   for(const id of [...ventIds,'weight','patientAge','patientBreed','patientMorph','patientBodyType','patientBCS']){
    const field=el(id);if(!field)continue;
    field.addEventListener('change',onControlsChanged);

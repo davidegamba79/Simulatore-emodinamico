@@ -1,4 +1,4 @@
-/* V2.9.18 — loop VCV/PCV: transizioni valvolari, pressione e flusso coerenti. */
+/* V2.9.19 — chiusura dei loop VCV/PCV alle commutazioni valvolari. */
 (function(){
  'use strict';
  const el=id=>document.getElementById(id);
@@ -585,12 +585,26 @@
    const mid=Math.floor(list.length*.58);
    drawArrow(ctx,toPoint(list[mid-2]),toPoint(list[mid]),color);
   };
-  // Le curve condividono gia' gli estremi: l'apertura inspiratoria
-  // parte a PEEP e il ritorno espiratorio termina a PEEP con V=0.
-  // Non disegnare collegamenti artificiali che creano linee spurie
-  // alla base del loop (soprattutto in VCV).
+  // Le due fasi sono calcolate con lo stesso modello, ma il passaggio
+  // dalla valvola inspiratoria a quella espiratoria puo' essere
+  // istantaneo: in VCV senza pausa, per esempio, il flusso passa dal
+  // valore positivo impostato a zero a volume costante. Il campionamento
+  // separato dei due rami non deve lasciare il loop F/V aperto.
+  // Rappresenta SOLO l'effettiva discontinuita' di commutazione,
+  // senza aggiungere segmenti fittizi quando gli estremi coincidono.
+  const connectTransition=(from,to,color)=>{
+   const a=toPoint(from),b=toPoint(to);
+   if(Math.hypot(b[0]-a[0],b[1]-a[1])<.35)return;
+   ctx.strokeStyle=color;ctx.lineWidth=2.3;ctx.lineJoin='round';
+   ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();
+  };
   drawLimb(inspPoints,'#50d9f7');
+  connectTransition(inspPoints[inspPoints.length-1],expPoints[0],'#50d9f7');
   drawLimb(expPoints,'#f6c966');
+  // Fine espirazione e nuovo inizio inspirazione devono coincidere
+  // a V=0 e Paw=PEEP (o flusso=0). Un eventuale scarto numerico
+  // sub-pixel non produce un artefatto visibile.
+  connectTransition(expPoints[expPoints.length-1],inspPoints[0],'#f6c966');
   // Punto di inizio della pausa: stessa fisiologia delle onde temporali.
   // Nei polmoni sani in PCV il ramo in pausa puo' essere quasi puntiforme
   // perche' la pressione alveolare ha gia' raggiunto la Paw impostata.

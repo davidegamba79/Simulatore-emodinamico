@@ -6,12 +6,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Sim Emod. V2.9">
+<meta name="apple-mobile-web-app-title" content="Sim Emod. V2.9.1">
 <meta name="theme-color" content="#071016">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="stylesheet" href="./styles.css">
 <link rel="stylesheet" href="./styles-v2.css?v=2900">
-<title>Simulatore Emodinamico — V2.9</title>
+<title>Simulatore Emodinamico — V2.9.1</title>
 <style id="student-panel-2893">body.student #timeControls,body.student #premedPanel,body.student #inductionPanel{display:none!important}</style>
 <style id="therapy-layout-2861">
 /* Applied in the document to avoid stale stylesheet caching */
@@ -38,7 +38,7 @@ body:not(.student) .instructor-console-top{position:sticky;top:66px;z-index:4;ba
 .instructor-console-top .quick-values small{display:block;color:#a2bac6;font-size:10px}
 .instructor-console-top .quick-values b{display:block;font-size:17px;font-variant-numeric:tabular-nums}
 .instructor-console-top .quick-phase{color:#c4d9e2;font-size:11px;line-height:1.4;margin-bottom:7px}
-.instructor-tab-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+.instructor-tab-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
 .instructor-tab-nav button{min-width:0;min-height:46px;padding:7px 2px;font-size:12px;line-height:1.2}
 .instructor-tab-nav button[aria-selected="true"]{background:#18523c;border-color:#42c28b;color:#fff}
 .instructor-tab-panel{display:grid;gap:10px;align-content:start;min-width:0}
@@ -170,11 +170,28 @@ body.student .student-active-therapy{padding:9px 11px;margin-bottom:10px;backgro
 }
 </style>
 <style id="app-version-label">.app-version{display:inline-block;vertical-align:middle;margin:0 2px;padding:3px 7px;border:1px solid #3c766a;border-radius:7px;background:#12372f;color:#baf5d5;font-size:12px;font-weight:750;letter-spacing:.02em;white-space:nowrap}</style>
+<style id="ventilation-v291-styles">
+#ventilationPanel .cols{gap:8px}
+#ventilationPanel input,#ventilationPanel select{padding:8px}
+.vent-readouts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:10px}
+.vent-readouts>div{background:#081820;border:1px solid #24404c;border-radius:8px;padding:8px;min-width:0}
+.vent-readouts small{display:block;color:#a6bdc8;font-size:10px}
+.vent-readouts b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+.vent-wave-stack{display:grid;gap:8px;margin-top:12px}
+.vent-wave-stack>div{background:#030b10;border:1px solid #1e3642;border-radius:9px;padding:5px 8px}
+.vent-wave-stack small{font-size:11px;color:#a8c5d3}
+.vent-wave-stack canvas{width:100%;height:78px;display:block}
+body.student #student-panel-ventilation .vent-readouts{grid-template-columns:repeat(6,minmax(0,1fr))}
+body.student #student-panel-ventilation .vent-wave-stack{grid-template-columns:repeat(3,minmax(0,1fr))}
+body.student #student-panel-ventilation .vent-wave-stack canvas{height:110px}
+@media(max-width:900px){body.student #student-panel-ventilation .vent-readouts{grid-template-columns:repeat(3,minmax(0,1fr))}body.student #student-panel-ventilation .vent-wave-stack{grid-template-columns:1fr}}
+@media(max-width:520px){.vent-readouts b{font-size:17px}.instructor-tab-nav button{font-size:10px;padding:5px 1px}}
+</style>
 </head>
 <body>
 
 <header>
- <div><h1>SIMULATORE EMODINAMICO <span class="app-version">V2.9</span> — <span id="modeTitle">Console istruttore</span></h1><div class="badge" id="syncBadge">Monitor locale sincronizzato</div></div>
+ <div><h1>SIMULATORE EMODINAMICO <span class="app-version">V2.9.1</span> — <span id="modeTitle">Console istruttore</span></h1><div class="badge" id="syncBadge">Monitor locale sincronizzato</div></div>
  <div class="row">
   <button class="tiny instructor-only" id="studentBtn">Apri Monitor studenti</button>
   <button class="tiny" id="modeBtn">Modalità studenti</button>
@@ -186,8 +203,13 @@ body.student .student-active-therapy{padding:9px 11px;margin-bottom:10px;backgro
 <aside class="controls instructor-only">
  <section class="card"><h2>Paziente</h2><div class="cols">
   <label>Nome paziente<input id="name" value="Paziente Cane"></label>
-  <label>Peso (kg)<input id="weight" type="number" value="25" min="1" step=".1"></label>
- </div><div class="status" id="patientPresetStatus" style="margin-top:8px">Paziente sano · sveglio · non premedicato</div></section>
+  <label>Peso (kg)<input id="weight" type="number" value="25" min="1" max="100" step=".1"></label>
+ </div><div class="cols" style="margin-top:9px">
+  <label>Età (anni)<input id="patientAge" type="number" value="6" min="0.1" max="22" step="0.5"></label>
+  <label>Razza<select id="patientBreed"><option>Meticcio</option><option>Labrador Retriever</option><option>Golden Retriever</option><option>Pastore tedesco</option><option>Bulldog francese</option><option>Bulldog inglese</option><option>Carlino</option><option>Boxer</option><option>Cavalier King Charles</option><option>Chihuahua</option><option>Bassotto</option><option>Levriero</option><option>Altro</option></select></label>
+  <label>Conformazione cranio-facciale<select id="patientMorph"><option value="meso">Mesocefalo</option><option value="brachy">Brachicefalo</option><option value="dolicho">Dolicocefalo</option></select></label>
+  <label>Body Condition Score (1–9)<input id="patientBCS" type="number" value="5" min="1" max="9" step="1"></label>
+ </div><small style="display:block;color:var(--muted);margin-top:8px">Il profilo del paziente influenza la meccanica respiratoria simulata; non determina da solo la PIP.</small><div class="status" id="patientPresetStatus" style="margin-top:8px">Paziente sano · sveglio · non premedicato</div></section>
 
  <section class="card"><h2>Monitoraggio attivo — istruttore</h2>
   <div id="toggles"></div><div class="row" style="margin-top:9px"><button id="allOn">Tutto ON</button><button id="allOff">Tutto OFF</button></div>
@@ -223,6 +245,30 @@ body.student .student-active-therapy{padding:9px 11px;margin-bottom:10px;backgro
   <div id="caseInstructor" class="status" style="margin-top:9px">Nessun caso clinico attivo.</div>
   <div id="caseFeedback" class="status" style="margin-top:8px">Gestisci il caso utilizzando i controlli del simulatore.</div>
  </section>
+<section class="card" id="ventilationPanel"><h2>Ventilazione e meccanica respiratoria</h2>
+ <div class="status" id="ventStatus">La ventilazione controllata diventa disponibile dopo l'intubazione o con il preset Paziente anestetizzato.</div>
+ <div class="cols" style="margin-top:10px">
+  <label>Modalità<select id="ventMode"><option value="VCV">VCV — volume controllato</option><option value="PCV">PCV — pressione controllata</option><option value="SPONT">Spontanea</option></select></label>
+  <label>Frequenza respiratoria (/min)<input id="ventRate" type="number" min="4" max="50" step="1" value="12"></label>
+  <label>Volume corrente Vt (mL/kg)<input id="ventVtKg" type="number" min="4" max="15" step=".5" value="8"></label>
+  <label>PEEP (cmH₂O)<input id="ventPeep" type="number" min="0" max="18" step="1" value="3"></label>
+  <label>Pressione inspiratoria sopra PEEP (cmH₂O, PCV)<input id="ventPinsp" type="number" min="4" max="30" step="1" value="12"></label>
+  <label>Rapporto I:E<select id="ventIE"><option value="2">1:2</option><option value="3">1:3</option><option value="1">1:1</option></select></label>
+  <label>FiO₂<select id="ventFio2"><option value=".21">21%</option><option value=".4">40%</option><option value=".5" selected>50%</option><option value=".6">60%</option><option value=".8">80%</option><option value="1">100%</option></select></label>
+  <label>Compliance respiratoria relativa (%)<input id="ventCompliance" type="number" min="40" max="160" step="5" value="100"></label>
+  <label>Resistenza vie aeree relativa (%)<input id="ventResistance" type="number" min="50" max="250" step="10" value="100"></label>
+ </div>
+ <div class="vent-readouts" aria-live="off">
+  <div><small>PIP</small><b id="ventPip">—</b><small>cmH₂O</small></div>
+  <div><small>Pplat</small><b id="ventPplat">—</b><small>cmH₂O</small></div>
+  <div><small>Driving P</small><b id="ventDriving">—</b><small>cmH₂O</small></div>
+  <div><small>Vt</small><b id="ventVt">—</b><small>mL</small></div>
+  <div><small>V̇E</small><b id="ventMinute">—</b><small>L/min</small></div>
+  <div><small>Crs</small><b id="ventCrs">—</b><small>mL/cmH₂O</small></div>
+ </div>
+ <div id="ventInterpretation" class="status" style="margin-top:8px">Modello respiratorio didattico semplificato, non validato per uso clinico.</div>
+ <div class="vent-wave-stack"><div><small>Pressione vie aeree · cmH₂O</small><canvas id="ventWavePressure"></canvas></div><div><small>Flusso · L/s</small><canvas id="ventWaveFlow"></canvas></div><div><small>Volume · mL</small><canvas id="ventWaveVolume"></canvas></div></div>
+ </section>
 <section class="card"><h2>Anestesia inalatoria</h2>
   <div class="status">1,0 MAC = baseline del paziente anestetizzato. La variazione del MAC modifica progressivamente tono vascolare e contrattilità; FC, pressione, CO, EtCO₂ e onde reagiscono attraverso il motore fisiologico.</div>
   <label style="margin-top:10px">MAC <input id="mac" type="range" min="0.6" max="2" value="1" step="0.1"><span id="macOut">1,0</span></label><div class="status" id="anesthesiaPhaseStatus" style="margin-top:8px">Fase anestetizzata: MAC attivo.</div>
@@ -248,7 +294,7 @@ body.student .student-active-therapy{padding:9px 11px;margin-bottom:10px;backgro
 </aside>
 
 <section class="monitor">
- <div class="student-only card" style="padding:8px 12px"><b id="studentPatient">Paziente Cane</b> · <span id="studentWeight">25</span> kg</div>
+ <div class="student-only card" style="padding:8px 12px"><b id="studentPatient">Paziente Cane</b> · <span id="studentWeight">25</span> kg · <span id="studentPhenotype">6 anni · Meticcio · BCS 5/9</span></div>
  <div class="student-only case-banner" id="studentCaseBanner" style="display:none">
    <div><b>CASO CLINICO</b> · minuto <span id="studentCaseMinute">0</span></div>
    <div id="studentCasePresentation" style="margin-top:5px"></div>
@@ -334,9 +380,9 @@ body.student .student-active-therapy{padding:9px 11px;margin-bottom:10px;backgro
 </div>
 </main>
 
-<script src="./app.js?v=2900"></script>
+<script src="./app.js?v=2910"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./wave-v2.js?v=2900"></script>
+<script src="./wave-v2.js?v=2910"></script>
 <script>
 window.addEventListener('DOMContentLoaded',()=>{
  const $p=id=>document.getElementById(id);
@@ -483,6 +529,7 @@ window.addEventListener('DOMContentLoaded',()=>{
  const groups=[
   {id:'patient',label:'Paziente'},
   {id:'anesthesia',label:'Anestesia'},
+  {id:'ventilation',label:'Ventilazione'},
   {id:'therapy',label:'Terapie'},
   {id:'trends',label:'Trend'}
  ];
@@ -516,6 +563,7 @@ window.addEventListener('DOMContentLoaded',()=>{
  panels.patient.append(advanced);
  add('premedPanel','anesthesia');add('inductionPanel','anesthesia');
  moveCard('Anestesia inalatoria','anesthesia');
+ add('ventilationPanel','ventilation');
  add('therapyV25','therapy');moveCard('Interventi / trend','therapy');
  add('trendV25','trends');
  const interpretation=get('interpretation')?.closest('.card');
@@ -577,7 +625,7 @@ window.addEventListener('DOMContentLoaded',()=>{
  const nav=document.createElement('nav');nav.className='student-tabs-nav';nav.setAttribute('role','tablist');nav.setAttribute('aria-label','Visualizzazioni monitor studenti');
  shell.append(nav);
  const panels={};
- for(const [key,title] of [['trends','Trend'],['meds','Farmaci e terapie']]){
+ for(const [key,title] of [['trends','Trend'],['meds','Farmaci e terapie'],['ventilation','Ventilazione']]){
   const b=document.createElement('button');b.type='button';b.id='student-tab-'+key;b.textContent=title;
   b.setAttribute('role','tab');b.setAttribute('aria-controls','student-panel-'+key);nav.append(b);
   const panel=document.createElement('div');panel.className='student-tab-panel';panel.id='student-panel-'+key;
@@ -671,5 +719,6 @@ window.addEventListener('DOMContentLoaded',()=>{
  }catch(err){console.warn('Ripristino riepilogo terapie studenti:',err)}
 });
 </script>
+<script src="./ventilation-v291.js?v=2910"></script>
 </body>
 </html>

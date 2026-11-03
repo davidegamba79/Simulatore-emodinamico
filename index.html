@@ -6,12 +6,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Sim Emod. V2.9.33">
+<meta name="apple-mobile-web-app-title" content="Sim Emod. V2.9.34">
 <meta name="theme-color" content="#071016">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="stylesheet" href="./styles.css">
 <link rel="stylesheet" href="./styles-v2.css?v=2900">
-<title>Simulatore Emodinamico — V2.9.33</title>
+<title>Simulatore Emodinamico — V2.9.34</title>
 <style id="student-panel-2893">body.student #timeControls,body.student #premedPanel,body.student #inductionPanel{display:none!important}</style>
 <style id="therapy-layout-2861">
 /* Applied in the document to avoid stale stylesheet caching */
@@ -221,7 +221,7 @@ body:not(.student) .resp-wave-controls{margin-top:12px;margin-bottom:0}
 .resp-wave[data-resp-type="pressure"] .wlabel,.resp-wave[data-resp-type="pressure"] .values{color:#ffd34e}
 .resp-wave[data-resp-type="flow"] .wlabel,.resp-wave[data-resp-type="flow"] .values{color:#ff9a3c}
 .resp-wave[data-resp-type="volume"] .wlabel,.resp-wave[data-resp-type="volume"] .values{color:#bd895a}
-/* V2.9.33 — dati paziente della ventilazione richiudibili come i salti temporali. */
+/* V2.9.34 — dati paziente della ventilazione richiudibili come i salti temporali. */
 details.vent-patient-card{padding:0;overflow:hidden}
 .vent-patient-card .vent-patient-summary{
  cursor:pointer;min-height:44px;padding:9px 12px;display:flex;align-items:center;
@@ -245,7 +245,7 @@ body.student[data-student-tab="ventilation"] .student-fixed-monitor{max-height:6
 body:not(.student)[data-instructor-tab="ventilation"] .monitor .wave{height:67px!important;min-height:67px!important}
 @media(max-width:720px){.vent-loop-grid{grid-template-columns:1fr}}
 @media(max-height:800px){body.student[data-student-tab="ventilation"] .student-fixed-monitor .wave{height:48px!important;min-height:48px!important}}
-/* V2.9.33: EtCO₂ bianca su ogni monitor, docente e studenti. */
+/* V2.9.34: EtCO₂ bianca su ogni monitor, docente e studenti. */
 .monitor .wave[data-key="capno"] .wlabel,
 .monitor .wave[data-key="capno"] .values{color:#f8fbff!important}
 /* Scala geometrica invariata: i canvas spirometrici conservano un rapporto 17:12. */
@@ -266,7 +266,7 @@ body.student .student-vent-loops .vent-loop-card{padding:6px}
 body.student .student-vent-loops .vent-loop-card strong{font-size:11px;margin-bottom:2px}
 body.student .student-vent-loops .vent-loop-card canvas{aspect-ratio:17 / 12;height:auto!important}
 body.student .student-vent-loops .vent-loop-legend{margin-top:5px;font-size:10px}
-/* V2.9.33: i dati ventilatori riempiono lo spazio sotto IBP,
+/* V2.9.34: i dati ventilatori riempiono lo spazio sotto IBP,
    affiancati ai due loop; nessun riquadro nelle altre schede. */
 body.student .student-vent-metrics{display:none;min-width:0}
 body.student[data-student-tab="ventilation"] .student-vent-metrics{
@@ -304,7 +304,7 @@ body.student[data-student-tab="ventilation"] .student-vent-wave-column .wave[dat
  body.student[data-student-tab="ventilation"] .student-vent-layout{grid-template-columns:1fr}
  body.student[data-student-tab="ventilation"] .student-vent-loops .vent-loop-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
-/* V2.9.33 — nella scheda Ventilazione gli emodinamici scorrono
+/* V2.9.34 — nella scheda Ventilazione gli emodinamici scorrono
    nel proprio riquadro: le onde e i loop non vengono mai scrollati via
    o coperti quando si consultano i valori PRAM. */
 body.student[data-student-tab="ventilation"] .student-fixed-monitor{
@@ -351,7 +351,7 @@ body.student[data-student-tab="ventilation"] .student-fixed-monitor>.hemo-wrap h
   grid-template-columns:repeat(2,minmax(0,1fr));
  }
 }
-/* V2.9.33 — nessuna misura delle vie aeree prima dell'intubazione.
+/* V2.9.34 — nessuna misura delle vie aeree prima dell'intubazione.
    Se l'utente ha attivato le onde opzionali, questa regola ha comunque priorita'. */
 body[data-resp-intubated="false"] .monitor .wave.resp-wave[data-resp-type]:not([hidden]){
  display:none!important
@@ -389,7 +389,7 @@ body.student[data-student-tab="ventilation"] .student-fixed-monitor>.hemo-wrap{
  }
 }
 
-/* V2.9.33 — navigazione studenti in testata, a fianco del titolo. */
+/* V2.9.34 — navigazione studenti in testata, a fianco del titolo. */
 body:not(.student) header .student-tabs-nav{display:none!important}
 body.student header{
  padding:8px 12px;gap:8px;min-height:54px
@@ -436,7 +436,7 @@ body.student[data-student-tab="ventilation"][data-resp-intubated="false"] .stude
  body.student header>.row{margin-left:auto}
 }
 
-/* V2.9.33 — controllo docente delle scale dei loop e confronto statico. */
+/* V2.9.34 — controllo docente delle scale dei loop e confronto statico. */
 .vent-loop-actions{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin:8px 0}
 .vent-loop-actions button,.vent-loop-axis-grid button{min-height:35px}
 .vent-loop-ref-status{font-size:11px;color:#b6d1db;line-height:1.4;overflow-wrap:anywhere}
@@ -458,7 +458,7 @@ body.student[data-student-tab="ventilation"][data-resp-intubated="false"] .stude
 </style>
 
 <style id="instructor-trend-tab-2933">
-/* V2.9.33 — ripristina tutte le cinque schede e la vista originale nelle altre sezioni.
+/* V2.9.34 — ripristina tutte le cinque schede e la vista originale nelle altre sezioni.
    SOLO nella scheda Trend: onde e PRAM in alto, grafici grandi e scorrevoli sotto. */
 body:not(.student) .instructor-fixed-monitor,
 body:not(.student) .instructor-monitor-scroll{display:contents}
@@ -531,11 +531,24 @@ body.student #trendV25 .trend-head{gap:12px;flex-wrap:wrap}
  body:not(.student)[data-instructor-tab="trends"] #trendV25 .v26-chart canvas{height:210px!important}
 }
 </style>
+<style id="instructor-anesthesia-layout-2934">
+/* MAC nel monitor principale sotto PRAM; visibile solo nella scheda Anestesia. */
+body:not(.student) #instructorInhaledCard{display:none!important;min-width:0}
+body:not(.student)[data-instructor-tab="anesthesia"] #instructorInhaledCard{
+ display:block!important;margin:0!important;padding:10px 12px;
+}
+body:not(.student)[data-instructor-tab="anesthesia"] #instructorInhaledCard h2{
+ font-size:15px;margin:0 0 8px;
+}
+body:not(.student)[data-instructor-tab="anesthesia"] #instructorInhaledCard input[type="range"]{
+ width:100%;min-height:32px;touch-action:pan-y;
+}
+</style>
 </head>
 <body>
 
 <header>
- <div><h1>SIMULATORE EMODINAMICO <span class="app-version">V2.9.33</span> — <span id="modeTitle">Console istruttore</span></h1><div class="badge" id="syncBadge">Monitor locale sincronizzato</div></div>
+ <div><h1>SIMULATORE EMODINAMICO <span class="app-version">V2.9.34</span> — <span id="modeTitle">Console istruttore</span></h1><div class="badge" id="syncBadge">Monitor locale sincronizzato</div></div>
  <div class="row">
   <button class="tiny instructor-only" id="studentBtn">Apri Monitor studenti</button>
   <button class="tiny" id="modeBtn">Modalità studenti</button>
@@ -712,7 +725,7 @@ body.student #trendV25 .trend-head{gap:12px;flex-wrap:wrap}
  <section class="card" id="inductionPanel"><h2>Induzione anestesiologica EV — cane</h2>
   <div class="premed-form">
    <label>Induttore<select id="inductionDrug"><option>Propofol</option><option>Alfaxalone</option></select></label>
-   <label>Dose totale (mg/kg)<input id="inductionDose" type="number" min="0.1" max="12" step="0.1" value="3"></label>
+   <label>Dose totale (mg/kg)<input id="inductionDose" type="number" min="0.1" max="12" step="0.1" value="4.5"></label>
    <label>Somministrazione EV (secondi)<input id="inductionSeconds" type="number" min="10" max="300" step="5" value="60"></label>
    <label>Finestra didattica (minuti)<input id="inductionMinutes" type="number" min="1" max="30" step="1" value="10"></label>
    <button type="button" id="inductionStart">Avvia induzione</button>
@@ -763,23 +776,14 @@ body.student #trendV25 .trend-head{gap:12px;flex-wrap:wrap}
   <div class="trend-legend">23 parametri registrati ogni secondo · curve normalizzate rispetto al basale · marker verticali = eventi/terapie</div>
   <div id="v25TrendEvents" class="trend-events"></div>
  </div>
- <div class="card" data-key="hemo"><h2>Interpretazione emodinamica automatica</h2>
-   <div id="interpretation" class="status">Monitoraggio non ancora attivo.</div>
-   <div class="hemo" style="margin-top:8px">
-    <div class="metric"><small>Precarico</small><b id="iPre">—</b></div>
-    <div class="metric"><small>Afterload</small><b id="iAfter">—</b></div>
-    <div class="metric"><small>Contrattilità</small><b id="iContr">—</b></div>
-    <div class="metric"><small>Fluid responsiveness</small><b id="iFluid">—</b></div>
-    <div class="metric"><small>Perfusione</small><b id="iPerf">—</b></div>
-   </div>
- </div>
+
 </section>
 </div>
 </main>
 
-<script src="./app.js?v=29330"></script>
+<script src="./app.js?v=29340"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./wave-v2.js?v=29330"></script>
+<script src="./wave-v2.js?v=29340"></script>
 <script>
 window.addEventListener('DOMContentLoaded',()=>{
  const $p=id=>document.getElementById(id);
@@ -866,7 +870,7 @@ window.addEventListener('DOMContentLoaded',()=>{
  };
  // La finestra di 10 minuti e' osservazionale; non equivale a una infusione di 10 minuti.
  const inductionDrug=$p('inductionDrug'),inductionDose=$p('inductionDose');
- inductionDrug.onchange=()=>{inductionDose.value=inductionDrug.value==='Propofol'?'3':'2'};
+ inductionDrug.onchange=()=>{inductionDose.value=inductionDrug.value==='Propofol'?'4.5':'2'};
  const showInductionStatus=()=>{
   const i=v25.induction,el=$p('inductionStatus'),intubate=$p('inductionIntubate');
   if(!el)return;
@@ -962,9 +966,9 @@ window.addEventListener('DOMContentLoaded',()=>{
  }
  panels.patient.append(advanced);
  add('premedPanel','anesthesia');add('inductionPanel','anesthesia');
- moveCard('Anestesia inalatoria','anesthesia');
+ const inhaledCard=findCard('Anestesia inalatoria');
  add('ventilationPanel','ventilation');
- add('therapyV25','therapy');moveCard('Interventi / trend','therapy');
+ add('therapyV25','therapy');moveCard('Interventi / trend','trends');
  // Onde e PRAM restano visibili; i trend a larghezza piena scorrono sotto.
  const clinical=document.createElement('div');clinical.className='instructor-fixed-monitor';
  const scroll=document.createElement('div');scroll.className='instructor-monitor-scroll';scroll.id='instructorMonitorScroll';
@@ -973,9 +977,13 @@ window.addEventListener('DOMContentLoaded',()=>{
   else scroll.append(node);
  }
  monitor.append(clinical,scroll);
+ // MAC e mantenimento inalatorio immediatamente sotto i valori PRAM,
+ // nel monitor principale e soltanto nella scheda Anestesia.
+ if(inhaledCard){
+  inhaledCard.id='instructorInhaledCard';
+  clinical.append(inhaledCard);
+ }
  const trend=get('trendV25');if(trend){scroll.append(trend);trend.hidden=true}
- const interpretation=get('interpretation')?.closest('.card');
- if(interpretation)panels.trends.append(interpretation);
  // Tempo sempre accessibile, indipendentemente dalla scheda selezionata.
  const time=get('timeControls');
  if(time){
@@ -1059,7 +1067,6 @@ window.addEventListener('DOMContentLoaded',()=>{
   panels[key]=panel;b.addEventListener('click',()=>selectTab(key));
  }
  const trend=document.getElementById('trendV25');if(trend)panels.trends.append(trend);
- const interpretation=document.getElementById('interpretation')?.closest('.card');if(interpretation)panels.trends.append(interpretation);
  const windowSelect=document.getElementById('v25Window');if(windowSelect)windowSelect.disabled=true;
  const current=document.createElement('div');current.className='student-active-therapy';current.textContent='In attesa dei dati terapeutici della console docente.';
  panels.meds.append(current);
@@ -1146,6 +1153,6 @@ window.addEventListener('DOMContentLoaded',()=>{
  }catch(err){console.warn('Ripristino riepilogo terapie studenti:',err)}
 });
 </script>
-<script src="./ventilation-v291.js?v=29330"></script>
+<script src="./ventilation-v291.js?v=29340"></script>
 </body>
 </html>

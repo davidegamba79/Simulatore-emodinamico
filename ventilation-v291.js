@@ -158,6 +158,8 @@
   if(el('ventHoldSeconds'))el('ventHoldSeconds').disabled=!d.hold;
   const patient=el('studentPhenotype');
   if(patient)patient.textContent=fmt(d.age,1)+' anni · '+(el('patientBreed')?.value||'Meticcio')+' · BCS '+d.bcs+'/9';
+  const patientSummary=el('studentVentPatientSummary');
+  if(patientSummary)patientSummary.textContent=(el('name')?.value||'Paziente')+' · '+fmt(d.weight,1)+' kg · '+fmt(d.age,1)+' anni · '+(el('patientBreed')?.value||'Meticcio')+' · '+({meso:'mesocefalo',brachy:'brachicefalo',dolicho:'dolicocefalo'}[d.morph]||d.morph)+' · '+({meso:'mesomorfo',brachy:'brachimorfo',dolicho:'dolicomorfo'}[d.bodyType]||d.bodyType)+' · BCS '+d.bcs+'/9';
   for(const prefix of ['studentVent']){
    const root=el(prefix+'Readouts');
    if(!root)continue;
@@ -173,7 +175,7 @@
  function studentPanel(){
   const panel=el('student-panel-ventilation');if(!panel)return;
   const card=document.createElement('section');card.className='card';
-  card.innerHTML='<h2>Ventilazione · monitor di sola lettura</h2><div id="studentVentHeadline" class="status">In attesa dei dati dalla console docente</div>'+
+  card.innerHTML='<h2>Ventilazione · monitor di sola lettura</h2><div id="studentVentPatientSummary" class="status" style="margin-bottom:6px">Dati paziente in attesa</div><div id="studentVentHeadline" class="status">In attesa dei dati dalla console docente</div>'+
    '<div class="vent-readouts" id="studentVentReadouts">'+
    [['Pip','PIP','cmH₂O'],['Pplat','Pplat','cmH₂O'],['Driving','Driving P','cmH₂O'],['Vt','Vt','mL'],['Minute','V̇E','L/min'],['Crs','Crs','mL/cmH₂O']].map(x=>'<div><small>'+x[1]+'</small><b id="studentVent'+x[0]+'">—</b><small>'+x[2]+'</small></div>').join('')+'</div>'+
    '<h3 style="font-size:14px;margin:12px 0 6px">Spirometria — loop respiratori</h3>'+

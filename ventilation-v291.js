@@ -1,4 +1,4 @@
-/* V2.9.24 — chiusura completa dei loop di riferimento P/V e F/V. */
+/* V2.9.25 — loop memoizzati, animazione continua anche con pausa inspiratoria. */
 (function(){
  'use strict';
  const el=id=>document.getElementById(id);
@@ -60,15 +60,25 @@
  };
  let loopView={axes:null,reference:null};
  const isStudent=()=>document.body.classList.contains('student');
+ let loopPointsCacheKey=null,loopPointsCacheValue=null;
  function loopPoints(d){
+  // La forma di un respiro non cambia fra due frame finche' i
+  // parametri meccanici sono identici: evita migliaia di campionamenti
+  // e funzioni esponenziali ripetute durante la pausa inspiratoria.
+  const key=[d.mode,d.controlled,d.rate,d.ti,d.te,d.flowTi,d.tau,
+   d.crs,d.raw,d.vt,d.pip,d.plateau,d.peep,d.pinsp,d.hold,d.holdSeconds,
+   d.pcvRiseTime].join('|');
+  if(key===loopPointsCacheKey&&loopPointsCacheValue)return loopPointsCacheValue;
   const N=180,phaseEnd=d.ti/(60/d.rate);
   const point=phase=>({
    p:sample(d,'Pressure',phase),v:sample(d,'Volume',phase),f:sample(d,'Flow',phase)
   });
-  return {
+  const points={
    insp:Array.from({length:N+1},(_,i)=>point(i===N?Math.max(0,phaseEnd-1e-9):phaseEnd*i/N)),
    exp:Array.from({length:N+1},(_,i)=>point(phaseEnd+(1-phaseEnd)*i/N))
   };
+  loopPointsCacheKey=key;loopPointsCacheValue=points;
+  return points;
  }
  function autoLoopAxes(d){
   const {insp,exp}=loopPoints(d),points=insp.concat(exp);
@@ -644,8 +654,11 @@
   ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';ctx.beginPath();
   const cycle=60/d.rate;
   // Autoscale in base ai flussi inspiratorio ed espiratorio reali.
+  // Il picco di flusso e' lo stesso dei loop: riutilizza i campioni
+  // memoizzati, evitando un nuovo scan del modello ad ogni frame.
   const flowMax=type==='Flow'?Math.max(.15,
-   ...Array.from({length:160},(_,i)=>Math.abs(sample(d,'Flow',i/160))))*1.18:1;
+   ...loopPoints(d).insp.map(p=>Math.abs(p.f)),
+   ...loopPoints(d).exp.map(p=>Math.abs(p.f)))*1.18:1;
   const max=type==='Pressure'?(spontaneousPressure?4:Math.max(15,(d.pip||5)*1.2)):type==='Volume'?Math.max(50,d.vt*1.2):flowMax;
   const speed=typeof window.simClinicalWavePixelsPerSecond==='function'?window.simClinicalWavePixelsPerSecond(type):12.5*96/25.4;
   // La pausa inspiratoria modifica solo la forma dell'onda, senza bande o marcatori grafici.
@@ -755,8 +768,12 @@
   ctx.restore(); // clip del grafico
   ctx.restore(); // trasformazione geometrica
  }
- let waveSeconds=0,lastNow=performance.now(),lastDraw=0;
+ let waveSeconds=0,lastNow=performance.now(),lastDraw=0,ventDrawFailures=0;
  function draw(now){
+  // Non interrompere la catena requestAnimationFrame se Safari genera
+  // un errore transitorio durante il cambio della pausa inspiratoria.
+  requestAnimationFrame(draw);
+  try{
   const delta=clamp((now-lastNow)/1000,0,.25);lastNow=now;
   const paused=typeof simClock!=='undefined'&&simClock.paused;
   if(!paused)waveSeconds+=delta;
@@ -764,7 +781,13 @@
    lastDraw=now;
    const d=lastData||calc();
    // Condividiamo la stessa base temporale del monitor ECG/ART/EtCO2.
-   const timeline=Number.isFinite(window.simWaveTimeSeconds)?window.simWaveTimeSeconds:waveSeconds;
+   // Se il motore ECG e' momentaneamente indisponibile, Paw/flusso/Vt
+   // continuano a scorrere usando il proprio orologio, senza fermarsi.
+   const fresh=Number.isFinite(window.simWaveTimeSeconds)&&
+    Number.isFinite(window.simWaveFrameTimestamp)&&
+    performance.now()-window.simWaveFrameTimestamp<400;
+   if(fresh&&!paused)waveSeconds=window.simWaveTimeSeconds;
+   const timeline=fresh?window.simWaveTimeSeconds:waveSeconds;
    for(const [type,color] of [['Pressure','#ffd34e'],['Flow','#3bd6ff'],['Volume','#39ef8b']]){
     drawTimeWave(el('ventMain'+type),d,type,color,timeline);
    }
@@ -773,7 +796,12 @@
    drawLoop(el('studentVentLoopPV'),d,'PV',timeline);
    drawLoop(el('studentVentLoopFV'),d,'FV',timeline);
   }
-  requestAnimationFrame(draw);
+  ventDrawFailures=0;
+  }catch(error){
+   ventDrawFailures++;
+   if(ventDrawFailures<=3||ventDrawFailures%300===0)
+    console.warn('Ripristino animazione ventilatoria dopo errore di disegno:',error);
+  }
  }
  function onControlsChanged(e){
   if(document.body.classList.contains('student'))return;

@@ -1,4 +1,4 @@
-/* V2.9.15 — spazio morto didattico modulato da eta', BCS e conformazione. */
+/* V2.9.16 — meccanica PEEP dipendente da reclutamento, sovradistensione e profilo polmonare. */
 (function(){
  'use strict';
  const el=id=>document.getElementById(id);
@@ -10,6 +10,36 @@
   'Bulldog francese':'brachy','Bulldog inglese':'brachy','Carlino':'brachy',
   'Boxer':'brachy','Cavalier King Charles':'brachy','Chihuahua':'meso',
   'Levriero':'dolicho','Pastore tedesco':'meso','Bassotto':'meso'
+ };
+ // Profili interni per futuri scenari clinici. Nessun selettore aggiunto
+ // al monitor: il preset attuale resta 'healthy'. Sono curve qualitative
+ // e NON soglie cliniche o predizioni di gas ematici.
+ const lungProfiles=Object.freeze({
+  healthy:Object.freeze({
+   compliance:1,recruitability:.04,overdistension:.16,overdistStart:8,
+   extraDeadspace:0,deadspaceRecruit:.09,deadspaceOverdist:.24,
+   etGradient:1.6,oxygenDeficit:0,oxygenRecruit:.24,oxygenOverdist:.70
+  }),
+  atelectasis:Object.freeze({
+   compliance:.67,recruitability:.43,overdistension:.14,overdistStart:12,
+   extraDeadspace:.48,deadspaceRecruit:.47,deadspaceOverdist:.20,
+   etGradient:1.2,oxygenDeficit:6.8,oxygenRecruit:5.5,oxygenOverdist:1.6
+  }),
+  poorly_recruitable:Object.freeze({
+   compliance:.55,recruitability:.10,overdistension:.28,overdistStart:7,
+   extraDeadspace:.40,deadspaceRecruit:.10,deadspaceOverdist:.45,
+   etGradient:2.8,oxygenDeficit:5.0,oxygenRecruit:1.2,oxygenOverdist:2.0
+  })
+ });
+ window.simVentLungProfiles=lungProfiles;
+ window.simVentLungProfile=lungProfiles[window.simVentLungProfile]?window.simVentLungProfile:'healthy';
+ // Predisposto per futuri scenari patologici; chiamata silenziosa usata
+ // durante sincronizzazione e riavvolgimento della simulazione.
+ window.simVentSetLungProfile=(name,silent=false)=>{
+  const key=Object.prototype.hasOwnProperty.call(lungProfiles,name)?name:'healthy';
+  window.simVentLungProfile=key;
+  if(!silent){if(typeof physiology==='function')physiology();else refresh();}
+  return key;
  };
  let lastData=null;
  // FR di riferimento solo dopo intubazione in spontanea. L'utente puo'
@@ -28,6 +58,13 @@
   const controlled=intubated&&chosen!=='SPONT',mode=controlled?chosen:'SPONT';
   const rate=clamp(n('ventRate',12),4,50),peep=controlled?clamp(n('ventPeep',0),0,18):0;
   const ie=clamp(n('ventIE',2),1,3),fio2=clamp(n('ventFio2',.5),.21,1);
+  const lungProfile=Object.prototype.hasOwnProperty.call(lungProfiles,window.simVentLungProfile)?
+   window.simVentLungProfile:'healthy';
+  const lung=lungProfiles[lungProfile];
+  // Reclutamento cresce e si satura con la PEEP; la sovradistensione
+  // compare oltre una soglia dipendente dalla reclutabilita' polmonare.
+  const recruitment=controlled?1-Math.exp(-peep/3.8):0;
+  const overdistension=controlled?Math.pow(Math.max(0,peep-lung.overdistStart)/8,2):0;
   // Il rapporto I:E selezionato riguarda il ventilatore. In spontanea
   // l'inspirazione e' piu' breve, coerente con il tracciato di riferimento.
   const cycle=60/rate,ti=controlled?cycle/(1+ie):cycle*.22,te=cycle-ti;
@@ -43,7 +80,9 @@
   const morphFactor=morph==='brachy'?.86:morph==='dolicho'?1.04:1;
   const bodyType=el('patientBodyType')?.value||'meso';
   const bodyFactor=bodyType==='brachy'?.93:bodyType==='dolicho'?1.05:1;
-  const crs=clamp(weight*1.10*ageFactor*bcsFactor*morphFactor*bodyFactor,.45,160);
+  const compliancePeepFactor=clamp(lung.compliance*
+   (1+lung.recruitability*recruitment-lung.overdistension*overdistension),.30,1.60);
+  const crs=clamp(weight*1.10*ageFactor*bcsFactor*morphFactor*bodyFactor*compliancePeepFactor,.45,160);
   const raw=clamp(8*Math.pow(weight/25,-.28)*(morph==='brachy'?1.65:morph==='dolicho'?.9:1)*(bcs>=7?1.12:1),1.5,100);
   const tau=raw*crs/1000; // R (cmH2O/(L/s)) * C (L/cmH2O) = secondi
   const vtSet=clamp(n('ventVtKg',10),4,15)*weight;
@@ -79,12 +118,24 @@
   const bcsDeadspace=bcs>=6?1+.035*(bcs-5):bcs<=3?1.035:1;
   const morphDeadspace=morph==='brachy'?1.13:morph==='dolicho'?.96:1;
   const bodyDeadspace=bodyType==='brachy'?1.07:bodyType==='dolicho'?.98:1;
-  const deadspaceMlKg=clamp(2*ageDeadspace*bcsDeadspace*morphDeadspace*bodyDeadspace,1.7,3.4);
+  const deadspaceMlKg=clamp(
+   2*ageDeadspace*bcsDeadspace*morphDeadspace*bodyDeadspace+
+   lung.extraDeadspace-lung.deadspaceRecruit*recruitment+
+   lung.deadspaceOverdist*overdistension,1.5,5.5);
   const minute=vt/1000*rate,alveolarMinute=Math.max(.05,(vt-weight*deadspaceMlKg)/1000*rate);
+  // Gradiente PaCO2-EtCO2 aggiuntivo qualitativo da disomogeneita'
+  // ventilazione/perfusione. A PEEP alta l'EtCO2 puo' scendere mentre
+  // l'eliminazione della CO2 e' compromessa: non equivale a normocapnia.
+  const etco2Gradient=controlled?lung.etGradient*overdistension:0;
+  // Effetto qualitativo sulla saturazione: reclutamento vs sovradistensione.
+  // La FiO2 e la perfusione vengono considerate separatamente in app.js.
+  const oxygenPeepEffect=controlled?
+   -lung.oxygenDeficit+lung.oxygenRecruit*recruitment-
+    lung.oxygenOverdist*overdistension:0;
   const pmean=controlled?peep+(plateau-peep)*ti/(ti+te)*.60:0;
   const preloadSensitivity=clamp(1+Math.max(0,100-(typeof phys!=='undefined'?phys.preload:100))*.012,1,1.9);
   const preloadFactor=controlled?clamp(1-.011*Math.max(0,pmean-2)*preloadSensitivity-.005*Math.max(0,(plateau||0)-19),.68,1):1;
-  return {mode,chosen,intubated,postInduction,controlled,rate,peep,ie,ti,te,flowTi,hold,holdSeconds,fio2,weight,age,bcs,morph,bodyType,crs,raw,tau,vt,pip,plateau,driving,plateauMeasured,drivingMeasured,cdyn,cstat,rawMeasured,minute,alveolarMinute,deadspaceMlKg,pmean,preloadFactor};
+  return {mode,chosen,intubated,postInduction,controlled,rate,peep,ie,ti,te,flowTi,hold,holdSeconds,fio2,weight,age,bcs,morph,bodyType,lungProfile,recruitment,overdistension,compliancePeepFactor,crs,raw,tau,vt,pip,plateau,driving,plateauMeasured,drivingMeasured,cdyn,cstat,rawMeasured,minute,alveolarMinute,deadspaceMlKg,etco2Gradient,oxygenPeepEffect,pmean,preloadFactor};
  }
  window.simVentCalc=calc;
  window.simVentValid=()=>{
@@ -92,9 +143,13 @@
   const regular=['Ritmo sinusale','Bradicardia sinusale','Tachicardia sinusale','Blocco AV I grado'].includes(rh);
   return d.controlled&&regular&&d.vt/d.weight>=7&&n('hr',80)/d.rate>=3.6;
  };
- window.simVentSettings=()=>Object.fromEntries(ventIds.map(id=>[id,id==='ventHoldEnabled'?Boolean(el(id)?.checked):(el(id)?.value??'')]));
+ window.simVentSettings=()=>({
+  ...Object.fromEntries(ventIds.map(id=>[id,id==='ventHoldEnabled'?Boolean(el(id)?.checked):(el(id)?.value??'')])),
+  lungProfile:window.simVentLungProfile
+ });
  window.simVentApplySettings=settings=>{
   if(!settings||typeof settings!=='object')return;
+  if(settings.lungProfile!=null)window.simVentSetLungProfile(settings.lungProfile,true);
   for(const id of ventIds){
    if(settings[id]==null||!el(id))continue;
    if(id==='ventHoldEnabled')el(id).checked=settings[id]===true||settings[id]==='true';
@@ -192,6 +247,8 @@
   if(d.controlled&&d.vt/d.weight<5)warning.push('Vt ridotto');
   if(d.controlled&&d.plateau>25)warning.push('pressione di plateau elevata');
   if(d.controlled&&d.pip>30)warning.push('PIP elevata');
+  if(d.controlled&&d.overdistension>.35)warning.push('possibile sovradistensione con PEEP elevata');
+  if(d.controlled&&d.lungProfile!=='healthy')warning.push('profilo polmonare '+d.lungProfile.replace('_',' '));
   const interpret=el('ventInterpretation');
   if(interpret)interpret.textContent='Vt '+fmt(d.vt/d.weight,1)+' mL/kg · FiO₂ '+Math.round(d.fio2*100)+'% · Cdyn '+fmt(d.cdyn)+' mL/cmH₂O. '+
    (d.hold?'Cstat '+fmt(d.cstat)+' mL/cmH₂O (pausa inspiratoria); driving pressure = Pplat − PEEP = '+fmt(d.drivingMeasured)+' cmH₂O. ':'Cstat, Pplat e driving pressure richiedono la pausa inspiratoria. ')+

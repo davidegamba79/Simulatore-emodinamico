@@ -186,7 +186,7 @@ body.student .student-active-therapy{padding:9px 11px;margin-bottom:10px;backgro
 .vent-wave-stack>div{background:#030b10;border:1px solid #1e3642;border-radius:9px;padding:5px 8px}
 .vent-wave-stack small{font-size:11px;color:#a8c5d3}
 .vent-wave-stack canvas{width:100%;height:78px;display:block}
-body.student #student-panel-ventilation .vent-readouts{grid-template-columns:repeat(6,minmax(0,1fr))}
+body.student #student-panel-ventilation .vent-readouts{grid-template-columns:repeat(4,minmax(0,1fr))}
 body.student #student-panel-ventilation .vent-wave-stack{grid-template-columns:repeat(3,minmax(0,1fr))}
 body.student #student-panel-ventilation .vent-wave-stack canvas{height:110px}
 @media(max-width:900px){body.student #student-panel-ventilation .vent-readouts{grid-template-columns:repeat(3,minmax(0,1fr))}body.student #student-panel-ventilation .vent-wave-stack{grid-template-columns:1fr}}
@@ -246,7 +246,7 @@ body.student .student-vent-layout{min-width:0;width:100%}
 body.student .student-vent-wave-column{display:flex;flex-direction:column;gap:4px;min-width:0}
 body.student .student-vent-loops{display:none;min-width:0}
 body.student[data-student-tab="ventilation"] .student-vent-layout{
- display:grid;grid-template-columns:minmax(0,1fr) minmax(210px,.46fr);gap:9px;align-items:start
+ display:grid;grid-template-columns:minmax(0,1fr) minmax(210px,330px);gap:9px;align-items:start
 }
 body.student[data-student-tab="ventilation"] .student-vent-loops{display:block}
 body.student[data-student-tab="ventilation"] .student-vent-loops .vent-loop-grid{
@@ -256,6 +256,9 @@ body.student .student-vent-loops .vent-loop-card{padding:6px}
 body.student .student-vent-loops .vent-loop-card strong{font-size:11px;margin-bottom:2px}
 body.student .student-vent-loops .vent-loop-card canvas{aspect-ratio:17 / 12;height:auto!important}
 body.student .student-vent-loops .vent-loop-legend{margin-top:5px;font-size:10px}
+@media(min-width:621px) and (max-width:850px){
+ body.student[data-student-tab="ventilation"] .student-vent-layout{grid-template-columns:minmax(0,1fr) minmax(190px,270px)}
+}
 @media(max-width:620px){
  body.student[data-student-tab="ventilation"] .student-vent-layout{grid-template-columns:1fr}
  body.student[data-student-tab="ventilation"] .student-vent-loops .vent-loop-grid{grid-template-columns:repeat(2,minmax(0,1fr))}

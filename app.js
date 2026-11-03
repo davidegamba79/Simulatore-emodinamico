@@ -99,7 +99,7 @@ function applyPreset(p){
    v25.base={preload:100,contractility:100,vascularTone:100,hr:isHealthy?95:80};
    v25.fx={preload:0,contractility:0,tone:0,hr:0};
    v25.continuousHR=isHealthy?95:80;v25.lastShownHR=isHealthy?95:80;
-   v25.etRef=34;v25.etEffective=34;
+   v25.etRef=34;v25.etEffective=34;v25.co2Pools=null;
    v25.oxygenEffective=98;
    v25.induction.startedAt=0;
    v25.induction.phase=isHealthy?'awake':'maintenance';
@@ -147,7 +147,7 @@ const clinicalCases={
 };
 let caseState={active:false,key:'',minute:0,score:0,actions:[],cpr:false};
 function setNum(id,v){
- if(id==='etco2'){if($('etco2Set'))$('etco2Set').value=v;if($('etco2'))$('etco2').value=v;if(typeof v25!=='undefined'){v25.etRef=+v;v25.etEffective=+v}return}
+ if(id==='etco2'){if($('etco2Set'))$('etco2Set').value=v;if($('etco2'))$('etco2').value=v;if(typeof v25!=='undefined'){v25.etRef=+v;v25.etEffective=+v;v25.co2Pools=null}return}
  if($(id))$(id).value=v
 }
 function caseApplyStart(c){
@@ -220,7 +220,7 @@ function manualSet(k,on){
  manualLocks[k]=on;
  const b=document.getElementById('manual-'+k);
  if(b){b.textContent=on?'MANUALE':'AUTO';b.style.color=on?'#ffcf77':'#8db9c5';b.title=on?'Valore bloccato: clicca per tornare automatico':'Valore calcolato: clicca per bloccarlo';}
- if(!on){if(k==='etco2'){v25.etRef=clamp(+$('etco2Set').value||33,3,80)}if(k==='hr'||k==='sap'||k==='dap'||hemoDefs.some(d=>d[0]===k))physiology();else render();}
+ if(!on){if(k==='etco2'){v25.etRef=clamp(+$('etco2Set').value||33,3,80);v25.co2Pools=null}if(k==='hr'||k==='sap'||k==='dap'||hemoDefs.some(d=>d[0]===k))physiology();else render();}
 }
 function manualSetup(){
  manualParams.forEach(k=>{
@@ -327,7 +327,7 @@ $('autoPhys').addEventListener('change',physiology);
 
 
 /* ===== V2.8.14 dobutamine response + norepinephrine dose-response + drug washout + MAC closed-loop hemodynamics ===== */
-const v25={start:performance.now(),last:performance.now(),lastPhys:performance.now(),lastSample:0,oxygenEffective:+$('spo2').value||98,inf:{fluid:false,dob:false,nor:false},fluidBolusUntil:0,atropineUntil:0,ephedrineAt:0,ephedrineDose:0,ephedrineBaselineMAP:0,dobStoppedAt:0,etRef:+$('etco2Set').value||33,etEffective:+$('etco2').value||33,history:[],events:[],applying:false,base:{preload:phys.preload,contractility:phys.contractility,vascularTone:phys.vascularTone,hr:95},fx:{preload:0,contractility:0,tone:0,hr:0},
+const v25={start:performance.now(),last:performance.now(),lastPhys:performance.now(),lastSample:0,oxygenEffective:+$('spo2').value||98,inf:{fluid:false,dob:false,nor:false},fluidBolusUntil:0,atropineUntil:0,ephedrineAt:0,ephedrineDose:0,ephedrineBaselineMAP:0,dobStoppedAt:0,etRef:+$('etco2Set').value||33,etEffective:+$('etco2').value||33,co2Pools:null,history:[],events:[],applying:false,base:{preload:phys.preload,contractility:phys.contractility,vascularTone:phys.vascularTone,hr:95},fx:{preload:0,contractility:0,tone:0,hr:0},
  induction:{phase:'awake',startedAt:0,maintenanceAt:0,drug:'',dose:0,administrationSeconds:60,windowMinutes:10,
  pk:{central:0,fast:0,slow:0,ce:0,cv:0},effects:{preload:0,tone:0,contractility:0,hr:0,active:false},apneaRisk:'—'}};
 const v25Metrics=[['hr','FC','bpm'],['spo2','SpO₂','%'],['etco2','EtCO₂','mmHg'],['rr','FR','/min'],['sap','SAP','mmHg'],['dap','DAP','mmHg'],['map','MAP','mmHg'],['co','CO','L/min'],['ci','CI','L/min/m²'],['sv','SV','mL'],['svi','SVI','mL/m²'],['svr','SVR','dyn·s/cm⁵'],['svri','SVRI','dyn·s·m²/cm⁵'],['ppv','PPV','%'],['spv','SPV','mmHg'],['dpdt','dP/dtmax','mmHg/ms'],['cce','CCE',''],['ea','Ea','mmHg/mL'],['cpo','CPO','W'],['preload','Precarico','%'],['afterload','Afterload','%'],['contractility','Contrattilità','%'],['mac','MAC','']];
@@ -343,7 +343,7 @@ function v25Setup(){
  $('v25FluidBolus').onclick=()=>{if(!v25.inf.fluid&&!v25.inf.dob&&!v25.inf.nor)v25CaptureUntreatedBase();v25.fluidBolusUntil=simClock.virtual+30000;v25Flash($('v25FluidBolus'));v25Event('Fluid challenge 2 mL/kg / 30 s')};
  $('v25EphBtn').onclick=()=>{const d=+$('v25EphDose').value;if(!Number.isFinite(d)||d<25||d>100){$('v25EphDose').value=clamp(Number.isFinite(d)?d:50,25,100);return;}if(!v25.inf.fluid&&!v25.inf.dob&&!v25.inf.nor&&simClock.virtual>=v25.fluidBolusUntil)v25CaptureUntreatedBase();v25.ephedrineBaselineMAP=(+$('sap').value+2*(+$('dap').value))/3;v25.ephedrineAt=simClock.virtual;v25.ephedrineDose=d;v25Flash($('v25EphBtn'));v25Event('Efedrina '+d+' µg/kg EV (bolo)')};
  $('v25AtBtn').onclick=()=>{v25.atropineUntil=simClock.virtual+120000;v25Flash($('v25AtBtn'));v25Event('Atropina '+(+$('v25AtDose').value||0)+' µg/kg')};
- $('etco2Set').addEventListener('input',()=>{const raw=+$('etco2Set').value;if(!Number.isFinite(raw))return;v25.etRef=clamp(raw,3,80);if(!v25.applying){manualSet('etco2',true);v25.etEffective=v25.etRef;$('etco2').value=v25.etEffective;render()}});
+ $('etco2Set').addEventListener('input',()=>{const raw=+$('etco2Set').value;if(!Number.isFinite(raw))return;v25.etRef=clamp(raw,3,80);if(!v25.applying){manualSet('etco2',true);v25.etEffective=v25.etRef;v25.co2Pools=null;$('etco2').value=v25.etEffective;render()}});
  $('etco2Set').addEventListener('change',()=>v25Event('EtCO₂ impostata '+v25.etRef+' mmHg'));
  $('v25Window').addEventListener('change',v25Draw)
 }
@@ -385,33 +385,70 @@ function v25Setup(){
  v25.fx.preload=approach(v25.fx.preload,pTarget,pTarget?12:28);v25.fx.contractility=approach(v25.fx.contractility,cTarget,cTarget?8:18);v25.fx.tone=approach(v25.fx.tone,tTarget,tTarget?10:20);v25.fx.hr=approach(v25.fx.hr,hTarget,hTarget?7:18);if(!v25.inf.dob&&v25.dobStoppedAt&&now-v25.dobStoppedAt>=120000){v25.fx.contractility=0;if(!v25.inf.nor)v25.fx.tone=0;}
  let residual=Math.max(Math.abs(v25.fx.preload),Math.abs(v25.fx.contractility),Math.abs(v25.fx.tone));let hemoActive=v25.inf.fluid||v25.inf.dob||v25.inf.nor||now<v25.fluidBolusUntil||ephEffect>.005||pm.active||ind.active||residual>.05;if(hemoActive){phys.preload=clamp(v25.base.preload+v25.fx.preload,20,180);phys.contractility=clamp(v25.base.contractility+v25.fx.contractility,20,180);phys.vascularTone=clamp(v25.base.vascularTone+v25.fx.tone,30,180);setPhysInputs()}else{v25.fx.preload=0;v25.fx.contractility=0;v25.fx.tone=0;phys.preload=v25.base.preload;phys.contractility=v25.base.contractility;phys.vascularTone=v25.base.vascularTone;setPhysInputs()}
 }
-// La CO2 espirata dipende dalla perfusione e dalla ventilazione alveolare.
-// Dopo induzione EV, in spontanea il Vt ridotto porta progressivamente
-// all'ipercapnia; VCV/PCV correggono il deficit di ventilazione.
-function v25PerfusionEt(){
+// V2.9.22: bilancio di massa della CO2 per VCV/PCV, con due riserve
+// (circolo/alveoli e tessuti). Le costanti sono DIDATTICHE: non predicono
+// PaCO2 o gas ematici individuali e non sostituiscono un'emogasanalisi.
+// 0,863 * VCO2 (mL/min) / VA (L/min) = PaCO2 (mmHg) all'equilibrio.
+// A 25 kg, Vt 12 mL/kg, FR 12, spazio morto 2 mL/kg: VA = 3 L/min.
+// Con EtCO2 di riferimento 34 e gradiente 2,8: VCO2 ~128 mL/min.
+function v25PerfusionEt(dt,ventData){
  const rhythm=$('rhythm').value;
- if(rhythm==='Artefatto massaggio cardiaco 120/min')return 12;
- if(['Fibrillazione ventricolare','Tachicardia ventricolare senza polso','PEA / attività elettrica','Asistolia'].includes(rhythm))return 3;
- const co=+$('co').value||0,rr=Math.max(1,+$('rr').value||18);
- const perf=clamp(co/2.9,.25,1.55);
- const ventData=typeof window.simVentCalc==='function'?window.simVentCalc():null;
+ const arrest=['Fibrillazione ventricolare','Tachicardia ventricolare senza polso','PEA / attività elettrica','Asistolia'].includes(rhythm);
+ const cpr=rhythm==='Artefatto massaggio cardiaco 120/min';
+ const co=Math.max(0,+$('co').value||0),perf=clamp(co/2.9,.02,1.6);
+ const vent=ventData||(typeof window.simVentCalc==='function'?window.simVentCalc():null);
  const weight=clamp(+$('weight').value||25,1,100);
- // Calibrazione: Golden Retriever 25 kg, adulto, BCS 5/9, mesomorfo,
- // VCV FR 12/min, Vt 12 mL/kg, PEEP 0 => VA 3 L/min, EtCO2 34 mmHg.
- // Allometria semplificata: richiesta ventilatoria proporzionale a kg^0.8;
- // lo spazio morto dipende da eta', BCS e conformazione in simVentCalc().
- const baselineAlveolar=3*Math.pow(weight/25,.8);
- const ratio=ventData?baselineAlveolar/Math.max(.10,ventData.alveolarMinute):12/rr;
- const ventilatoryDeficit=clamp(ratio,.40,4.8);
- // La curva spontanea post-induzione resta piu' sensibile alla
- // ipoventilazione, mantenendo EtCO2 ~55 con FR 20 e Vt ridotto.
- const exponent=(ventData?.postInduction&&!ventData.controlled)?0.36:0.28;
- const rhythmFactor=rhythm==='Tachicardia ventricolare con polso'?
-  clamp(.90-.12*clamp(((+$('hr').value||180)-120)/120,0,1),.78,.90):1;
- const perfusionEt=v25.etRef*(.55+.45*perf)*Math.pow(ventilatoryDeficit,exponent)*rhythmFactor;
- // La PEEP elevata puo' aumentare il gradiente PaCO2-EtCO2 per V/Q
- // sfavorevole: EtCO2 piu' bassa non significa PaCO2 piu' bassa.
- return clamp(perfusionEt-(ventData?.etco2Gradient||0),3,80);
+ // Il vecchio andamento in spontanea resta per ora invariato: il modello
+ // spontaneo ha un Vt didattico separato e sara' calibrato in un test dedicato.
+ if(!vent?.controlled){
+  v25.co2Pools=null;
+  if(cpr)return 12;
+  if(arrest)return 3;
+  const rr=Math.max(1,+$('rr').value||18);
+  const baselineAlveolar=3*Math.pow(weight/25,.8);
+  const ratio=vent?baselineAlveolar/Math.max(.10,vent.alveolarMinute):12/rr;
+  const ventilatoryDeficit=clamp(ratio,.40,4.8);
+  const exponent=(vent?.postInduction&&!vent.controlled)?.36:.28;
+  const rhythmFactor=rhythm==='Tachicardia ventricolare con polso'?
+   clamp(.90-.12*clamp(((+$('hr').value||180)-120)/120,0,1),.78,.90):1;
+  return clamp(v25.etRef*(.55+.45*perf)*Math.pow(ventilatoryDeficit,exponent)*rhythmFactor-
+   (vent?.etco2Gradient||0),3,80);
+ }
+ // VCO2 metabolica: allometria del peso con piccoli aggiustamenti per eta'
+ // e BCS. Il riferimento EtCO2 docente calibra la produzione basale,
+ // senza forzare artificialmente la risposta agli altri volumi correnti.
+ const age=clamp(vent.age||6,.1,22),bcs=clamp(vent.bcs||5,1,9);
+ const ageFactor=age<1?1.10:age>10?clamp(1-.015*(age-10),.82,1):1;
+ const bcsFactor=bcs>=7?clamp(1-.025*(bcs-6),.90,1):1;
+ const referenceGradient=2.8;
+ const vco2=clamp((v25.etRef+referenceGradient)*3/.863*
+  Math.pow(weight/25,.8)*ageFactor*bcsFactor,15,650); // mL/min
+ const alveolar=clamp(vent.alveolarMinute,.05,25); // L/min, include spazio morto
+ // La perfusione limita il trasferimento dai tessuti al compartimento
+ // polmonare e aumenta il gradiente PaCO2-EtCO2 in caso di V/Q alterato.
+ const conductance=10*clamp(perf,.20,1.6); // mL/(min*mmHg)
+ const profileGradient=vent.lungProfile==='atelectasis'?3:
+  vent.lungProfile==='poorly_recruitable'?5:0;
+ const gradient=clamp(referenceGradient+profileGradient+
+  (vent.etco2Gradient||0)+11*Math.max(0,1-perf),1,30);
+ if(!v25.co2Pools||!Number.isFinite(v25.co2Pools.arterial)||
+    !Number.isFinite(v25.co2Pools.tissue)||v25.co2Pools.ref!==v25.etRef){
+  const arterial=clamp(v25.etEffective+gradient,4,120);
+  v25.co2Pools={arterial,tissue:clamp(arterial+vco2/conductance,4,160),ref:v25.etRef};
+ }
+ const pool=v25.co2Pools,seconds=clamp(dt,0,1);
+ const transfer=conductance*(pool.tissue-pool.arterial); // mL/min
+ const elimination=alveolar*pool.arterial/.863; // mL/min
+ // d(mL CO2 immagazzinati)/dt = ingresso - uscita.
+ // Capacita' efficaci: 4,5 e 18 mL/mmHg, scelte per due tempi di
+ // risposta (rapido circolatorio e lento tissutale).
+ pool.arterial=clamp(pool.arterial+(transfer-elimination)*seconds/(60*4.5),4,160);
+ pool.tissue=clamp(pool.tissue+(vco2-transfer)*seconds/(60*18),4,160);
+ if(cpr)return 12;
+ if(arrest)return 3;
+ const tachyDrop=rhythm==='Tachicardia ventricolare con polso'?
+  2*clamp(((+$('hr').value||180)-120)/120,0,1):0;
+ return clamp(pool.arterial-gradient-tachyDrop,3,80);
 }
 // La SpO2 dipende qualitativamente da FiO2, reclutamento, sovradistensione
 // e perfusione. In spontanea post-induzione mantiene la precedente risposta;
@@ -529,10 +566,12 @@ function simAdvancePhysics(seconds){
   v25.applying=true;
   v25InductionStep(step,simClock.virtual);if($('autoPhys').checked)v25TherapyStep(step,simClock.virtual);
   physiology();
-  const target=v25PerfusionEt(),ventData=typeof window.simVentCalc==='function'?window.simVentCalc():null;
+  const ventData=typeof window.simVentCalc==='function'?window.simVentCalc():null;
+  const target=v25PerfusionEt(step,ventData);
   const postInductionSpont=Boolean(ventData?.postInduction&&!ventData.controlled);
-  // Aumento graduale della EtCO2 in spontanea (ordine di decine di secondi).
-  const etTau=postInductionSpont?(ventData?.intubated?26:60):ventData?.controlled?9:2.2;
+  // La ventilazione controllata ha gia' due compartimenti CO2 con inerzia
+  // fisiologica: il filtro di 1,8 s simula solo il campionamento del monitor.
+  const etTau=postInductionSpont?(ventData?.intubated?26:60):ventData?.controlled?1.8:2.2;
   v25.etEffective+=(target-v25.etEffective)*(1-Math.exp(-step/etTau));
   const spontIntubated=Boolean(ventData?.intubated&&!ventData.controlled);
   const cycle=60/Math.max(1,ventData?.rate||12);

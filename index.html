@@ -6,12 +6,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Sim Emod. V2.9.9">
+<meta name="apple-mobile-web-app-title" content="Sim Emod. V2.9.10">
 <meta name="theme-color" content="#071016">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="stylesheet" href="./styles.css">
 <link rel="stylesheet" href="./styles-v2.css?v=2900">
-<title>Simulatore Emodinamico — V2.9.9</title>
+<title>Simulatore Emodinamico — V2.9.10</title>
 <style id="student-panel-2893">body.student #timeControls,body.student #premedPanel,body.student #inductionPanel{display:none!important}</style>
 <style id="therapy-layout-2861">
 /* Applied in the document to avoid stale stylesheet caching */
@@ -221,7 +221,7 @@ body:not(.student) .resp-wave-controls{margin-top:12px;margin-bottom:0}
 .resp-wave[data-resp-type="pressure"] .wlabel,.resp-wave[data-resp-type="pressure"] .values{color:#ffd34e}
 .resp-wave[data-resp-type="flow"] .wlabel,.resp-wave[data-resp-type="flow"] .values{color:#55d7f8}
 .resp-wave[data-resp-type="volume"] .wlabel,.resp-wave[data-resp-type="volume"] .values{color:#55edaa}
-/* V2.9.9 — dati paziente della ventilazione richiudibili come i salti temporali. */
+/* V2.9.10 — dati paziente della ventilazione richiudibili come i salti temporali. */
 details.vent-patient-card{padding:0;overflow:hidden}
 .vent-patient-card .vent-patient-summary{
  cursor:pointer;min-height:44px;padding:9px 12px;display:flex;align-items:center;
@@ -245,7 +245,7 @@ body.student[data-student-tab="ventilation"] .student-fixed-monitor{max-height:6
 body:not(.student)[data-instructor-tab="ventilation"] .monitor .wave{height:67px!important;min-height:67px!important}
 @media(max-width:720px){.vent-loop-grid{grid-template-columns:1fr}}
 @media(max-height:800px){body.student[data-student-tab="ventilation"] .student-fixed-monitor .wave{height:48px!important;min-height:48px!important}}
-/* V2.9.9: EtCO₂ bianca su ogni monitor, docente e studenti. */
+/* V2.9.10: EtCO₂ bianca su ogni monitor, docente e studenti. */
 .monitor .wave[data-key="capno"] .wlabel,
 .monitor .wave[data-key="capno"] .values{color:#f8fbff!important}
 /* Scala geometrica invariata: i canvas spirometrici conservano un rapporto 17:12. */
@@ -266,7 +266,7 @@ body.student .student-vent-loops .vent-loop-card{padding:6px}
 body.student .student-vent-loops .vent-loop-card strong{font-size:11px;margin-bottom:2px}
 body.student .student-vent-loops .vent-loop-card canvas{aspect-ratio:17 / 12;height:auto!important}
 body.student .student-vent-loops .vent-loop-legend{margin-top:5px;font-size:10px}
-/* V2.9.9: i dati ventilatori riempiono lo spazio sotto IBP,
+/* V2.9.10: i dati ventilatori riempiono lo spazio sotto IBP,
    affiancati ai due loop; nessun riquadro nelle altre schede. */
 body.student .student-vent-metrics{display:none;min-width:0}
 body.student[data-student-tab="ventilation"] .student-vent-metrics{
@@ -304,7 +304,7 @@ body.student[data-student-tab="ventilation"] .student-vent-wave-column .wave[dat
  body.student[data-student-tab="ventilation"] .student-vent-layout{grid-template-columns:1fr}
  body.student[data-student-tab="ventilation"] .student-vent-loops .vent-loop-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
-/* V2.9.9 — nella scheda Ventilazione gli emodinamici scorrono
+/* V2.9.10 — nella scheda Ventilazione gli emodinamici scorrono
    nel proprio riquadro: le onde e i loop non vengono mai scrollati via
    o coperti quando si consultano i valori PRAM. */
 body.student[data-student-tab="ventilation"] .student-fixed-monitor{
@@ -351,12 +351,49 @@ body.student[data-student-tab="ventilation"] .student-fixed-monitor>.hemo-wrap h
   grid-template-columns:repeat(2,minmax(0,1fr));
  }
 }
+/* V2.9.10 — nessuna misura delle vie aeree prima dell'intubazione.
+   Se l'utente ha attivato le onde opzionali, questa regola ha comunque priorita'. */
+body[data-resp-intubated="false"] .monitor .wave.resp-wave[data-resp-type]:not([hidden]){
+ display:none!important
+}
+body:not(.student)[data-resp-intubated="false"] #instructorVentLoops,
+body.student[data-resp-intubated="false"] .student-vent-loops{
+ display:none!important
+}
+/* Sul monitor studenti il pannello PRAM scorre indipendentemente:
+   nessuno scroll dei valori emodinamici deve spostare o coprire le onde. */
+body.student[data-student-tab="ventilation"] .student-vent-layout{
+ position:relative;z-index:2;flex-shrink:0
+}
+body.student[data-student-tab="ventilation"] .student-fixed-monitor>.hemo-wrap{
+ position:relative;z-index:1;overscroll-behavior:contain
+}
+@media(max-height:720px){
+ body.student[data-student-tab="ventilation"] .student-fixed-monitor{
+  flex-basis:85%;height:85%;max-height:85%
+ }
+ body.student[data-student-tab="ventilation"] .student-fixed-monitor .wave{
+  height:40px!important;min-height:40px!important
+ }
+ body.student[data-student-tab="ventilation"] .student-vent-metrics .vent-readouts>div{
+  padding:3px 4px
+ }
+ body.student[data-student-tab="ventilation"] .student-vent-metrics .vent-readouts b{
+  font-size:13px
+ }
+ body.student[data-student-tab="ventilation"] .student-vent-metrics .status{
+  font-size:10px;padding:3px 5px
+ }
+ body.student[data-student-tab="ventilation"] .student-vent-layout{
+  grid-template-columns:minmax(0,1fr) minmax(135px,min(260px,25dvh))
+ }
+}
 </style>
 </head>
 <body>
 
 <header>
- <div><h1>SIMULATORE EMODINAMICO <span class="app-version">V2.9.9</span> — <span id="modeTitle">Console istruttore</span></h1><div class="badge" id="syncBadge">Monitor locale sincronizzato</div></div>
+ <div><h1>SIMULATORE EMODINAMICO <span class="app-version">V2.9.10</span> — <span id="modeTitle">Console istruttore</span></h1><div class="badge" id="syncBadge">Monitor locale sincronizzato</div></div>
  <div class="row">
   <button class="tiny instructor-only" id="studentBtn">Apri Monitor studenti</button>
   <button class="tiny" id="modeBtn">Modalità studenti</button>
@@ -419,7 +456,7 @@ body.student[data-student-tab="ventilation"] .student-fixed-monitor>.hemo-wrap h
 <section class="card" id="ventilationPanel"><h2>Ventilazione e meccanica respiratoria</h2>
  <div class="status" id="ventStatus">La ventilazione controllata diventa disponibile dopo l'intubazione o con il preset Paziente anestetizzato.</div>
  <div class="cols" style="margin-top:10px">
-  <label>Modalità<select id="ventMode"><option value="VCV">VCV — volume controllato</option><option value="PCV">PCV — pressione controllata</option><option value="SPONT">Spontanea</option></select></label>
+  <label>Modalità<select id="ventMode"><option value="SPONT" selected>Spontanea</option><option value="VCV">VCV — volume controllato</option><option value="PCV">PCV — pressione controllata</option></select></label>
   <label>Frequenza respiratoria (/min)<input id="ventRate" type="number" min="4" max="50" step="1" value="12"></label>
   <label>Volume corrente Vt (mL/kg)<input id="ventVtKg" type="number" min="4" max="15" step=".5" value="8"></label>
   <label>PEEP (cmH₂O)<input id="ventPeep" type="number" min="0" max="18" step="1" value="3"></label>
@@ -568,9 +605,9 @@ body.student[data-student-tab="ventilation"] .student-fixed-monitor>.hemo-wrap h
 </div>
 </main>
 
-<script src="./app.js?v=2990"></script>
+<script src="./app.js?v=29100"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./wave-v2.js?v=2990"></script>
+<script src="./wave-v2.js?v=29100"></script>
 <script>
 window.addEventListener('DOMContentLoaded',()=>{
  const $p=id=>document.getElementById(id);
@@ -685,7 +722,9 @@ window.addEventListener('DOMContentLoaded',()=>{
   if(v25.induction.phase!=='induction')return;
   v25.induction.phase='maintenance';
   v25.induction.maintenanceAt=window.simVirtualNow();
-  if(typeof v25Event==='function')v25Event('Intubazione eseguita — inizio mantenimento inalatorio');
+  // L'intubazione da sola non attiva il ventilatore: si inizia in SPONT.
+  if(typeof window.simVentOnIntubation==='function')window.simVentOnIntubation();
+  if(typeof v25Event==='function')v25Event('Intubazione eseguita — respirazione spontanea; selezionare VCV/PCV per ventilazione controllata');
   showPremedElapsed();showInductionStatus();
  };
  $p('inductionExportCsv').onclick=inductionExportCsv;
@@ -919,6 +958,6 @@ window.addEventListener('DOMContentLoaded',()=>{
  }catch(err){console.warn('Ripristino riepilogo terapie studenti:',err)}
 });
 </script>
-<script src="./ventilation-v291.js?v=2990"></script>
+<script src="./ventilation-v291.js?v=29100"></script>
 </body>
 </html>

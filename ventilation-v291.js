@@ -1,4 +1,4 @@
-/* V2.9.4 — loop spirometrici chiusi e onde respiratorie a tempo costante. Modello didattico. */
+/* V2.9.5 — spirometria e onde ventilatorie alla velocita' clinica di 12,5 mm/s. Modello didattico. */
 (function(){
  'use strict';
  const el=id=>document.getElementById(id);
@@ -271,7 +271,8 @@
   const flowMax=Math.max(.15,d.vt/1000/Math.max(.1,d.flowTi)*3,d.mode==='PCV'?(d.pip-d.peep)/Math.max(1.5,d.raw)*1.15:0);
   const max=type==='Pressure'?Math.max(15,(d.pip||5)*1.2):type==='Volume'?Math.max(50,d.vt*1.2):flowMax;
   for(let x=0;x<w;x+=2){
-   const phase=(((seconds+x/(window.simWavePixelsPerSecond||70))/cycle)%1+1)%1,v=sample(d,type,phase);
+   const speed=typeof window.simClinicalWavePixelsPerSecond==='function'?window.simClinicalWavePixelsPerSecond(type):12.5*96/25.4;
+   const phase=(((seconds+x/speed)/cycle)%1+1)%1,v=sample(d,type,phase);
    const y=type==='Flow'?h*.50-v/max*h*.38:h*.90-v/max*h*.77;
    if(x===0)ctx.moveTo(x,clamp(y,2,h-2));else ctx.lineTo(x,clamp(y,2,h-2));
   }

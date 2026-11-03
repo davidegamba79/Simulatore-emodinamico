@@ -1,6 +1,6 @@
 {
-  "name": "Simulatore Emodinamico Veterinario V2.9.7",
-  "short_name": "Sim Emod. V2.9.7",
+  "name": "Simulatore Emodinamico Veterinario V2.9.8",
+  "short_name": "Sim Emod. V2.9.8",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

@@ -1,4 +1,4 @@
-/* V2.9.26 — loop P/V non lineari, compliance morfotipo-dipendente. */
+/* V2.9.27 — raccordo fisico pausa inspiratoria, senza artefatto nel P/V. */
 (function(){
  'use strict';
  const el=id=>document.getElementById(id);
@@ -623,6 +623,12 @@
   const activeSeconds=Math.min(t,d.flowTi);
   const expSeconds=clamp(t-d.ti,0,d.te);
   let volume=0,flow=0,pressure=0;
+  // La VCV termina con flusso gia' smussato a zero: Paw e' gia'
+  // scesa alla pressione elastica (Pplat). Durante la pausa NON deve
+  // risalire artificialmente a PIP, altrimenti il loop P/V crea un
+  // uncino orizzontale aggiuntivo. In PCV, invece, la Paw rimane
+  // alla pressione impostata fino alla chiusura inspiratoria.
+  const holdStartPressure=d.mode==='VCV'?d.plateau:d.pip;
   if(d.controlled){
    if(inspir){
     const holdPhase=d.hold&&t>=d.flowTi;
@@ -640,8 +646,10 @@
     }
     if(holdPhase)volume=d.vt;
     if(holdPhase){
-     // Occlusione inspiratoria: caduta resistiva PIP -> Pplat.
-     pressure=d.plateau+(d.pip-d.plateau)*Math.exp(-(t-d.flowTi)/.035);
+     // Rilassamento continuo dal valore effettivamente raggiunto
+     // alla fine dell'insufflazione: nessun salto Paw in avanti.
+     pressure=d.plateau+(holdStartPressure-d.plateau)*
+      Math.exp(-(t-d.flowTi)/.035);
     }else{
      pressure=d.mode==='PCV'?
       d.peep+d.pinsp*Math.min(1,t/d.pcvRiseTime):
@@ -666,8 +674,8 @@
     // All'inizio dell'espirazione la pressione e' quella realmente
     // raggiunta a fine inspirazione, anche se c'e' stata una pausa.
     const release=d.hold?
-     d.plateau+(d.pip-d.plateau)*Math.exp(-d.holdSeconds/.035):
-     d.mode==='VCV'?d.plateau:d.pip;
+     d.plateau+(holdStartPressure-d.plateau)*Math.exp(-d.holdSeconds/.035):
+     holdStartPressure;
     const pressureTail=Math.exp(-d.te/pressureReleaseTime);
     const releaseFraction=clamp(
      (Math.exp(-expSeconds/pressureReleaseTime)-pressureTail)/

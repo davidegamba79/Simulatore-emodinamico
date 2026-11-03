@@ -92,6 +92,7 @@ function applyPreset(p){
   // Paziente sano: nessuna ventilazione controllata preimpostata.
   // Il preset anestetizzato conserva invece la VCV di riferimento.
   if($('ventMode'))$('ventMode').value=isHealthy?'SPONT':'VCV';
+  if(typeof window.simVentSetLungProfile==='function')window.simVentSetLungProfile('healthy',true);
   phys={preload:100,contractility:100,vascularTone:100,compliance:100};setPhysInputs();
   $('mac').value=1;$('macOut').textContent='1,0';
   if(typeof v25!=='undefined'){
@@ -407,17 +408,30 @@ function v25PerfusionEt(){
  const exponent=(ventData?.postInduction&&!ventData.controlled)?0.36:0.28;
  const rhythmFactor=rhythm==='Tachicardia ventricolare con polso'?
   clamp(.90-.12*clamp(((+$('hr').value||180)-120)/120,0,1),.78,.90):1;
- return clamp(v25.etRef*(.55+.45*perf)*Math.pow(ventilatoryDeficit,exponent)*rhythmFactor,3,80);
+ const perfusionEt=v25.etRef*(.55+.45*perf)*Math.pow(ventilatoryDeficit,exponent)*rhythmFactor;
+ // La PEEP elevata puo' aumentare il gradiente PaCO2-EtCO2 per V/Q
+ // sfavorevole: EtCO2 piu' bassa non significa PaCO2 piu' bassa.
+ return clamp(perfusionEt-(ventData?.etco2Gradient||0),3,80);
 }
-// L'ossigenazione post-induzione puo' ridursi modestamente in spontanea;
-// la FiO2 attenua il fenomeno. Non forza ipossiemia se si somministra O2.
-// Sono stime illustrative, non una predizione clinica della SpO2.
+// La SpO2 dipende qualitativamente da FiO2, reclutamento, sovradistensione
+// e perfusione. In spontanea post-induzione mantiene la precedente risposta;
+// in ventilazione controllata risponde ora anche alla PEEP. Nessuna delle
+// stime costituisce una previsione clinica della PaO2 o della saturazione.
 function v25PostInductionOxygenTarget(){
  const vent=typeof window.simVentCalc==='function'?window.simVentCalc():null;
- if(!vent?.postInduction||patientModel!=='healthy'||caseState.active)return null;
+ if(!vent)return null;
+ // I vecchi casi attivi continuano a gestire autonomamente la SpO2;
+ // un futuro scenario polmonare esplicito puo' invece usare questo modello.
+ if(caseState.active&&vent.lungProfile==='healthy')return null;
  const fio2=vent.intubated?vent.fio2:.21;
- if(!vent.controlled)return clamp(95.1+6.2*Math.max(0,fio2-.21),94.5,98.7);
- return clamp(97.8+2.5*Math.max(0,fio2-.21),97.8,99.5);
+ if(!vent.controlled){
+  if(!vent.postInduction||patientModel!=='healthy')return null;
+  return clamp(95.1+6.2*Math.max(0,fio2-.21),94.5,98.7);
+ }
+ const co=Number($('co')?.value);
+ const perfusionLoss=Number.isFinite(co)?clamp((2.9-co)/2.9,0,.7):0;
+ return clamp(97.8+2.5*Math.max(0,fio2-.21)+
+  (vent.oxygenPeepEffect||0)-.8*perfusionLoss,80,99.5);
 }
 
 const inductionMarks=[30,60,120,300,600],inductionKeys=['hr','sap','dap','map','co','sv','svr'];
@@ -552,7 +566,7 @@ function simCaptureSnapshot(){
  if(previous&&simClock.virtual-previous.time<950)return;
  const values={};document.querySelectorAll('input[id],select[id]').forEach(el=>{if(el.type!=='checkbox')values[el.id]=el.value});
  const dynamics={};Object.keys(v25).forEach(k=>{if(!['history','events','applying'].includes(k))dynamics[k]=simCopy(v25[k])});
- simSnapshots.push({time:simClock.virtual,state:simCopy(state),phys:simCopy(phys),patientModel,dynamics,values});
+ simSnapshots.push({time:simClock.virtual,state:simCopy(state),phys:simCopy(phys),patientModel,lungProfile:window.simVentLungProfile||'healthy',dynamics,values});
  if(simSnapshots.length>1800)simSnapshots.shift();
 }
 function simRewind(minutes){
@@ -564,6 +578,7 @@ function simRewind(minutes){
  state=simCopy(snap.state);Object.assign(phys,simCopy(snap.phys));patientModel=snap.patientModel||'anesthetized';
  Object.assign(v25,simCopy(snap.dynamics));v25.applying=false;
  Object.entries(snap.values).forEach(([id,value])=>{const el=$(id);if(el)el.value=value});
+ if(typeof window.simVentSetLungProfile==='function')window.simVentSetLungProfile(snap.lungProfile||'healthy',true);
  const elapsed=(snap.time-v25.start)/1000;
  v25.history=v25.history.filter(x=>x.t<=elapsed);
  v25.events=v25.events.filter(x=>!Number.isFinite(x.t)||x.t<=elapsed);

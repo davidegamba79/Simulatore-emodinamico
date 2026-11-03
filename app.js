@@ -89,6 +89,9 @@ function applyPreset(p){
  const isHealthy=p==='Paziente sano',isAnesthetized=p==='Paziente anestetizzato';
  if(isHealthy||isAnesthetized){
   patientModel=isHealthy?'healthy':'anesthetized';
+  // Paziente sano: nessuna ventilazione controllata preimpostata.
+  // Il preset anestetizzato conserva invece la VCV di riferimento.
+  if($('ventMode'))$('ventMode').value=isHealthy?'SPONT':'VCV';
   phys={preload:100,contractility:100,vascularTone:100,compliance:100};setPhysInputs();
   $('mac').value=1;$('macOut').textContent='1,0';
   if(typeof v25!=='undefined'){

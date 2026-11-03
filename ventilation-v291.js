@@ -1,4 +1,4 @@
-/* V2.9.27 — raccordo fisico pausa inspiratoria, senza artefatto nel P/V. */
+/* V2.9.28 — P/V con origine 0; parametri della pausa non distruttivi e reversibili. */
 (function(){
  'use strict';
  const el=id=>document.getElementById(id);
@@ -85,7 +85,11 @@
  }
  function autoLoopAxes(d){
   const {insp,exp}=loopPoints(d),points=insp.concat(exp);
-  const pressureMin=d.controlled?d.peep-Math.max(1.2,(d.pip-d.peep)*.12):-3;
+  // La scala pressoria del loop P/V in ventilazione controllata parte
+  // sempre da 0 cmH2O: a PEEP 0 il ciclo nasce esattamente all'origine.
+  // Dopo la prima apertura la scala resta bloccata e modificabile solo
+  // dalla console docente (anche per il monitor studenti).
+  const pressureMin=d.controlled?0:-3;
   const pressureMax=d.controlled?Math.max(d.peep+6,d.pip+Math.max(1.8,(d.pip-d.peep)*.18)):3.5;
   const volumeMax=Math.max(50,d.vt*1.2);
   const flowMax=Math.max(.15,...points.map(p=>Math.abs(p.f)))*1.2;
@@ -538,12 +542,17 @@
   if(el('ventHoldSeconds')){
    const input=el('ventHoldSeconds');
    input.disabled=!d.hold;
-   // La pausa non puo' occupare tutto Ti: rendi visibile il massimo
-   // realmente applicabile, evitando che il campo mostri 1,5 s
-   // mentre il modello ne usa meno.
+   // La durata richiesta resta MEMORIZZATA anche se la FR o I:E
+   // rendono temporaneamente piu' breve la pausa applicabile.
+   // Non sovrascrivere input.value: al ritorno ai parametri basali
+   // la curva deve riacquistare esattamente la morfologia originale.
+   // Il modello applica il limite in calc(), senza mutare i controlli.
    const maxAllowed=Math.max(.1,Math.min(1.5,d.ti*.65,d.ti-.15));
-   input.max=maxAllowed.toFixed(2);
-   if(d.hold&&Number(input.value)>maxAllowed+1e-6)input.value=d.holdSeconds.toFixed(2);
+   input.max='1.5';
+   const requested=Number(input.value);
+   input.title=d.hold&&Number.isFinite(requested)&&requested>maxAllowed+1e-6?
+    'Pausa richiesta '+fmt(requested,2)+' s; pausa applicata '+fmt(d.holdSeconds,2)+' s (limitata dal Ti).':
+    'Durata della pausa inspiratoria richiesta; il limite effettivo dipende da Ti.';
   }
   const patient=el('studentPhenotype');
   if(patient)patient.textContent=fmt(d.age,1)+' anni · '+(el('patientBreed')?.value||'Meticcio')+' · BCS '+d.bcs+'/9';

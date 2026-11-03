@@ -398,7 +398,7 @@ function v25PerfusionEt(){
  const baselineAlveolar=weight*.006*12;
  const ratio=ventData?baselineAlveolar/Math.max(.10,ventData.alveolarMinute):12/rr;
  const ventilatoryDeficit=clamp(ratio,.45,2.8);
- const exponent=ventData?.postInduction&&!ventData.controlled?.60:.28;
+ const exponent=(ventData?.postInduction&&!ventData.controlled)?0.60:0.28;
  const rhythmFactor=rhythm==='Tachicardia ventricolare con polso'?
   clamp(.90-.12*clamp(((+$('hr').value||180)-120)/120,0,1),.78,.90):1;
  return clamp(v25.etRef*(.55+.45*perf)*Math.pow(ventilatoryDeficit,exponent)*rhythmFactor,3,80);

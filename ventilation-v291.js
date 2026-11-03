@@ -1,4 +1,4 @@
-/* V2.9.10 — tracciati respiratori solo dopo intubazione, respiro spontaneo iniziale. */
+/* V2.9.12 — ipoventilazione spontanea post-induzione e meccanica coerente. */
 (function(){
  'use strict';
  const el=id=>document.getElementById(id);
@@ -20,6 +20,8 @@
   const morph=el('patientMorph')?.value||'meso';
   const chosen=el('ventMode')?.value||'SPONT';
   const intubated=typeof v25!=='undefined'&&v25.induction.phase==='maintenance';
+  const postInduction=typeof v25!=='undefined'&&v25.induction.startedAt>0&&
+   ['induction','maintenance'].includes(v25.induction.phase);
   const controlled=intubated&&chosen!=='SPONT',mode=controlled?chosen:'SPONT';
   const rate=clamp(n('ventRate',12),4,50),peep=controlled?clamp(n('ventPeep',3),0,18):0;
   const ie=clamp(n('ventIE',2),1,3),fio2=clamp(n('ventFio2',.5),.21,1);
@@ -41,7 +43,9 @@
   const tau=raw*crs/1000; // R (cmH2O/(L/s)) * C (L/cmH2O) = secondi
   const vtSet=clamp(n('ventVtKg',8),4,15)*weight;
   const pinsp=clamp(n('ventPinsp',12),4,30);
-  let vt=controlled?(mode==='VCV'?vtSet:crs*pinsp*(1-Math.exp(-flowTi/Math.max(.03,tau)))):7*weight;
+  // Dopo una vera induzione EV la ventilazione spontanea e' depressa:
+  // Vt medio inferiore (stima didattica), senza modificare VCV/PCV.
+  let vt=controlled?(mode==='VCV'?vtSet:crs*pinsp*(1-Math.exp(-flowTi/Math.max(.03,tau)))):(postInduction?5.3:7)*weight;
   vt=clamp(vt,1,weight*22);
   const plateau=controlled?peep+vt/crs:null;
   const flow=controlled?(vt/1000)/Math.max(.1,flowTi):0;
@@ -61,7 +65,7 @@
   const pmean=controlled?peep+(plateau-peep)*ti/(ti+te)*.60:0;
   const preloadSensitivity=clamp(1+Math.max(0,100-(typeof phys!=='undefined'?phys.preload:100))*.012,1,1.9);
   const preloadFactor=controlled?clamp(1-.011*Math.max(0,pmean-2)*preloadSensitivity-.005*Math.max(0,(plateau||0)-19),.68,1):1;
-  return {mode,chosen,intubated,controlled,rate,peep,ie,ti,te,flowTi,hold,holdSeconds,fio2,weight,age,bcs,morph,bodyType,crs,raw,tau,vt,pip,plateau,driving,plateauMeasured,drivingMeasured,cdyn,cstat,rawMeasured,minute,alveolarMinute,pmean,preloadFactor};
+  return {mode,chosen,intubated,postInduction,controlled,rate,peep,ie,ti,te,flowTi,hold,holdSeconds,fio2,weight,age,bcs,morph,bodyType,crs,raw,tau,vt,pip,plateau,driving,plateauMeasured,drivingMeasured,cdyn,cstat,rawMeasured,minute,alveolarMinute,pmean,preloadFactor};
  }
  window.simVentCalc=calc;
  window.simVentValid=()=>{
@@ -163,7 +167,7 @@
   const vals={ventPip:fmt(d.pip),ventPplat:fmt(d.plateauMeasured),ventDriving:fmt(d.drivingMeasured),ventVt:fmt(d.vt,0),ventMinute:fmt(d.minute,2),ventCstat:fmt(d.cstat),ventCdyn:fmt(d.cdyn),ventRaw:fmt(d.rawMeasured),ventMainPip:fmt(d.pip),ventMainVolumeValue:fmt(d.vt,0),ventMainFlowValue:fmt(d.controlled?d.mode==='VCV'?d.vt/1000/d.flowTi:(d.pip-d.peep)/Math.max(1.5,d.raw):d.vt/1000*Math.PI/(2*d.ti),2)};
   for(const [id,value] of Object.entries(vals))if(el(id))el(id).textContent=value;
   const status=el('ventStatus');
-  if(status)status.textContent=!d.intubated?'Paziente non intubato: tracciati Paw, flusso e volume non disponibili. Dopo l’intubazione si parte dalla respirazione spontanea.':d.controlled?d.mode+' attiva · PEEP '+fmt(d.peep,0)+' cmH₂O · I:E 1:'+d.ie+(d.hold?' · pausa inspiratoria '+fmt(d.holdSeconds,2)+' s':' · nessuna pausa inspiratoria'):'Paziente intubato · respirazione spontanea. Seleziona VCV o PCV per attivare la ventilazione controllata.';
+  if(status)status.textContent=!d.intubated?'Paziente non intubato: tracciati Paw, flusso e volume non disponibili. Dopo l’intubazione si parte dalla respirazione spontanea.':d.controlled?d.mode+' attiva · PEEP '+fmt(d.peep,0)+' cmH₂O · I:E 1:'+d.ie+(d.hold?' · pausa inspiratoria '+fmt(d.holdSeconds,2)+' s':' · nessuna pausa inspiratoria'):'Paziente intubato · respirazione spontanea'+(d.postInduction?' con ipoventilazione post-induzione e possibile aumento dell’EtCO₂.':'')+' Seleziona VCV o PCV per attivare la ventilazione controllata.';
   const warning=[];
   if(d.controlled&&d.vt/d.weight>12)warning.push('Vt elevato per il peso');
   if(d.controlled&&d.vt/d.weight<5)warning.push('Vt ridotto');

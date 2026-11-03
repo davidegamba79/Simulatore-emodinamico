@@ -160,7 +160,7 @@
   syncPatientCopies();
   // RR e' la frequenza del ventilatore (o spontanea, se non intubato).
   if(el('rr')&&Number(el('rr').value)!==d.rate)el('rr').value=d.rate;
-  const vals={ventPip:fmt(d.pip),ventPplat:fmt(d.plateauMeasured),ventDriving:fmt(d.drivingMeasured),ventVt:fmt(d.vt,0),ventMinute:fmt(d.minute,2),ventCstat:fmt(d.cstat),ventCdyn:fmt(d.cdyn),ventRaw:fmt(d.rawMeasured),ventMainPip:fmt(d.pip),ventMainVolumeValue:fmt(d.vt,0),ventMainFlowValue:fmt(d.controlled?d.mode==='VCV'?d.vt/1000/d.flowTi:(d.pip-d.peep)/Math.max(1.5,d.raw):d.vt/1000/d.ti,2)};
+  const vals={ventPip:fmt(d.pip),ventPplat:fmt(d.plateauMeasured),ventDriving:fmt(d.drivingMeasured),ventVt:fmt(d.vt,0),ventMinute:fmt(d.minute,2),ventCstat:fmt(d.cstat),ventCdyn:fmt(d.cdyn),ventRaw:fmt(d.rawMeasured),ventMainPip:fmt(d.pip),ventMainVolumeValue:fmt(d.vt,0),ventMainFlowValue:fmt(d.controlled?d.mode==='VCV'?d.vt/1000/d.flowTi:(d.pip-d.peep)/Math.max(1.5,d.raw):d.vt/1000*Math.PI/(2*d.ti),2)};
   for(const [id,value] of Object.entries(vals))if(el(id))el(id).textContent=value;
   const status=el('ventStatus');
   if(status)status.textContent=!d.intubated?'Paziente non intubato: tracciati Paw, flusso e volume non disponibili. Dopo l’intubazione si parte dalla respirazione spontanea.':d.controlled?d.mode+' attiva · PEEP '+fmt(d.peep,0)+' cmH₂O · I:E 1:'+d.ie+(d.hold?' · pausa inspiratoria '+fmt(d.holdSeconds,2)+' s':' · nessuna pausa inspiratoria'):'Paziente intubato · respirazione spontanea. Seleziona VCV o PCV per attivare la ventilazione controllata.';
@@ -319,16 +319,17 @@
   const target=canvasContext(canvas);if(!target)return;
   const {ctx,w,h}=target;
   ctx.strokeStyle='#23404d';ctx.lineWidth=1;ctx.beginPath();
-  const baseline=type==='Flow'?h*.50:h*.88;
+  const spontaneousPressure=type==='Pressure'&&!d.controlled;
+  const baseline=spontaneousPressure?h*.50:type==='Flow'?h*.50:h*.88;
   ctx.moveTo(0,baseline);ctx.lineTo(w,baseline);ctx.stroke();
   ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';ctx.beginPath();
   const cycle=60/d.rate;
   const flowMax=Math.max(.15,d.vt/1000/Math.max(.1,d.flowTi)*3,d.mode==='PCV'?(d.pip-d.peep)/Math.max(1.5,d.raw)*1.15:0);
-  const max=type==='Pressure'?Math.max(15,(d.pip||5)*1.2):type==='Volume'?Math.max(50,d.vt*1.2):flowMax;
+  const max=type==='Pressure'?(spontaneousPressure?4:Math.max(15,(d.pip||5)*1.2)):type==='Volume'?Math.max(50,d.vt*1.2):flowMax;
   const speed=typeof window.simClinicalWavePixelsPerSecond==='function'?window.simClinicalWavePixelsPerSecond(type):12.5*96/25.4;
   for(let x=0;x<w;x+=2){
    const phase=(((seconds+x/speed)/cycle)%1+1)%1,v=sample(d,type,phase);
-   const y=type==='Flow'?h*.50-v/max*h*.38:h*.90-v/max*h*.77;
+   const y=type==='Flow'?h*.50-v/max*h*.38:spontaneousPressure?h*.50-v/max*h*.36:h*.90-v/max*h*.77;
    if(x===0)ctx.moveTo(x,clamp(y,2,h-2));else ctx.lineTo(x,clamp(y,2,h-2));
   }
   ctx.stroke();

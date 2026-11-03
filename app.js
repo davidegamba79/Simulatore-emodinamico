@@ -62,8 +62,8 @@ document.querySelectorAll('[data-toggle]').forEach(x=>x.addEventListener('change
 $('allOn').onclick=()=>setActive(true);$('allOff').onclick=()=>setActive(false);
 
 const presets={
-'Paziente sano':{hr:95,etco2:33,rr:12,sap:135,dap:80,co:3.00,ci:3.47,sv:32,svr:2450,ppv:8,spv:4,dpdt:1.087,cce:.35,ea:3.8,cpo:.65},
-'Paziente anestetizzato':{hr:80,etco2:33,rr:12,sap:98,dap:48,co:2.88,ci:3.34,sv:36,svr:1800,ppv:8,spv:4,dpdt:0.79,cce:.32,ea:2.45,cpo:.42},
+'Paziente sano':{hr:95,etco2:34,rr:12,sap:135,dap:80,co:3.00,ci:3.47,sv:32,svr:2450,ppv:8,spv:4,dpdt:1.087,cce:.35,ea:3.8,cpo:.65},
+'Paziente anestetizzato':{hr:80,etco2:34,rr:12,sap:98,dap:48,co:2.88,ci:3.34,sv:36,svr:1800,ppv:8,spv:4,dpdt:0.79,cce:.32,ea:2.45,cpo:.42},
 'Bradicardia':{hr:45,co:2.1,sv:47,sap:105,dap:62},
 'Tachicardia':{hr:180,co:3.5,sv:20,sap:105,dap:65},
 'PEA 80':{hr:80,sap:45,dap:25,co:.8,etco2:12,cpo:.08},
@@ -98,7 +98,7 @@ function applyPreset(p){
    v25.base={preload:100,contractility:100,vascularTone:100,hr:isHealthy?95:80};
    v25.fx={preload:0,contractility:0,tone:0,hr:0};
    v25.continuousHR=isHealthy?95:80;v25.lastShownHR=isHealthy?95:80;
-   v25.etRef=33;v25.etEffective=33;
+   v25.etRef=34;v25.etEffective=34;
    v25.oxygenEffective=98;
    v25.induction.startedAt=0;
    v25.induction.phase=isHealthy?'awake':'maintenance';
@@ -395,10 +395,16 @@ function v25PerfusionEt(){
  const perf=clamp(co/2.9,.25,1.55);
  const ventData=typeof window.simVentCalc==='function'?window.simVentCalc():null;
  const weight=clamp(+$('weight').value||25,1,100);
- const baselineAlveolar=weight*.006*12;
+ // Calibrazione: Golden Retriever 25 kg, adulto, BCS 5/9, mesomorfo,
+ // VCV FR 12/min, Vt 12 mL/kg, PEEP 0 => VA 3 L/min, EtCO2 34 mmHg.
+ // Allometria semplificata: richiesta ventilatoria proporzionale a kg^0.8;
+ // lo spazio morto dipende da eta', BCS e conformazione in simVentCalc().
+ const baselineAlveolar=3*Math.pow(weight/25,.8);
  const ratio=ventData?baselineAlveolar/Math.max(.10,ventData.alveolarMinute):12/rr;
- const ventilatoryDeficit=clamp(ratio,.45,2.8);
- const exponent=(ventData?.postInduction&&!ventData.controlled)?0.60:0.28;
+ const ventilatoryDeficit=clamp(ratio,.40,4.8);
+ // La curva spontanea post-induzione resta piu' sensibile alla
+ // ipoventilazione, mantenendo EtCO2 ~55 con FR 20 e Vt ridotto.
+ const exponent=(ventData?.postInduction&&!ventData.controlled)?0.36:0.28;
  const rhythmFactor=rhythm==='Tachicardia ventricolare con polso'?
   clamp(.90-.12*clamp(((+$('hr').value||180)-120)/120,0,1),.78,.90):1;
  return clamp(v25.etRef*(.55+.45*perf)*Math.pow(ventilatoryDeficit,exponent)*rhythmFactor,3,80);

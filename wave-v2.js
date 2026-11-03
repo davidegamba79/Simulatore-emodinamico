@@ -1,4 +1,4 @@
-/* V2.9.6 — velocita' cliniche ed EtCO2 bianca su tutti i monitor. */
+/* V2.9.10 — capnografia sincronizzata: spontanea morbida, controllata con plateau. */
 (()=>{const R=requestAnimationFrame.bind(window),E=i=>document.getElementById(i),N=i=>+(E(i)?.value||0),C=(v,a,b)=>Math.max(a,Math.min(b,v)),G=(x,m,s)=>Math.exp(-.5*((x-m)/s)**2),t0=performance.now()/1000;
 let wavePaused=false,wavePauseAt=0,wavePausedTotal=0;
 // Il tempo delle onde e' indipendente dalla velocita' della simulazione.
@@ -113,13 +113,30 @@ function pleth(q){if(E("rhythm")?.value==="Artefatto massaggio cardiaco 120/min"
 // ciclo: senza la coda a zero, il modulo (%) provoca un salto verticale.
 const tail=C((q-.65)/.35,0,1),fade=1-tail*tail*(3-2*tail);
 return (v+.08*G(q,.53,.075))*fade*C(Math.sqrt(co*pp/tone),.08,1.35)}
-function cap(q){let m=E("capnoPattern")?.value||"Normale";if(m.includes("Disconnessione"))return 0;let b=m.includes("Rebreathing")?.18:0,v=0;if(m.includes("Broncospasmo")){if(q<.07)v=0;else if(q<.42)v=C((q-.07)/.35,0,1)**1.8;else if(q<.69)v=.96+.06*(q-.42)/.27;else if(q<.82){let z=(q-.69)/.13;v=1.02*(1-z*z*(3-2*z))}}else{if(q<.08)v=0;else if(q<.14){let z=(q-.08)/.06;v=.94*(z*z*(3-2*z))}else if(q<.72){let z=(q-.14)/.58;v=.94+.09*z+.010*Math.sin(Math.PI*z)}else if(q<.78){let z=(q-.72)/.06;v=1.03*(1-(z*z*(3-2*z)))}else v=0;if(m.includes("Oscillazioni"))v+=.045*Math.sin(q*42)*C((q-.14)*4,0,1)*C((.78-q)*8,0,1)}return b+(1-b)*C(v,0,1.1)}
+// Respirazione spontanea intubata: salita espiratoria piu' graduale,
+ // plateau alveolare arrotondato/variabile e discesa inspiratoria.
+ // I valori restano un modello illustrativo, non un tracciato clinico misurato.
+ function spontaneousCap(q,vent,breath){
+  const inspirFraction=C(vent.ti/(60/vent.rate),.20,.55);
+  if(q<inspirFraction)return 0;
+  const exp=(q-inspirFraction)/(1-inspirFraction);
+  const rise=C((exp-.035)/.36,0,1);
+  const alveolar=.80*Math.pow(rise,1.65)+.18*Math.pow(rise,3.2);
+  const undulation=(.038*Math.sin(exp*12.1+breath*.51)+.022*Math.sin(exp*25.3+breath*.23))*C(rise*2,0,1);
+  const fall=C((exp-.90)/.10,0,1);
+  const inspirWashout=1-fall*fall*(3-2*fall);
+  const breathAmplitude=1+.045*Math.sin(breath*1.37)+.025*Math.sin(breath*.61);
+  return C((alveolar+undulation)*inspirWashout*breathAmplitude,0,1.08);
+ }
+function cap(q,vent,breath){let m=E("capnoPattern")?.value||"Normale";
+ if(m==="Normale"&&vent?.intubated&&!vent.controlled)return spontaneousCap(q,vent,breath);if(m.includes("Disconnessione"))return 0;let b=m.includes("Rebreathing")?.18:0,v=0;if(m.includes("Broncospasmo")){if(q<.07)v=0;else if(q<.42)v=C((q-.07)/.35,0,1)**1.8;else if(q<.69)v=.96+.06*(q-.42)/.27;else if(q<.82){let z=(q-.69)/.13;v=1.02*(1-z*z*(3-2*z))}}else{if(q<.08)v=0;else if(q<.14){let z=(q-.08)/.06;v=.94*(z*z*(3-2*z))}else if(q<.72){let z=(q-.14)/.58;v=.94+.09*z+.010*Math.sin(Math.PI*z)}else if(q<.78){let z=(q-.72)/.06;v=1.03*(1-(z*z*(3-2*z)))}else v=0;if(m.includes("Oscillazioni"))v+=.045*Math.sin(q*42)*C((q-.14)*4,0,1)*C((.78-q)*8,0,1)}return b+(1-b)*C(v,0,1.1)}
 // Oscillazione respiratoria SPV calcolata una volta per frame, non per pixel.
 function draw(){
  if(wavePaused){R(draw);return;}
  const hr=Math.max(1,N("hr")||90),rr=Math.max(1,N("rr")||18),et=C(N("etco2")||38,3,80);
  const rh=E("rhythm")?.value||"Ritmo sinusale",av=rh.startsWith("Blocco AV "),timing=av?avTiming(rh,hr):null,now=performance.now()/1000-t0-wavePausedTotal;
  window.simWaveTimeSeconds=now;
+ const vent=typeof window.simVentCalc==='function'?window.simVentCalc():null;
  const respActive=typeof window.simVentValid==='function'&&window.simVentValid();
  const respPulse=Math.max(1,N('sap')-N('dap')),respSpv=C(N('spv'),0,35),respRate=Math.max(1,N('rr')||12);
  const respiratoryPulse=ts=>respActive?C(1+respSpv/(2*respPulse)*Math.sin(2*Math.PI*ts*respRate/60-.3),.7,1.3):1;
@@ -129,7 +146,13 @@ function draw(){
   for(let x=0;x<w;x++){
    const ts=now+x/clinicalPps(id);let q,y;
    if(id==="capno"){
-    q=((ts/(60/rr))%1+1)%1;y=.86-cap(q)*C(et/40,.12,1.65)*.60;
+    const cycle=60/rr,phase=((ts/cycle)%1+1)%1;
+    // L'espirazione inizia dopo la fase inspiratoria dei tracciati Paw/flow.
+    // La capnografia controllata mantiene la tipica fase III; in spontanea
+    // segue invece una salita progressiva e un plateau meno squadrato.
+    const tiFraction=vent?.intubated?C(vent.ti/cycle,.18,.65):1/3;
+    q=vent?.controlled?((phase-tiFraction+.08+1)%1):phase;
+    y=.86-cap(q,vent,Math.floor(ts/cycle))*C(et/40,.12,1.65)*.60;
    }else if(av){
     if(id==="ecg"){
      y=.58-avECG(ts,rh,hr)*.76;

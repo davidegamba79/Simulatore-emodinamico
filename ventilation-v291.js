@@ -1,4 +1,4 @@
-/* V2.9.7 — valori ventilatori sotto l'onda IBP nel monitor studenti. Modello didattico. */
+/* V2.9.8 — dati paziente ventilazione richiudibili, sincronizzati con la scheda Paziente. */
 (function(){
  'use strict';
  const el=id=>document.getElementById(id);
@@ -86,13 +86,23 @@
   }
   const context=el('ventPatientContext'),preset=el('patientPresetStatus');
   if(context&&preset)context.textContent=preset.textContent;
+  // Riepilogo sempre leggibile quando i campi sono richiusi.
+  const compact=el('ventPatientCompact');
+  if(compact){
+   const weight=el('weight')?.value||'—',age=el('patientAge')?.value||'—';
+   const breed=el('patientBreed')?.value||'Meticcio',bcs=el('patientBCS')?.value||'—';
+   compact.textContent=weight+' kg · '+age+' anni · '+breed+' · BCS '+bcs+'/9';
+  }
  }
  function createPatientMirror(){
   if(document.body.classList.contains('student'))return;
   const vent=el('ventilationPanel');
   if(!vent||!vent.parentElement||el('ventPatientCard'))return;
-  const card=document.createElement('section');card.className='card vent-patient-card';card.id='ventPatientCard';
-  card.innerHTML='<h2>Dati paziente · ventilazione</h2><small style="color:var(--muted)">Modificabili anche qui; i valori restano sincronizzati con la scheda Paziente.</small><div class="cols" id="ventPatientFields" style="margin-top:9px"></div><div class="status" id="ventPatientContext" style="margin-top:8px"></div>';
+  // Come i salti temporali: i dati restano accessibili, ma sono chiusi
+  // per impostazione predefinita e non occupano spazio durante il monitoraggio.
+  const card=document.createElement('details');card.className='card vent-patient-card';card.id='ventPatientCard';
+  card.innerHTML='<summary class="vent-patient-summary"><span class="vent-patient-summary-title">Dati paziente · ventilazione</span><span class="vent-patient-compact" id="ventPatientCompact">Paziente da impostare</span></summary>'+
+   '<div class="vent-patient-content"><small style="color:var(--muted)">Modificabili anche qui; i valori restano sincronizzati con la scheda Paziente.</small><div class="cols" id="ventPatientFields" style="margin-top:9px"></div><div class="status" id="ventPatientContext" style="margin-top:8px"></div></div>';
   const box=card.querySelector('#ventPatientFields');
   for(const id of patientFields){
    const original=el(id),label=original?.closest('label');

@@ -1,4 +1,4 @@
-/* V2.9.16 — meccanica PEEP dipendente da reclutamento, sovradistensione e profilo polmonare. */
+/* V2.9.17 — loop PCV e forme d'onda con rampa pressoria e riempimento RC. */
 (function(){
  'use strict';
  const el=id=>document.getElementById(id);
@@ -48,6 +48,18 @@
  const respDisplayKey='recoverCaneRespDisplayV293';
  const patientFields=['name','weight','patientAge','patientBreed','patientMorph','patientBodyType','patientBCS'];
  const patientCopies=new Map();
+ // Unico modello RC per il volume e il flusso in PCV: risposta
+ // a una rampa pressoria finita seguita da pressione costante.
+ function pcvFill(seconds,tau,rise){
+  const t=Math.max(0,seconds),rc=Math.max(.03,tau),r=Math.max(.025,rise);
+  if(t<=r){
+   const e=Math.exp(-t/rc);
+   return {fraction:Math.max(0,(t-rc*(1-e))/r),rate:(1-e)/r};
+  }
+  const atRise=1-rc/r*(1-Math.exp(-r/rc));
+  const e=Math.exp(-(t-r)/rc);
+  return {fraction:1-(1-atRise)*e,rate:(1-atRise)*e/rc};
+ }
  function calc(){
   const weight=clamp(n('weight',25),1,100),age=clamp(n('patientAge',6),.1,22),bcs=clamp(n('patientBCS',5),1,9);
   const morph=el('patientMorph')?.value||'meso';
@@ -72,6 +84,7 @@
   const maxHold=Math.max(.1,Math.min(1.5,ti*.65,ti-.15));
   const holdSeconds=hold?clamp(n('ventHoldSeconds',.4),.1,maxHold):0;
   const flowTi=Math.max(.15,ti-holdSeconds);
+  const pcvRiseTime=Math.min(.20,Math.max(.06,flowTi*.14));
   // Compliance basale del cane normopeso con meccanica respiratoria conservata:
   // 1,10 mL/(kg*cmH2O). Valore didattico ricalibrato, NON una soglia clinica.
   // Le variazioni per eta', BCS e morfotipo sono ipotesi semplificate.
@@ -92,9 +105,11 @@
   // In spontanea post-intubazione: atti piu' frequenti ma superficiali.
   // Con FR 20 e Vt ~3,55 mL/kg la ventilazione alveolare e' ridotta:
   // EtCO2 media attesa circa 55 mmHg per il paziente di riferimento.
-  let vt=controlled?(mode==='VCV'?vtSet:crs*pinsp*(1-Math.exp(-flowTi/Math.max(.03,tau)))):
+  let vt=controlled?(mode==='VCV'?vtSet:crs*pinsp*pcvFill(flowTi,tau,pcvRiseTime).fraction):
    (postInduction?(intubated?3.55:5.3):7)*weight;
   vt=clamp(vt,1,weight*22);
+  const pcvPeakFlow=mode==='PCV'?
+   crs*pinsp*pcvFill(pcvRiseTime,tau,pcvRiseTime).rate/1000:0;
   const plateau=controlled?peep+vt/crs:null;
   const flow=controlled?(vt/1000)/Math.max(.1,flowTi):0;
   const pip=controlled?(mode==='VCV'?plateau+raw*flow:peep+pinsp):null;
@@ -135,7 +150,7 @@
   const pmean=controlled?peep+(plateau-peep)*ti/(ti+te)*.60:0;
   const preloadSensitivity=clamp(1+Math.max(0,100-(typeof phys!=='undefined'?phys.preload:100))*.012,1,1.9);
   const preloadFactor=controlled?clamp(1-.011*Math.max(0,pmean-2)*preloadSensitivity-.005*Math.max(0,(plateau||0)-19),.68,1):1;
-  return {mode,chosen,intubated,postInduction,controlled,rate,peep,ie,ti,te,flowTi,hold,holdSeconds,fio2,weight,age,bcs,morph,bodyType,lungProfile,recruitment,overdistension,compliancePeepFactor,crs,raw,tau,vt,pip,plateau,driving,plateauMeasured,drivingMeasured,cdyn,cstat,rawMeasured,minute,alveolarMinute,deadspaceMlKg,etco2Gradient,oxygenPeepEffect,pmean,preloadFactor};
+  return {mode,chosen,intubated,postInduction,controlled,rate,peep,ie,ti,te,flowTi,pcvRiseTime,pcvPeakFlow,pinsp,hold,holdSeconds,fio2,weight,age,bcs,morph,bodyType,lungProfile,recruitment,overdistension,compliancePeepFactor,crs,raw,tau,vt,pip,plateau,driving,plateauMeasured,drivingMeasured,cdyn,cstat,rawMeasured,minute,alveolarMinute,deadspaceMlKg,etco2Gradient,oxygenPeepEffect,pmean,preloadFactor};
  }
  window.simVentCalc=calc;
  window.simVentValid=()=>{
@@ -238,7 +253,7 @@
   syncPatientCopies();
   // RR e' la frequenza del ventilatore (o spontanea, se non intubato).
   if(el('rr')&&Number(el('rr').value)!==d.rate)el('rr').value=d.rate;
-  const vals={ventPip:fmt(d.pip),ventPplat:fmt(d.plateauMeasured),ventDriving:fmt(d.drivingMeasured),ventVt:fmt(d.vt,0),ventMinute:fmt(d.minute,2),ventCstat:fmt(d.cstat),ventCdyn:fmt(d.cdyn),ventRaw:fmt(d.rawMeasured),ventMainPip:fmt(d.pip),ventMainVolumeValue:fmt(d.vt,0),ventMainFlowValue:fmt(d.controlled?d.mode==='VCV'?d.vt/1000/d.flowTi:(d.pip-d.peep)/Math.max(1.5,d.raw):d.vt/1000*Math.PI/(2*d.ti),2)};
+  const vals={ventPip:fmt(d.pip),ventPplat:fmt(d.plateauMeasured),ventDriving:fmt(d.drivingMeasured),ventVt:fmt(d.vt,0),ventMinute:fmt(d.minute,2),ventCstat:fmt(d.cstat),ventCdyn:fmt(d.cdyn),ventRaw:fmt(d.rawMeasured),ventMainPip:fmt(d.pip),ventMainVolumeValue:fmt(d.vt,0),ventMainFlowValue:fmt(d.controlled?d.mode==='VCV'?d.vt/1000/d.flowTi:d.pcvPeakFlow:d.vt/1000*Math.PI/(2*d.ti),2)};
   for(const [id,value] of Object.entries(vals))if(el(id))el(id).textContent=value;
   const status=el('ventStatus');
   if(status)status.textContent=!d.intubated?'Paziente non intubato: tracciati Paw, flusso e volume non disponibili. Dopo l’intubazione si parte dalla respirazione spontanea.':d.controlled?d.mode+' attiva · PEEP '+fmt(d.peep,0)+' cmH₂O · I:E 1:'+d.ie+(d.hold?' · pausa inspiratoria '+fmt(d.holdSeconds,2)+' s':' · nessuna pausa inspiratoria'):'Paziente intubato · respirazione spontanea'+(d.postInduction?' con ipoventilazione post-induzione e possibile aumento dell’EtCO₂.':'')+' Seleziona VCV o PCV per attivare la ventilazione controllata.';
@@ -345,9 +360,11 @@
      volume=d.vt*inspX;
      flow=holdPhase?0:d.vt/1000/Math.max(.05,d.flowTi);
     }else{
-     const tau=Math.max(.03,d.tau),den=Math.max(.00001,1-Math.exp(-d.flowTi/tau));
-     volume=d.vt*(1-Math.exp(-activeSeconds/tau))/den;
-     flow=holdPhase?0:d.vt/1000*Math.exp(-activeSeconds/tau)/(tau*den);
+     // PCV: flusso inizialmente crescente, poi decelerante;
+     // volume e flusso derivano dalla stessa equazione RC.
+     const fill=pcvFill(activeSeconds,d.tau,d.pcvRiseTime);
+     volume=d.crs*d.pinsp*fill.fraction;
+     flow=holdPhase?0:d.crs*d.pinsp*fill.rate/1000;
     }
     if(holdPhase)volume=d.vt;
     if(holdPhase){
@@ -355,22 +372,26 @@
      pressure=d.plateau+(d.pip-d.plateau)*Math.exp(-(t-d.flowTi)/.035);
     }else{
      pressure=d.mode==='PCV'?
-      d.peep+(d.pip-d.peep)*Math.min(1,t/.07):
+      d.peep+d.pinsp*Math.min(1,t/d.pcvRiseTime):
       d.peep+(d.plateau-d.peep)*inspX+(d.pip-d.plateau);
     }
    }else{
-    // Espirazione passiva: volume e flusso sono derivata e integrale
-    // della stessa curva; al termine del respiro tornano esattamente a zero.
-    const tauE=Math.max(.12,d.tau*2),tail=Math.exp(-d.te/tauE);
-    const decay=Math.exp(-expSeconds/tauE),den=Math.max(.00001,1-tail);
-    const remaining=clamp((decay-tail)/den,0,1);
-    const shapePower=1.15;
-    volume=d.vt*Math.pow(remaining,shapePower);
-    flow=remaining<=0?0:
-     -d.vt/1000*shapePower*Math.pow(remaining,shapePower-1)*decay/(tauE*den);
-    const tauP=Math.max(.08,d.tau),pressureTail=Math.exp(-d.te/tauP);
-    pressure=d.peep+(d.plateau-d.peep)*clamp(
-     (Math.exp(-expSeconds/tauP)-pressureTail)/Math.max(.00001,1-pressureTail),0,1);
+    // Espirazione passiva: la Paw torna rapidamente alla PEEP;
+    // il flusso negativo si sviluppa durante l'apertura della valvola.
+    // Flusso e volume sono derivata e integrale della stessa curva.
+    const fallTime=d.mode==='PCV'?Math.min(.12,Math.max(.05,d.pcvRiseTime*.48)):.085;
+    const tauE=Math.max(.12,d.tau*1.7);
+    const effective=expSeconds-fallTime*(1-Math.exp(-expSeconds/fallTime));
+    const endEffective=d.te-fallTime*(1-Math.exp(-d.te/fallTime));
+    const tail=Math.exp(-endEffective/tauE);
+    const decay=Math.exp(-effective/tauE),den=Math.max(.00001,1-tail);
+    volume=d.vt*clamp((decay-tail)/den,0,1);
+    flow=expSeconds>=d.te?0:
+     -d.vt/1000*decay*(1-Math.exp(-expSeconds/fallTime))/(tauE*den);
+    const release=d.hold?d.plateau:d.pip;
+    const pressureTail=Math.exp(-d.te/fallTime);
+    pressure=d.peep+(release-d.peep)*clamp(
+     (Math.exp(-expSeconds/fallTime)-pressureTail)/Math.max(.00001,1-pressureTail),0,1);
    }
   }else{
    // Respiro spontaneo regolare: volume e flusso hanno estremi comuni
@@ -415,7 +436,9 @@
   ctx.moveTo(0,baseline);ctx.lineTo(w,baseline);ctx.stroke();
   ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';ctx.beginPath();
   const cycle=60/d.rate;
-  const flowMax=Math.max(.15,d.vt/1000/Math.max(.1,d.flowTi)*3,d.mode==='PCV'?(d.pip-d.peep)/Math.max(1.5,d.raw)*1.15:0);
+  // Autoscale in base ai flussi inspiratorio ed espiratorio reali.
+  const flowMax=type==='Flow'?Math.max(.15,
+   ...Array.from({length:160},(_,i)=>Math.abs(sample(d,'Flow',i/160))))*1.18:1;
   const max=type==='Pressure'?(spontaneousPressure?4:Math.max(15,(d.pip||5)*1.2)):type==='Volume'?Math.max(50,d.vt*1.2):flowMax;
   const speed=typeof window.simClinicalWavePixelsPerSecond==='function'?window.simClinicalWavePixelsPerSecond(type):12.5*96/25.4;
   for(let x=0;x<w;x+=2){

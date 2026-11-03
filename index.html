@@ -6,12 +6,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Sim Emod. V2.9.6">
+<meta name="apple-mobile-web-app-title" content="Sim Emod. V2.9.7">
 <meta name="theme-color" content="#071016">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="stylesheet" href="./styles.css">
 <link rel="stylesheet" href="./styles-v2.css?v=2900">
-<title>Simulatore Emodinamico — V2.9.6</title>
+<title>Simulatore Emodinamico — V2.9.7</title>
 <style id="student-panel-2893">body.student #timeControls,body.student #premedPanel,body.student #inductionPanel{display:none!important}</style>
 <style id="therapy-layout-2861">
 /* Applied in the document to avoid stale stylesheet caching */
@@ -235,7 +235,7 @@ body.student[data-student-tab="ventilation"] .student-fixed-monitor{max-height:6
 body:not(.student)[data-instructor-tab="ventilation"] .monitor .wave{height:67px!important;min-height:67px!important}
 @media(max-width:720px){.vent-loop-grid{grid-template-columns:1fr}}
 @media(max-height:800px){body.student[data-student-tab="ventilation"] .student-fixed-monitor .wave{height:48px!important;min-height:48px!important}}
-/* V2.9.6: EtCO₂ bianca su ogni monitor, docente e studenti. */
+/* V2.9.7: EtCO₂ bianca su ogni monitor, docente e studenti. */
 .monitor .wave[data-key="capno"] .wlabel,
 .monitor .wave[data-key="capno"] .values{color:#f8fbff!important}
 /* Scala geometrica invariata: i canvas spirometrici conservano un rapporto 17:12. */
@@ -256,6 +256,37 @@ body.student .student-vent-loops .vent-loop-card{padding:6px}
 body.student .student-vent-loops .vent-loop-card strong{font-size:11px;margin-bottom:2px}
 body.student .student-vent-loops .vent-loop-card canvas{aspect-ratio:17 / 12;height:auto!important}
 body.student .student-vent-loops .vent-loop-legend{margin-top:5px;font-size:10px}
+/* V2.9.7: i dati ventilatori riempiono lo spazio sotto IBP,
+   affiancati ai due loop; nessun riquadro nelle altre schede. */
+body.student .student-vent-metrics{display:none;min-width:0}
+body.student[data-student-tab="ventilation"] .student-vent-metrics{
+ display:block;order:7;background:#0b1d27;border:1px solid #294653;
+ border-radius:9px;padding:7px 9px;margin-top:2px
+}
+body.student .student-vent-metrics h3{font-size:12px;margin:0 0 5px;color:#d8edf5}
+body.student .student-vent-metrics .status{
+ font-size:11px;line-height:1.3;padding:4px 7px;margin:0 0 5px;
+ border-left-width:2px
+}
+body.student .student-vent-metrics .vent-readouts{
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-top:0
+}
+body.student .student-vent-metrics .vent-readouts>div{
+ padding:5px 6px;min-width:0
+}
+body.student .student-vent-metrics .vent-readouts small{
+ font-size:9px;line-height:1.2;overflow-wrap:anywhere
+}
+body.student .student-vent-metrics .vent-readouts b{
+ font-size:17px;line-height:1.25
+}
+/* L'IBP chiude la colonna delle onde: subito sotto compaiono i dati. */
+body.student[data-student-tab="ventilation"] .student-vent-wave-column .resp-wave[data-resp-type="pressure"]{order:1}
+body.student[data-student-tab="ventilation"] .student-vent-wave-column .resp-wave[data-resp-type="flow"]{order:2}
+body.student[data-student-tab="ventilation"] .student-vent-wave-column .resp-wave[data-resp-type="volume"]{order:3}
+body.student[data-student-tab="ventilation"] .student-vent-wave-column .wave[data-key="pleth"]{order:4}
+body.student[data-student-tab="ventilation"] .student-vent-wave-column .wave[data-key="capno"]{order:5}
+body.student[data-student-tab="ventilation"] .student-vent-wave-column .wave[data-key="art"]{order:6}
 @media(min-width:621px) and (max-width:850px){
  body.student[data-student-tab="ventilation"] .student-vent-layout{grid-template-columns:minmax(0,1fr) minmax(190px,270px)}
 }
@@ -268,7 +299,7 @@ body.student .student-vent-loops .vent-loop-legend{margin-top:5px;font-size:10px
 <body>
 
 <header>
- <div><h1>SIMULATORE EMODINAMICO <span class="app-version">V2.9.6</span> — <span id="modeTitle">Console istruttore</span></h1><div class="badge" id="syncBadge">Monitor locale sincronizzato</div></div>
+ <div><h1>SIMULATORE EMODINAMICO <span class="app-version">V2.9.7</span> — <span id="modeTitle">Console istruttore</span></h1><div class="badge" id="syncBadge">Monitor locale sincronizzato</div></div>
  <div class="row">
   <button class="tiny instructor-only" id="studentBtn">Apri Monitor studenti</button>
   <button class="tiny" id="modeBtn">Modalità studenti</button>
@@ -480,9 +511,9 @@ body.student .student-vent-loops .vent-loop-legend{margin-top:5px;font-size:10px
 </div>
 </main>
 
-<script src="./app.js?v=2960"></script>
+<script src="./app.js?v=2970"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./wave-v2.js?v=2960"></script>
+<script src="./wave-v2.js?v=2970"></script>
 <script>
 window.addEventListener('DOMContentLoaded',()=>{
  const $p=id=>document.getElementById(id);
@@ -831,6 +862,6 @@ window.addEventListener('DOMContentLoaded',()=>{
  }catch(err){console.warn('Ripristino riepilogo terapie studenti:',err)}
 });
 </script>
-<script src="./ventilation-v291.js?v=2960"></script>
+<script src="./ventilation-v291.js?v=2970"></script>
 </body>
 </html>

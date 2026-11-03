@@ -1,4 +1,4 @@
-/* V2.9.20 — salita rapida del flusso in PCV, decelerazione RC coerente. */
+/* V2.9.21 — PCV a due costanti di tempo: ramo flusso/volume non lineare. */
 (function(){
  'use strict';
  const el=id=>document.getElementById(id);
@@ -59,6 +59,22 @@
   const atRise=1-rc/r*(1-Math.exp(-r/rc));
   const e=Math.exp(-(t-r)/rc);
   return {fraction:1-(1-atRise)*e,rate:(1-atRise)*e/rc};
+ }
+ // PCV: due compartimenti respiratori in parallelo con costanti di
+ // tempo differenti (35% rapido, 65% lento). In un solo RC, flusso
+ // contro volume e' una retta; la somma di due risposte RC crea una
+ // decelerazione curva: il compartimento rapido si riempie prima,
+ // mentre quello lento contribuisce alla coda inspiratoria.
+ // fraction e rate sono la stessa funzione e la sua derivata:
+ // onde temporali e loop F/V rimangono meccanicamente coerenti.
+ // E' una rappresentazione didattica, non una misura dei compartimenti.
+ function pcvRegionalFill(seconds,tau,rise){
+  const fast=pcvFill(seconds,tau*.40,rise);
+  const slow=pcvFill(seconds,tau*2.00,rise);
+  return {
+   fraction:.35*fast.fraction+.65*slow.fraction,
+   rate:.35*fast.rate+.65*slow.rate
+  };
  }
  // VCV: apertura inspiratoria breve e progressiva, poi flusso costante.
  // La derivata della frazione di riempimento e' il flusso normalizzato:
@@ -125,11 +141,11 @@
   // In spontanea post-intubazione: atti piu' frequenti ma superficiali.
   // Con FR 20 e Vt ~3,55 mL/kg la ventilazione alveolare e' ridotta:
   // EtCO2 media attesa circa 55 mmHg per il paziente di riferimento.
-  let vt=controlled?(mode==='VCV'?vtSet:crs*pinsp*pcvFill(flowTi,tau,pcvRiseTime).fraction):
+  let vt=controlled?(mode==='VCV'?vtSet:crs*pinsp*pcvRegionalFill(flowTi,tau,pcvRiseTime).fraction):
    (postInduction?(intubated?3.55:5.3):7)*weight;
   vt=clamp(vt,1,weight*22);
   const pcvPeakFlow=mode==='PCV'?
-   crs*pinsp*pcvFill(pcvRiseTime,tau,pcvRiseTime).rate/1000:0;
+   crs*pinsp*pcvRegionalFill(pcvRiseTime,tau,pcvRiseTime).rate/1000:0;
   const plateau=controlled?peep+vt/crs:null;
   const vcvPeakFlow=mode==='VCV'?vt/1000*vcvFill(flowTi,flowTi).rate:0;
   const flow=controlled?(mode==='VCV'?vcvPeakFlow:vt/1000/Math.max(.1,flowTi)):0;
@@ -391,9 +407,10 @@
      volume=d.vt*fill.fraction;
      flow=holdPhase?0:d.vt/1000*fill.rate;
     }else{
-     // PCV: flusso inizialmente crescente, poi decelerante;
-     // volume e flusso derivano dalla stessa equazione RC.
-     const fill=pcvFill(activeSeconds,d.tau,d.pcvRiseTime);
+     // PCV: picco precoce e decelerazione curva per la distribuzione
+     // di due costanti RC; volume e flusso restano derivata/integrale
+     // dello stesso modello, non un semplice effetto grafico.
+     const fill=pcvRegionalFill(activeSeconds,d.tau,d.pcvRiseTime);
      volume=d.crs*d.pinsp*fill.fraction;
      flow=holdPhase?0:d.crs*d.pinsp*fill.rate/1000;
     }

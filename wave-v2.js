@@ -171,7 +171,14 @@ function draw(){
     // In controllata rimane la fase III; in spontanea la fase II e' rapida
     // e la sommita' e' una cupola, come nella traccia di riferimento.
     const tiFraction=vent?.intubated?C(vent.ti/cycle,.18,.65):1/3;
-    q=vent?.controlled?((phase-tiFraction+.08+1)%1):phase;
+    // Capnografia controllata sincronizzata alla reale espirazione:
+    // zero durante l'inspirazione, fase II dopo l'apertura della
+    // valvola espiratoria e ritorno al basale prima del nuovo respiro.
+    // La mappa 0.08..0.83 conserva la forma di cap() e copre anche
+    // l'espirazione prolungata nel broncospasmo senza trascinarsi
+    // nel successivo ciclo inspiratorio.
+    q=vent?.controlled?(phase<tiFraction?0:
+     .08+.75*(phase-tiFraction)/Math.max(.05,1-tiFraction)):phase;
     const breath=Math.floor(ts/cycle);
     const spontaneous=vent?.intubated&&!vent.controlled;
     const currentBreath=Math.floor(now/cycle);

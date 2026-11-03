@@ -1,4 +1,4 @@
-/* V2.9.19 — chiusura dei loop VCV/PCV alle commutazioni valvolari. */
+/* V2.9.20 — salita rapida del flusso in PCV, decelerazione RC coerente. */
 (function(){
  'use strict';
  const el=id=>document.getElementById(id);
@@ -100,10 +100,11 @@
   const maxHold=Math.max(.1,Math.min(1.5,ti*.65,ti-.15));
   const holdSeconds=hold?clamp(n('ventHoldSeconds',.4),.1,maxHold):0;
   const flowTi=Math.max(.15,ti-holdSeconds);
-  // Il rise time del ventilatore NON dipende dalla durata della pausa:
-  // cambiando la pausa a I:E fisso si accorcia solo il tempo utile
-  // all'insufflazione; la rampa pressoria non accelera artificialmente.
-  const pcvRiseTime=Math.min(.20,Math.max(.06,ti*.09));
+  // PCV: salita pressoria rapida (40-85 ms), indipendente dalla pausa.
+  // Il flusso raggiunge il picco quando Vt e' ancora basso (~10-15%
+  // nel paziente sano), poi decresce secondo la costante RC.
+  // La stessa rampa guida Paw, flusso, volume e loop F/V.
+  const pcvRiseTime=Math.min(.085,Math.max(.04,ti*.035));
   // Compliance basale del cane normopeso con meccanica respiratoria conservata:
   // 1,10 mL/(kg*cmH2O). Valore didattico ricalibrato, NON una soglia clinica.
   // Le variazioni per eta', BCS e morfotipo sono ipotesi semplificate.

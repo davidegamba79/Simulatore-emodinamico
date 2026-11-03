@@ -1,4 +1,4 @@
-/* V2.9.8 — dati paziente ventilazione richiudibili, sincronizzati con la scheda Paziente. */
+/* V2.9.10 — tracciati respiratori solo dopo intubazione, respiro spontaneo iniziale. */
 (function(){
  'use strict';
  const el=id=>document.getElementById(id);
@@ -18,7 +18,7 @@
  function calc(){
   const weight=clamp(n('weight',25),1,100),age=clamp(n('patientAge',6),.1,22),bcs=clamp(n('patientBCS',5),1,9);
   const morph=el('patientMorph')?.value||'meso';
-  const chosen=el('ventMode')?.value||'VCV';
+  const chosen=el('ventMode')?.value||'SPONT';
   const intubated=typeof v25!=='undefined'&&v25.induction.phase==='maintenance';
   const controlled=intubated&&chosen!=='SPONT',mode=controlled?chosen:'SPONT';
   const rate=clamp(n('ventRate',12),4,50),peep=controlled?clamp(n('ventPeep',3),0,18):0;
@@ -154,13 +154,16 @@
  }
  function refresh(){
   const d=calc();lastData=d;
+  // I tracciati Paw, flusso, volume e i loop richiedono un tubo
+  // endotracheale; la condizione e' condivisa con il monitor studenti.
+  document.body.dataset.respIntubated=String(d.intubated);
   syncPatientCopies();
   // RR e' la frequenza del ventilatore (o spontanea, se non intubato).
   if(el('rr')&&Number(el('rr').value)!==d.rate)el('rr').value=d.rate;
   const vals={ventPip:fmt(d.pip),ventPplat:fmt(d.plateauMeasured),ventDriving:fmt(d.drivingMeasured),ventVt:fmt(d.vt,0),ventMinute:fmt(d.minute,2),ventCstat:fmt(d.cstat),ventCdyn:fmt(d.cdyn),ventRaw:fmt(d.rawMeasured),ventMainPip:fmt(d.pip),ventMainVolumeValue:fmt(d.vt,0),ventMainFlowValue:fmt(d.controlled?d.mode==='VCV'?d.vt/1000/d.flowTi:(d.pip-d.peep)/Math.max(1.5,d.raw):d.vt/1000/d.ti,2)};
   for(const [id,value] of Object.entries(vals))if(el(id))el(id).textContent=value;
   const status=el('ventStatus');
-  if(status)status.textContent=!d.intubated?'Paziente non intubato: respirazione spontanea nel modello. VCV/PCV saranno attive dopo l’intubazione.':d.controlled?d.mode+' attiva · PEEP '+fmt(d.peep,0)+' cmH₂O · I:E 1:'+d.ie+(d.hold?' · pausa inspiratoria '+fmt(d.holdSeconds,2)+' s':' · nessuna pausa inspiratoria'):'Paziente intubato · ventilazione spontanea.';
+  if(status)status.textContent=!d.intubated?'Paziente non intubato: tracciati Paw, flusso e volume non disponibili. Dopo l’intubazione si parte dalla respirazione spontanea.':d.controlled?d.mode+' attiva · PEEP '+fmt(d.peep,0)+' cmH₂O · I:E 1:'+d.ie+(d.hold?' · pausa inspiratoria '+fmt(d.holdSeconds,2)+' s':' · nessuna pausa inspiratoria'):'Paziente intubato · respirazione spontanea. Seleziona VCV o PCV per attivare la ventilazione controllata.';
   const warning=[];
   if(d.controlled&&d.vt/d.weight>12)warning.push('Vt elevato per il peso');
   if(d.controlled&&d.vt/d.weight<5)warning.push('Vt ridotto');
@@ -171,6 +174,7 @@
    (d.hold?'Cstat '+fmt(d.cstat)+' mL/cmH₂O (pausa inspiratoria); driving pressure = Pplat − PEEP = '+fmt(d.drivingMeasured)+' cmH₂O. ':'Cstat, Pplat e driving pressure richiedono la pausa inspiratoria. ')+
    (d.rawMeasured!==null?'Raw '+fmt(d.rawMeasured)+' cmH₂O/(L/s), ricavata da (PIP − Pplat)/flusso in VCV. ':d.mode==='PCV'?'Raw non misurabile con questa formula in PCV a flusso decelerante. ':'Raw misurabile in VCV con pausa inspiratoria. ')+
    (warning.length?'Attenzione: '+warning.join(', ')+'. ':'')+'Stime del modello, non misurazioni cliniche.';
+  if(el('ventMode'))el('ventMode').disabled=!d.intubated;
   if(el('ventVtKg'))el('ventVtKg').disabled=d.mode!=='VCV';
   if(el('ventPinsp'))el('ventPinsp').disabled=d.mode!=='PCV';
   if(el('ventPeep'))el('ventPeep').disabled=!d.controlled;
@@ -192,6 +196,14 @@
   return d;
  }
  window.simVentRefresh=refresh;
+ // Richiamato nel momento esatto dell'intubazione, prima di pubblicare
+ // lo stato alla finestra studenti: nessuna VCV/PCV implicita.
+ window.simVentOnIntubation=()=>{
+  const mode=el('ventMode');
+  if(mode)mode.value='SPONT';
+  if(typeof physiology==='function')physiology();
+  else refresh();
+ };
  function studentPanel(){
   const panel=el('student-panel-ventilation');if(!panel)return;
   const card=document.createElement('section');card.className='card';

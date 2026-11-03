@@ -512,7 +512,7 @@ function simAdvancePhysics(seconds){
   const target=v25PerfusionEt(),ventData=typeof window.simVentCalc==='function'?window.simVentCalc():null;
   const postInductionSpont=Boolean(ventData?.postInduction&&!ventData.controlled);
   // Aumento graduale della EtCO2 in spontanea (ordine di decine di secondi).
-  const etTau=postInductionSpont?26:ventData?.controlled?9:2.2;
+  const etTau=postInductionSpont?(ventData?.intubated?26:60):ventData?.controlled?9:2.2;
   v25.etEffective+=(target-v25.etEffective)*(1-Math.exp(-step/etTau));
   const spontIntubated=Boolean(ventData?.intubated&&!ventData.controlled);
   const cycle=60/Math.max(1,ventData?.rate||12);

@@ -1,4 +1,4 @@
-/* V2.9.3 — spirometria PV/FV, monitor respiratorio e dati paziente sincronizzati. Modello didattico. */
+/* V2.9.4 — loop spirometrici chiusi e onde respiratorie a tempo costante. Modello didattico. */
 (function(){
  'use strict';
  const el=id=>document.getElementById(id);
@@ -271,7 +271,7 @@
   const flowMax=Math.max(.15,d.vt/1000/Math.max(.1,d.flowTi)*3,d.mode==='PCV'?(d.pip-d.peep)/Math.max(1.5,d.raw)*1.15:0);
   const max=type==='Pressure'?Math.max(15,(d.pip||5)*1.2):type==='Volume'?Math.max(50,d.vt*1.2):flowMax;
   for(let x=0;x<w;x+=2){
-   const phase=(((seconds+x/w*9)/cycle)%1+1)%1,v=sample(d,type,phase);
+   const phase=(((seconds+x/(window.simWavePixelsPerSecond||70))/cycle)%1+1)%1,v=sample(d,type,phase);
    const y=type==='Flow'?h*.50-v/max*h*.38:h*.90-v/max*h*.77;
    if(x===0)ctx.moveTo(x,clamp(y,2,h-2));else ctx.lineTo(x,clamp(y,2,h-2));
   }
@@ -289,11 +289,17 @@
   const {ctx,w,h}=target;
   const margin={left:47,right:12,top:19,bottom:37};
   const pw=w-margin.left-margin.right,ph=h-margin.top-margin.bottom;
-  const N=200,phaseEnd=d.ti/(60/d.rate),points=[];
-  for(let i=0;i<=N;i++){
-   const phase=i/N;
-   points.push({phase,p:sample(d,'Pressure',phase%1),v:sample(d,'Volume',phase%1),f:sample(d,'Flow',phase%1)});
-  }
+  const N=180,phaseEnd=d.ti/(60/d.rate);
+  // Campionamento separato dei due rami, con entrambi gli estremi:
+  // niente campioni mancanti all'inversione inspirazione/espirazione.
+  const makePoint=phase=>({
+   phase,p:sample(d,'Pressure',phase),v:sample(d,'Volume',phase),f:sample(d,'Flow',phase)
+  });
+  const inspPoints=Array.from({length:N+1},(_,i)=>
+   makePoint(i===N?Math.max(0,phaseEnd-1e-9):phaseEnd*i/N));
+  const expPoints=Array.from({length:N+1},(_,i)=>
+   makePoint(phaseEnd+(1-phaseEnd)*i/N));
+  const points=inspPoints.concat(expPoints);
   const pressureMin=kind==='PV'?Math.min(-4,d.controlled?0:-4):0;
   const pressureMax=Math.max(14,(d.pip||8)*1.22);
   const volumeMax=Math.max(50,d.vt*1.2);
@@ -321,17 +327,24 @@
   ctx.fillText(kind==='PV'?'Pressione vie aeree (cmH₂O)':'Volume (mL)',margin.left+pw/2,h-4);
   ctx.textAlign='left';ctx.fillText(kind==='PV'?'Volume (mL)':'Flusso (L/s)',margin.left,11);
   const toPoint=p=>kind==='PV'?[x(p.p),y(p.v)]:[x(p.v),y(p.f)];
-  const drawLimb=(limb,color)=>{
-   const list=points.filter(p=>limb==='insp'?p.phase<=phaseEnd:p.phase>=phaseEnd);
-   if(list.length<2)return;
+  const drawLimb=(list,color)=>{
    ctx.strokeStyle=color;ctx.lineWidth=2.3;ctx.lineJoin='round';ctx.beginPath();
    list.forEach((p,i)=>{const xy=toPoint(p);if(i===0)ctx.moveTo(...xy);else ctx.lineTo(...xy)});
    ctx.stroke();
    const mid=Math.floor(list.length*.58);
    drawArrow(ctx,toPoint(list[mid-2]),toPoint(list[mid]),color);
   };
-  drawLimb('insp','#50d9f7');
-  drawLimb('exp','#f6c966');
+  // I due brevi tratti di commutazione (valvola insp/esp) fanno
+  // parte del ciclo: senza di essi i loop rimarrebbero visivamente aperti.
+  const join=(a,b,color)=>{
+   const p1=toPoint(a),p2=toPoint(b);
+   ctx.strokeStyle=color;ctx.lineWidth=2.2;ctx.beginPath();
+   ctx.moveTo(...p1);ctx.lineTo(...p2);ctx.stroke();
+  };
+  drawLimb(inspPoints,'#50d9f7');
+  join(inspPoints[inspPoints.length-1],expPoints[0],'#50d9f7');
+  drawLimb(expPoints,'#f6c966');
+  join(expPoints[expPoints.length-1],inspPoints[0],'#f6c966');
   const phase=((seconds/(60/d.rate))%1+1)%1;
   const p={p:sample(d,'Pressure',phase),v:sample(d,'Volume',phase),f:sample(d,'Flow',phase)};
   const marker=toPoint(p);
@@ -346,13 +359,15 @@
   if(now-lastDraw>=45){
    lastDraw=now;
    const d=lastData||calc();
+   // Condividiamo la stessa base temporale del monitor ECG/ART/EtCO2.
+   const timeline=Number.isFinite(window.simWaveTimeSeconds)?window.simWaveTimeSeconds:waveSeconds;
    for(const [type,color] of [['Pressure','#ffd34e'],['Flow','#3bd6ff'],['Volume','#39ef8b']]){
-    drawTimeWave(el('ventMain'+type),d,type,color,waveSeconds);
+    drawTimeWave(el('ventMain'+type),d,type,color,timeline);
    }
-   drawLoop(el('ventLoopPV'),d,'PV',waveSeconds);
-   drawLoop(el('ventLoopFV'),d,'FV',waveSeconds);
-   drawLoop(el('studentVentLoopPV'),d,'PV',waveSeconds);
-   drawLoop(el('studentVentLoopFV'),d,'FV',waveSeconds);
+   drawLoop(el('ventLoopPV'),d,'PV',timeline);
+   drawLoop(el('ventLoopFV'),d,'FV',timeline);
+   drawLoop(el('studentVentLoopPV'),d,'PV',timeline);
+   drawLoop(el('studentVentLoopFV'),d,'FV',timeline);
   }
   requestAnimationFrame(draw);
  }

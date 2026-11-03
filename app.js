@@ -345,7 +345,13 @@ function v25Setup(){
  $('v25AtBtn').onclick=()=>{v25.atropineUntil=simClock.virtual+120000;v25Flash($('v25AtBtn'));v25Event('Atropina '+(+$('v25AtDose').value||0)+' µg/kg')};
  $('etco2Set').addEventListener('input',()=>{const raw=+$('etco2Set').value;if(!Number.isFinite(raw))return;v25.etRef=clamp(raw,3,80);if(!v25.applying){manualSet('etco2',true);v25.etEffective=v25.etRef;v25.co2Pools=null;$('etco2').value=v25.etEffective;render()}});
  $('etco2Set').addEventListener('change',()=>v25Event('EtCO₂ impostata '+v25.etRef+' mmHg'));
- $('v25Window').addEventListener('change',v25Draw)
+ $('v25Window').addEventListener('change',()=>{
+  v25Draw();
+  // La scala e' una scelta del docente: aggiornamento immediato sul monitor studenti.
+  if(!document.body.classList.contains('student')){
+   simPublishStudentStatus();simPublishStudentHistory();
+  }
+ })
 }
 // PK-PD didattica: 3 compartimenti + sito d'effetto e compartimento vascolare rapido.
  // Ricalibrazione propofol: risposta vascolare sigmoide sensibile al picco di concentrazione,
@@ -536,7 +542,7 @@ const v26Colors=['#3bd6ff','#39ef8b','#ffd34e','#ff5364','#c78cff'];
 const v26MonitorColors={hr:'#39ef8b',etco2:'#ffd34e',spo2:'#3bd6ff',sap:'#ff5364',dap:'#ff914d',map:'#ffce4b'};
 function v26Fmt(v){if(v==null)return '—';v=Number(v);if(!Number.isFinite(v))return '—';return Math.abs(v)<10?v.toFixed(2):v.toFixed(1)}
 function v26DrawGroup(name,keys,a,from,win){
- let c=$('trend-'+name);if(!c)return;let d=devicePixelRatio||1,r=c.getBoundingClientRect(),w=Math.max(260,r.width),h=165;c.width=Math.floor(w*d);c.height=Math.floor(h*d);
+ let c=$('trend-'+name);if(!c)return;let d=devicePixelRatio||1,r=c.getBoundingClientRect(),w=Math.max(260,r.width),h=document.body.classList.contains('student')?155:230;c.width=Math.floor(w*d);c.height=Math.floor(h*d);
  let g=c.getContext('2d');g.setTransform(d,0,0,d,0,0);g.clearRect(0,0,w,h);g.strokeStyle='#20323e';g.lineWidth=1;for(let i=1;i<4;i++){let y=i*h/4;g.beginPath();g.moveTo(0,y);g.lineTo(w,y);g.stroke()}
  v25.events.filter(e=>e.t>=from).forEach(e=>{let x=(e.t-from)/win*w;g.strokeStyle='rgba(255,211,78,.38)';g.beginPath();g.moveTo(x,0);g.lineTo(x,h);g.stroke()});if(a.length<2)return;
  // Ogni serie usa il proprio primo campione valido: EtCO2 e MAC possono iniziare dopo gli altri parametri.
@@ -630,16 +636,26 @@ const studentStatusKey='recoverCaneStudentStatusV2891',studentHistoryKey='recove
 let studentLastStatusAt=0,studentLastHistoryAt=0;
 function simPublishStudentStatus(){
  if(document.body.classList.contains('student'))return;
- try{localStorage.setItem(studentStatusKey,JSON.stringify({paused:simClock.paused,anesthesiaPhase:v25.induction.phase,inductionStarted:v25.induction.startedAt>0,elapsed:(simClock.virtual-v25.start)/1000,sample:v25.history[v25.history.length-1]||null,events:v25.events.slice(-30),treatments:{infusions:{fluid:!!v25.inf.fluid,dob:!!v25.inf.dob,nor:!!v25.inf.nor},rates:{fluid:+$('v25FluidRate').value,dob:+$('v25DobRate').value,nor:+$('v25NorRate').value},mac:+$('mac').value,phase:v25.induction.phase}}))}
+ try{localStorage.setItem(studentStatusKey,JSON.stringify({paused:simClock.paused,anesthesiaPhase:v25.induction.phase,inductionStarted:v25.induction.startedAt>0,elapsed:(simClock.virtual-v25.start)/1000,sample:v25.history[v25.history.length-1]||null,trendWindow:+$('v25Window').value,events:v25.events.slice(-30),treatments:{infusions:{fluid:!!v25.inf.fluid,dob:!!v25.inf.dob,nor:!!v25.inf.nor},rates:{fluid:+$('v25FluidRate').value,dob:+$('v25DobRate').value,nor:+$('v25NorRate').value},mac:+$('mac').value,phase:v25.induction.phase}}))}
  catch(err){console.warn('Sincronizzazione studenti:',err)}
 }
 function simPublishStudentHistory(){
  if(document.body.classList.contains('student'))return;
- try{localStorage.setItem(studentHistoryKey,JSON.stringify({history:v25.history,events:v25.events,elapsed:(simClock.virtual-v25.start)/1000,paused:simClock.paused}))}
+ try{localStorage.setItem(studentHistoryKey,JSON.stringify({history:v25.history,events:v25.events,elapsed:(simClock.virtual-v25.start)/1000,paused:simClock.paused,trendWindow:+$('v25Window').value}))}
  catch(err){console.warn('Cronologia studenti:',err)}
+}
+function simStudentApplyTrendWindow(d){
+ if(!d||!document.body.classList.contains('student'))return;
+ const win=Number(d.trendWindow);
+ if(![120,300,600,1800].includes(win))return;
+ const select=$('v25Window');
+ if(select)select.value=String(win);
+ const label=$('studentTrendWindowStatus');
+ if(label)label.textContent='Finestra '+(win/60)+' min · gestita dalla console';
 }
 function simStudentApplyStatus(d){
  if(!d||!document.body.classList.contains('student'))return;
+ simStudentApplyTrendWindow(d);
  if(Number.isFinite(d.elapsed))simClock.virtual=v25.start+Math.max(0,d.elapsed)*1000;
  if(d.anesthesiaPhase)v25.induction.phase=d.anesthesiaPhase;
  if(typeof d.inductionStarted==='boolean')v25.induction.startedAt=d.inductionStarted?1:0;
@@ -655,6 +671,7 @@ function simStudentApplyStatus(d){
 }
 function simStudentApplyHistory(d){
  if(!d||!document.body.classList.contains('student'))return;
+ simStudentApplyTrendWindow(d);
  if(Array.isArray(d.history))v25.history=d.history;
  if(Array.isArray(d.events))v25.events=d.events;
  if(Number.isFinite(d.elapsed))simClock.virtual=v25.start+Math.max(0,d.elapsed)*1000;

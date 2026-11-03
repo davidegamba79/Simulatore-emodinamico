@@ -399,21 +399,25 @@ function v25PerfusionEt(dt,ventData){
  const ageFactor=age<1?1.10:age>10?clamp(1-.015*(age-10),.82,1):1;
  const bcsFactor=bcs>=7?clamp(1-.025*(bcs-6),.90,1):1;
  const referenceGradient=2.8;
- const vco2=clamp((v25.etRef+referenceGradient)*3/.863*
-  Math.pow(weight/25,.8)*ageFactor*bcsFactor,15,650); // mL/min
- const alveolar=clamp(vent.alveolarMinute,.05,25); // L/min, include spazio morto
- // La perfusione limita il trasferimento dai tessuti al compartimento
- // polmonare e aumenta il gradiente PaCO2-EtCO2 in caso di V/Q alterato.
- const conductance=10*clamp(perf,.20,1.6); // mL/(min*mmHg)
+ const alveolar=clamp(vent.alveolarMinute,.05,25); // L/min
+ // La produzione metabolica viene calibrata all'equilibrio iniziale con
+ // la ventilazione alveolare effettiva, evitando una deriva spontanea.
+ const conductance=10*clamp(perf,.20,1.6);
  const profileGradient=vent.lungProfile==='atelectasis'?3:
   vent.lungProfile==='poorly_recruitable'?5:0;
  const gradient=clamp(referenceGradient+profileGradient+
   (vent.etco2Gradient||0)+11*Math.max(0,1-perf),1,30);
  if(!v25.co2Pools||!Number.isFinite(v25.co2Pools.arterial)||
-    !Number.isFinite(v25.co2Pools.tissue)||v25.co2Pools.ref!==v25.etRef){
-  const arterial=clamp(v25.etEffective+gradient,4,120);
-  v25.co2Pools={arterial,tissue:clamp(arterial+vco2/conductance,4,160),ref:v25.etRef};
+    !Number.isFinite(v25.co2Pools.tissue)||v25.co2Pools.ref!==v25.etRef||
+    v25.co2Pools.weight!==weight){
+  const arterial=clamp(v25.etRef+gradient,4,120);
+  const vco2=clamp(alveolar*arterial/.863,15,650);
+  v25.co2Pools={arterial,tissue:clamp(arterial+vco2/conductance,4,160),
+   ref:v25.etRef,weight,vco2};
  }
+ if(!Number.isFinite(v25.co2Pools.vco2))
+  v25.co2Pools.vco2=clamp(alveolar*v25.co2Pools.arterial/.863,15,650);
+ const vco2=v25.co2Pools.vco2;
  const pool=v25.co2Pools,seconds=clamp(dt,0,1);
  const transfer=conductance*(pool.tissue-pool.arterial); // mL/min
  const elimination=alveolar*pool.arterial/.863; // mL/min

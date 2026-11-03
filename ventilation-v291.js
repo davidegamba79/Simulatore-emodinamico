@@ -1,4 +1,4 @@
-/* V2.9.12 — ipoventilazione spontanea post-induzione e meccanica coerente. */
+/* V2.9.13 — spontanea post-induzione: FR circa 20, Vt ridotto, EtCO2 ipercapnica. */
 (function(){
  'use strict';
  const el=id=>document.getElementById(id);
@@ -12,6 +12,9 @@
   'Levriero':'dolicho','Pastore tedesco':'meso','Bassotto':'meso'
  };
  let lastData=null;
+ // FR di riferimento solo dopo intubazione in spontanea. L'utente puo'
+ // cambiarla; VCV/PCV conservano il riferimento precedente di 12/min.
+ let autoSpontRate=false,previousVentMode='SPONT';
  const respDisplayKey='recoverCaneRespDisplayV293';
  const patientFields=['name','weight','patientAge','patientBreed','patientMorph','patientBodyType','patientBCS'];
  const patientCopies=new Map();
@@ -25,7 +28,9 @@
   const controlled=intubated&&chosen!=='SPONT',mode=controlled?chosen:'SPONT';
   const rate=clamp(n('ventRate',12),4,50),peep=controlled?clamp(n('ventPeep',3),0,18):0;
   const ie=clamp(n('ventIE',2),1,3),fio2=clamp(n('ventFio2',.5),.21,1);
-  const ti=60/rate/(1+ie),te=60/rate-ti;
+  // Il rapporto I:E selezionato riguarda il ventilatore. In spontanea
+  // l'inspirazione e' piu' breve, coerente con il tracciato di riferimento.
+  const cycle=60/rate,ti=controlled?cycle/(1+ie):cycle*.22,te=cycle-ti;
   const hold=controlled&&el('ventHoldEnabled')?.checked===true;
   const maxHold=Math.max(.1,Math.min(1.5,ti*.65,ti-.15));
   const holdSeconds=hold?clamp(n('ventHoldSeconds',.4),.1,maxHold):0;
@@ -45,7 +50,11 @@
   const pinsp=clamp(n('ventPinsp',12),4,30);
   // Dopo una vera induzione EV la ventilazione spontanea e' depressa:
   // Vt medio inferiore (stima didattica), senza modificare VCV/PCV.
-  let vt=controlled?(mode==='VCV'?vtSet:crs*pinsp*(1-Math.exp(-flowTi/Math.max(.03,tau)))):(postInduction?5.3:7)*weight;
+  // In spontanea post-intubazione: atti piu' frequenti ma superficiali.
+  // Con FR 20 e Vt ~3,55 mL/kg la ventilazione alveolare e' ridotta:
+  // EtCO2 media attesa circa 55 mmHg per il paziente di riferimento.
+  let vt=controlled?(mode==='VCV'?vtSet:crs*pinsp*(1-Math.exp(-flowTi/Math.max(.03,tau)))):
+   (postInduction?(intubated?3.55:5.3):7)*weight;
   vt=clamp(vt,1,weight*22);
   const plateau=controlled?peep+vt/crs:null;
   const flow=controlled?(vt/1000)/Math.max(.1,flowTi):0;
@@ -201,8 +210,12 @@
  // Richiamato nel momento esatto dell'intubazione, prima di pubblicare
  // lo stato alla finestra studenti: nessuna VCV/PCV implicita.
  window.simVentOnIntubation=()=>{
-  const mode=el('ventMode');
+  const mode=el('ventMode'),rate=el('ventRate');
   if(mode)mode.value='SPONT';
+  // La FR dell'esempio (5 respiri in 15 s) e' ~20/min.
+  // Si applica solo al passaggio effettivo in spontanea post-intubazione.
+  if(rate)rate.value='20';
+  autoSpontRate=true;previousVentMode='SPONT';
   if(typeof physiology==='function')physiology();
   else refresh();
  };
@@ -448,12 +461,22 @@
  }
  function onControlsChanged(e){
   if(document.body.classList.contains('student'))return;
+  if(e.target.id==='ventRate')autoSpontRate=false;
+  if(e.target.id==='ventMode'){
+   const mode=el('ventMode')?.value||'SPONT',rate=el('ventRate');
+   if(autoSpontRate&&rate&&mode!==previousVentMode){
+    if(mode==='SPONT')rate.value='20';
+    else if(previousVentMode==='SPONT'&&Number(rate.value)===20)rate.value='12';
+   }
+   previousVentMode=mode;
+  }
   if(e.target.id==='patientBreed'&&e.type==='change'&&el('patientMorph'))el('patientMorph').value=breedMorph[el('patientBreed').value]||'meso';
   if(typeof physiology==='function')physiology();else refresh();
   if(e.type==='change'&&typeof v25Event==='function'&&e.target.id.startsWith('vent'))v25Event('Ventilazione: '+(el('ventMode')?.value||'SPONT')+' · FR '+n('ventRate',12)+'/min · Vt '+n('ventVtKg',8)+' mL/kg · PEEP '+n('ventPeep',3)+' cmH₂O');
  }
  window.addEventListener('DOMContentLoaded',()=>{
   studentPanel();
+  previousVentMode=el('ventMode')?.value||'SPONT';
   createPatientMirror();
   setupRespDisplay();
   for(const id of [...ventIds,'weight','patientAge','patientBreed','patientMorph','patientBodyType','patientBCS']){

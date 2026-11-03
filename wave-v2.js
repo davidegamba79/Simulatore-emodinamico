@@ -96,6 +96,12 @@ function pleth(q){if(E("rhythm")?.value==="Artefatto massaggio cardiaco 120/min"
 const tail=C((q-.65)/.35,0,1),fade=1-tail*tail*(3-2*tail);
 return (v+.08*G(q,.53,.075))*fade*C(Math.sqrt(co*pp/tone),.08,1.35)}
 function cap(q){let m=E("capnoPattern")?.value||"Normale";if(m.includes("Disconnessione"))return 0;let b=m.includes("Rebreathing")?.18:0,v=0;if(m.includes("Broncospasmo")){if(q<.07)v=0;else if(q<.42)v=C((q-.07)/.35,0,1)**1.8;else if(q<.69)v=.96+.06*(q-.42)/.27;else if(q<.82){let z=(q-.69)/.13;v=1.02*(1-z*z*(3-2*z))}}else{if(q<.08)v=0;else if(q<.14){let z=(q-.08)/.06;v=.94*(z*z*(3-2*z))}else if(q<.72){let z=(q-.14)/.58;v=.94+.09*z+.010*Math.sin(Math.PI*z)}else if(q<.78){let z=(q-.72)/.06;v=1.03*(1-(z*z*(3-2*z)))}else v=0;if(m.includes("Oscillazioni"))v+=.045*Math.sin(q*42)*C((q-.14)*4,0,1)*C((.78-q)*8,0,1)}return b+(1-b)*C(v,0,1.1)}
+// Oscillazione respiratoria sincronizzata con SPV (mmHg), solo con ventilazione controllata interpretabile.
+function respiratoryPulse(ts){
+ if(typeof window.simVentValid!=='function'||!window.simVentValid())return 1;
+ const pulse=Math.max(1,N('sap')-N('dap')),spv=C(N('spv'),0,35),rr=Math.max(1,N('rr')||12);
+ return C(1+spv/(2*pulse)*Math.sin(2*Math.PI*ts*rr/60-.3),.7,1.3);
+}
 function draw(){
  if(wavePaused){R(draw);return;}
  const hr=Math.max(1,N("hr")||90),rr=Math.max(1,N("rr")||18),et=C(N("etco2")||38,3,80);
@@ -118,10 +124,10 @@ function draw(){
      if(id==="art"){
       const sap=N("sap"),dap=N("dap"),pulse=Math.max(1,sap-dap);
       const shape=q<=1?art(q)/C(pulse/60,.12,1.75):0;
-      const pressure=dap+pulse*shape;
+      const pressure=dap+pulse*shape*respiratoryPulse(ts);
       y=.93-(pressure-30)/(145-30)*.91;
      }else{
-      y=.84-(q<=1?pleth(q):0)*.48;
+      y=.84-(q<=1?pleth(q):0)*.48*respiratoryPulse(ts);
      }
     }
    }else{
@@ -132,9 +138,9 @@ function draw(){
      y=.58-ecg(q,rh)*.76;
     }else if(id==="art"){
      const sap=N("sap"),dap=N("dap"),pulse=Math.max(1,sap-dap),shape=art(q)/C(pulse/60,.12,1.75);
-     const pressure=rh==="Artefatto massaggio cardiaco 120/min"?15+40*shape:(rh==="Fibrillazione ventricolare"||rh==="Tachicardia ventricolare senza polso"||rh==="PEA / attività elettrica"||rh==="Asistolia")?0:dap+pulse*shape;
+     const pressure=rh==="Artefatto massaggio cardiaco 120/min"?15+40*shape:(rh==="Fibrillazione ventricolare"||rh==="Tachicardia ventricolare senza polso"||rh==="PEA / attività elettrica"||rh==="Asistolia")?0:dap+pulse*shape*respiratoryPulse(ts);
      y=.93-(pressure-30)/(145-30)*.91;
-    }else y=.84-pleth(q)*.48;
+    }else y=.84-pleth(q)*.48*respiratoryPulse(ts);
    }
    x?g.lineTo(x,C(y,.035,.965)*h):g.moveTo(x,C(y,.035,.965)*h);
   }

@@ -6,12 +6,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Sim Emod. V2.9.3">
+<meta name="apple-mobile-web-app-title" content="Sim Emod. V2.9.4">
 <meta name="theme-color" content="#071016">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="stylesheet" href="./styles.css">
 <link rel="stylesheet" href="./styles-v2.css?v=2900">
-<title>Simulatore Emodinamico — V2.9.3</title>
+<title>Simulatore Emodinamico — V2.9.4</title>
 <style id="student-panel-2893">body.student #timeControls,body.student #premedPanel,body.student #inductionPanel{display:none!important}</style>
 <style id="therapy-layout-2861">
 /* Applied in the document to avoid stale stylesheet caching */
@@ -193,8 +193,11 @@ body.student #student-panel-ventilation .vent-wave-stack canvas{height:110px}
 @media(max-width:520px){.vent-readouts b{font-size:17px}.instructor-tab-nav button{font-size:10px;padding:5px 1px}}
 </style>
 
-<style id="vent-monitor-spirometry-293">
+<style id="vent-monitor-spirometry-294">
 /* Onde respiratorie nel monitor principale, con vista dedicata per la ventilazione. */
+.instructor-tab-nav button{box-sizing:border-box;max-width:100%;width:100%;min-width:0;white-space:normal;overflow:hidden;overflow-wrap:anywhere;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
+.instructor-tab-nav button .tab-vent-line{display:block;white-space:nowrap;font-size:11px;line-height:1.15}
+@media(max-width:520px){.instructor-tab-nav button .tab-vent-line{font-size:10px}}
 .monitor .resp-wave{display:none!important}
 body:not(.student)[data-instructor-tab="ventilation"] .monitor .resp-wave,
 body.student[data-student-tab="ventilation"] .monitor .resp-wave{display:flex!important}
@@ -232,7 +235,7 @@ body:not(.student)[data-instructor-tab="ventilation"] .monitor .wave{height:67px
 <body>
 
 <header>
- <div><h1>SIMULATORE EMODINAMICO <span class="app-version">V2.9.3</span> — <span id="modeTitle">Console istruttore</span></h1><div class="badge" id="syncBadge">Monitor locale sincronizzato</div></div>
+ <div><h1>SIMULATORE EMODINAMICO <span class="app-version">V2.9.4</span> — <span id="modeTitle">Console istruttore</span></h1><div class="badge" id="syncBadge">Monitor locale sincronizzato</div></div>
  <div class="row">
   <button class="tiny instructor-only" id="studentBtn">Apri Monitor studenti</button>
   <button class="tiny" id="modeBtn">Modalità studenti</button>
@@ -442,9 +445,9 @@ body:not(.student)[data-instructor-tab="ventilation"] .monitor .wave{height:67px
 </div>
 </main>
 
-<script src="./app.js?v=2930"></script>
+<script src="./app.js?v=2940"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./wave-v2.js?v=2930"></script>
+<script src="./wave-v2.js?v=2940"></script>
 <script>
 window.addEventListener('DOMContentLoaded',()=>{
  const $p=id=>document.getElementById(id);
@@ -597,7 +600,13 @@ window.addEventListener('DOMContentLoaded',()=>{
  ];
  const panels={};
  for(const group of groups){
-  const b=document.createElement('button');b.type='button';b.textContent=group.label;
+  const b=document.createElement('button');b.type='button';
+  if(group.id==='ventilation'){
+   // Due righe esplicite: "Ventilazione" resta interamente nel pulsante anche su iPad.
+   b.innerHTML='<span class="tab-vent-line">Ventila</span><span class="tab-vent-line">zione</span>';
+   b.setAttribute('aria-label','Ventilazione');
+   b.title='Ventilazione';
+  }else b.textContent=group.label;
   b.id='instructor-tab-'+group.id;b.setAttribute('role','tab');
   b.setAttribute('aria-controls','instructor-panel-'+group.id);
   nav.append(b);
@@ -783,6 +792,6 @@ window.addEventListener('DOMContentLoaded',()=>{
  }catch(err){console.warn('Ripristino riepilogo terapie studenti:',err)}
 });
 </script>
-<script src="./ventilation-v291.js?v=2930"></script>
+<script src="./ventilation-v291.js?v=2940"></script>
 </body>
 </html>

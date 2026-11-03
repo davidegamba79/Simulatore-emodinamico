@@ -215,30 +215,112 @@
   }
   return inspir?d.vt/1000/d.ti*Math.sin(Math.PI*spontX):-d.vt/1000/d.te*Math.sin(Math.PI*expX);
  }
+ // Curve temporali e loop spirometrici: stessi campioni, un unico modello respiratorio.
+ function canvasContext(canvas){
+  if(!canvas||canvas.offsetParent===null)return null;
+  const rect=canvas.getBoundingClientRect(),w=Math.max(1,rect.width),h=Math.max(1,rect.height);
+  if(w<30||h<30)return null;
+  const pixelRatio=Math.min(1.6,window.devicePixelRatio||1),cw=Math.round(w*pixelRatio),ch=Math.round(h*pixelRatio);
+  if(canvas.width!==cw||canvas.height!==ch){canvas.width=cw;canvas.height=ch}
+  const ctx=canvas.getContext('2d');
+  if(!ctx)return null;
+  ctx.setTransform(pixelRatio,0,0,pixelRatio,0,0);
+  ctx.clearRect(0,0,w,h);
+  return {ctx,w,h};
+ }
+ function drawTimeWave(canvas,d,type,color,seconds){
+  const target=canvasContext(canvas);if(!target)return;
+  const {ctx,w,h}=target;
+  ctx.strokeStyle='#23404d';ctx.lineWidth=1;ctx.beginPath();
+  const baseline=type==='Flow'?h*.50:h*.88;
+  ctx.moveTo(0,baseline);ctx.lineTo(w,baseline);ctx.stroke();
+  ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';ctx.beginPath();
+  const cycle=60/d.rate;
+  const flowMax=Math.max(.15,d.vt/1000/Math.max(.1,d.flowTi)*3,d.mode==='PCV'?(d.pip-d.peep)/Math.max(1.5,d.raw)*1.15:0);
+  const max=type==='Pressure'?Math.max(15,(d.pip||5)*1.2):type==='Volume'?Math.max(50,d.vt*1.2):flowMax;
+  for(let x=0;x<w;x+=2){
+   const phase=(((seconds+x/w*9)/cycle)%1+1)%1,v=sample(d,type,phase);
+   const y=type==='Flow'?h*.50-v/max*h*.38:h*.90-v/max*h*.77;
+   if(x===0)ctx.moveTo(x,clamp(y,2,h-2));else ctx.lineTo(x,clamp(y,2,h-2));
+  }
+  ctx.stroke();
+ }
+ function drawArrow(ctx,a,b,color){
+  if(!a||!b)return;
+  const dx=b[0]-a[0],dy=b[1]-a[1],angle=Math.atan2(dy,dx);
+  ctx.strokeStyle=color;ctx.lineWidth=1.8;ctx.beginPath();
+  ctx.moveTo(b[0]-7*Math.cos(angle-.48),b[1]-7*Math.sin(angle-.48));
+  ctx.lineTo(b[0],b[1]);ctx.lineTo(b[0]-7*Math.cos(angle+.48),b[1]-7*Math.sin(angle+.48));ctx.stroke();
+ }
+ function drawLoop(canvas,d,kind,seconds){
+  const target=canvasContext(canvas);if(!target)return;
+  const {ctx,w,h}=target;
+  const margin={left:47,right:12,top:19,bottom:37};
+  const pw=w-margin.left-margin.right,ph=h-margin.top-margin.bottom;
+  const N=200,phaseEnd=d.ti/(60/d.rate),points=[];
+  for(let i=0;i<=N;i++){
+   const phase=i/N;
+   points.push({phase,p:sample(d,'Pressure',phase%1),v:sample(d,'Volume',phase%1),f:sample(d,'Flow',phase%1)});
+  }
+  const pressureMin=kind==='PV'?Math.min(-4,d.controlled?0:-4):0;
+  const pressureMax=Math.max(14,(d.pip||8)*1.22);
+  const volumeMax=Math.max(50,d.vt*1.2);
+  const flowMax=Math.max(.15,...points.map(p=>Math.abs(p.f)))*1.2;
+  const xmin=kind==='PV'?pressureMin:0,xmax=kind==='PV'?pressureMax:volumeMax;
+  const ymin=kind==='PV'?0:-flowMax,ymax=kind==='PV'?volumeMax:flowMax;
+  const x=v=>margin.left+(v-xmin)/(xmax-xmin)*pw;
+  const y=v=>margin.top+ph-(v-ymin)/(ymax-ymin)*ph;
+  ctx.font='10px system-ui,-apple-system,sans-serif';
+  ctx.strokeStyle='#1d3643';ctx.fillStyle='#9db8c6';ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+   const xx=margin.left+pw*i/4,yy=margin.top+ph*i/4;
+   ctx.beginPath();ctx.moveTo(xx,margin.top);ctx.lineTo(xx,margin.top+ph);ctx.stroke();
+   ctx.beginPath();ctx.moveTo(margin.left,yy);ctx.lineTo(margin.left+pw,yy);ctx.stroke();
+   const xValue=xmin+(xmax-xmin)*i/4,yValue=ymax-(ymax-ymin)*i/4;
+   ctx.textAlign='center';ctx.fillText(fmt(xValue,xmax>50?0:1),xx,margin.top+ph+14);
+   ctx.textAlign='right';ctx.fillText(fmt(yValue,Math.abs(ymax)>50?0:2),margin.left-5,yy+3);
+  }
+  ctx.strokeStyle='#607988';ctx.beginPath();
+  ctx.moveTo(margin.left,margin.top);ctx.lineTo(margin.left,margin.top+ph);ctx.lineTo(margin.left+pw,margin.top+ph);ctx.stroke();
+  if(kind==='FV'){
+   ctx.strokeStyle='#66828c';ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(margin.left,y(0));ctx.lineTo(margin.left+pw,y(0));ctx.stroke();ctx.setLineDash([]);
+  }
+  ctx.fillStyle='#c2dce6';ctx.font='10px system-ui,-apple-system,sans-serif';ctx.textAlign='center';
+  ctx.fillText(kind==='PV'?'Pressione vie aeree (cmH₂O)':'Volume (mL)',margin.left+pw/2,h-4);
+  ctx.textAlign='left';ctx.fillText(kind==='PV'?'Volume (mL)':'Flusso (L/s)',margin.left,11);
+  const toPoint=p=>kind==='PV'?[x(p.p),y(p.v)]:[x(p.v),y(p.f)];
+  const drawLimb=(limb,color)=>{
+   const list=points.filter(p=>limb==='insp'?p.phase<=phaseEnd:p.phase>=phaseEnd);
+   if(list.length<2)return;
+   ctx.strokeStyle=color;ctx.lineWidth=2.3;ctx.lineJoin='round';ctx.beginPath();
+   list.forEach((p,i)=>{const xy=toPoint(p);if(i===0)ctx.moveTo(...xy);else ctx.lineTo(...xy)});
+   ctx.stroke();
+   const mid=Math.floor(list.length*.58);
+   drawArrow(ctx,toPoint(list[mid-2]),toPoint(list[mid]),color);
+  };
+  drawLimb('insp','#50d9f7');
+  drawLimb('exp','#f6c966');
+  const phase=((seconds/(60/d.rate))%1+1)%1;
+  const p={p:sample(d,'Pressure',phase),v:sample(d,'Volume',phase),f:sample(d,'Flow',phase)};
+  const marker=toPoint(p);
+  ctx.fillStyle='#ffffff';ctx.strokeStyle='#071016';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(marker[0],marker[1],3.7,0,Math.PI*2);ctx.fill();ctx.stroke();
+ }
  let waveSeconds=0,lastNow=performance.now(),lastDraw=0;
  function draw(now){
   const delta=clamp((now-lastNow)/1000,0,.25);lastNow=now;
   const paused=typeof simClock!=='undefined'&&simClock.paused;
   if(!paused)waveSeconds+=delta;
-  if(!paused&&now-lastDraw>40){
-   lastDraw=now;const d=lastData||calc();
-   for(const prefix of ['ventWave','studentVentWave']){
-    for(const [type,color] of [['Pressure','#ffd34e'],['Flow','#3bd6ff'],['Volume','#39ef8b']]){
-     const canvas=el(prefix+type);if(!canvas||canvas.offsetParent===null)continue;
-     const rect=canvas.getBoundingClientRect(),w=Math.max(1,rect.width),h=Math.max(1,rect.height),pixelRatio=Math.min(2,window.devicePixelRatio||1);
-     canvas.width=Math.round(w*pixelRatio);canvas.height=Math.round(h*pixelRatio);
-     const ctx=canvas.getContext('2d');ctx.setTransform(pixelRatio,0,0,pixelRatio,0,0);
-     ctx.clearRect(0,0,w,h);ctx.strokeStyle='#23404d';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,h*.82);ctx.lineTo(w,h*.82);ctx.stroke();
-     ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();
-     const max=type==='Pressure'?Math.max(15,(d.pip||5)*1.2):type==='Volume'?Math.max(50,d.vt*1.2):Math.max(.15,d.vt/1000/d.flowTi*3,d.mode==='PCV'?(d.pip-d.peep)/Math.max(1.5,d.raw)*1.15:0);
-     for(let x=0;x<w;x+=2){
-      const phase=((waveSeconds+x/w*9)/(60/d.rate))%1,v=sample(d,type,phase);
-      const y=type==='Flow'?h*.50-v/max*h*.38:h*.90-v/max*h*.77;
-      if(x===0)ctx.moveTo(x,clamp(y,2,h-2));else ctx.lineTo(x,clamp(y,2,h-2));
-     }
-     ctx.stroke();
-    }
+  if(now-lastDraw>=45){
+   lastDraw=now;
+   const d=lastData||calc();
+   for(const [type,color] of [['Pressure','#ffd34e'],['Flow','#3bd6ff'],['Volume','#39ef8b']]){
+    drawTimeWave(el('ventMain'+type),d,type,color,waveSeconds);
    }
+   drawLoop(el('ventLoopPV'),d,'PV',waveSeconds);
+   drawLoop(el('ventLoopFV'),d,'FV',waveSeconds);
+   drawLoop(el('studentVentLoopPV'),d,'PV',waveSeconds);
+   drawLoop(el('studentVentLoopFV'),d,'FV',waveSeconds);
   }
   requestAnimationFrame(draw);
  }

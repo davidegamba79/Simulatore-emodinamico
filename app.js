@@ -33,7 +33,7 @@ function render(){
  document.querySelectorAll('[data-key]').forEach(el=>{let k=el.dataset.key;el.style.display=(active[k]&&!(k==='capno'&&(typeof window.simNonIntubated==='function'?window.simNonIntubated():window.premedAwakePhase)))?'':'none'});const awakeNotice=$('awakeCapnoNotice');if(awakeNotice)awakeNotice.style.display=(typeof window.simNonIntubated==='function'?window.simNonIntubated():window.premedAwakePhase)?'flex':'none';
  if(!document.body.classList.contains('student'))save();
 }
-function save(){localStorage.setItem('recoverCaneState',JSON.stringify({state,active,name:$('name').value,weight:$('weight').value,rhythm:$('rhythm').value,caseState:typeof caseState!=='undefined'?caseState:null,casePresentation:(typeof caseState!=='undefined'&&caseState.active)?clinicalCases[caseState.key].presentation:'',caseEvolutionText:(typeof caseState!=='undefined'&&caseState.active)?caseEvolution():'',anesthesiaPhase:typeof v25!=='undefined'?v25.induction.phase:'legacy',patient:{age:$('patientAge')?.value,breed:$('patientBreed')?.value,morph:$('patientMorph')?.value,bodyType:$('patientBodyType')?.value,bcs:$('patientBCS')?.value},vent:typeof window.simVentSettings==='function'?window.simVentSettings():null}))}
+function save(){localStorage.setItem('recoverCaneState',JSON.stringify({state,active,name:$('name').value,weight:$('weight').value,rhythm:$('rhythm').value,caseState:typeof caseState!=='undefined'?caseState:null,casePresentation:(typeof caseState!=='undefined'&&caseState.active)?clinicalCases[caseState.key].presentation:'',caseEvolutionText:(typeof caseState!=='undefined'&&caseState.active)?caseEvolution():'',anesthesiaPhase:typeof v25!=='undefined'?v25.induction.phase:'legacy',inductionStarted:typeof v25!=='undefined'&&v25.induction.startedAt>0,patient:{age:$('patientAge')?.value,breed:$('patientBreed')?.value,morph:$('patientMorph')?.value,bodyType:$('patientBodyType')?.value,bcs:$('patientBCS')?.value},vent:typeof window.simVentSettings==='function'?window.simVentSettings():null}))}
 function setActive(v){keys.forEach(k=>active[k]=v);document.querySelectorAll('[data-toggle]').forEach(x=>x.checked=v);render()}
 document.querySelectorAll('input,select').forEach(x=>{
  if(!['preload','contractility','vascularTone','compliance','v25FluidRate','v25DobRate','v25NorRate','v25AtDose','v25EphDose','v25Metric','v25Window'].includes(x.id)) x.addEventListener('input',render)
@@ -99,6 +99,8 @@ function applyPreset(p){
    v25.fx={preload:0,contractility:0,tone:0,hr:0};
    v25.continuousHR=isHealthy?95:80;v25.lastShownHR=isHealthy?95:80;
    v25.etRef=33;v25.etEffective=33;
+   v25.oxygenEffective=98;
+   v25.induction.startedAt=0;
    v25.induction.phase=isHealthy?'awake':'maintenance';
    v25.induction.maintenanceAt=isHealthy?0:(typeof simClock!=='undefined'?simClock.virtual-60000:0);
   }
@@ -324,7 +326,7 @@ $('autoPhys').addEventListener('change',physiology);
 
 
 /* ===== V2.8.14 dobutamine response + norepinephrine dose-response + drug washout + MAC closed-loop hemodynamics ===== */
-const v25={start:performance.now(),last:performance.now(),lastPhys:performance.now(),lastSample:0,inf:{fluid:false,dob:false,nor:false},fluidBolusUntil:0,atropineUntil:0,ephedrineAt:0,ephedrineDose:0,ephedrineBaselineMAP:0,dobStoppedAt:0,etRef:+$('etco2Set').value||33,etEffective:+$('etco2').value||33,history:[],events:[],applying:false,base:{preload:phys.preload,contractility:phys.contractility,vascularTone:phys.vascularTone,hr:95},fx:{preload:0,contractility:0,tone:0,hr:0},
+const v25={start:performance.now(),last:performance.now(),lastPhys:performance.now(),lastSample:0,oxygenEffective:+$('spo2').value||98,inf:{fluid:false,dob:false,nor:false},fluidBolusUntil:0,atropineUntil:0,ephedrineAt:0,ephedrineDose:0,ephedrineBaselineMAP:0,dobStoppedAt:0,etRef:+$('etco2Set').value||33,etEffective:+$('etco2').value||33,history:[],events:[],applying:false,base:{preload:phys.preload,contractility:phys.contractility,vascularTone:phys.vascularTone,hr:95},fx:{preload:0,contractility:0,tone:0,hr:0},
  induction:{phase:'awake',startedAt:0,maintenanceAt:0,drug:'',dose:0,administrationSeconds:60,windowMinutes:10,
  pk:{central:0,fast:0,slow:0,ce:0,cv:0},effects:{preload:0,tone:0,contractility:0,hr:0,active:false},apneaRisk:'—'}};
 const v25Metrics=[['hr','FC','bpm'],['spo2','SpO₂','%'],['etco2','EtCO₂','mmHg'],['rr','FR','/min'],['sap','SAP','mmHg'],['dap','DAP','mmHg'],['map','MAP','mmHg'],['co','CO','L/min'],['ci','CI','L/min/m²'],['sv','SV','mL'],['svi','SVI','mL/m²'],['svr','SVR','dyn·s/cm⁵'],['svri','SVRI','dyn·s·m²/cm⁵'],['ppv','PPV','%'],['spv','SPV','mmHg'],['dpdt','dP/dtmax','mmHg/ms'],['cce','CCE',''],['ea','Ea','mmHg/mL'],['cpo','CPO','W'],['preload','Precarico','%'],['afterload','Afterload','%'],['contractility','Contrattilità','%'],['mac','MAC','']];
@@ -382,7 +384,35 @@ function v25Setup(){
  v25.fx.preload=approach(v25.fx.preload,pTarget,pTarget?12:28);v25.fx.contractility=approach(v25.fx.contractility,cTarget,cTarget?8:18);v25.fx.tone=approach(v25.fx.tone,tTarget,tTarget?10:20);v25.fx.hr=approach(v25.fx.hr,hTarget,hTarget?7:18);if(!v25.inf.dob&&v25.dobStoppedAt&&now-v25.dobStoppedAt>=120000){v25.fx.contractility=0;if(!v25.inf.nor)v25.fx.tone=0;}
  let residual=Math.max(Math.abs(v25.fx.preload),Math.abs(v25.fx.contractility),Math.abs(v25.fx.tone));let hemoActive=v25.inf.fluid||v25.inf.dob||v25.inf.nor||now<v25.fluidBolusUntil||ephEffect>.005||pm.active||ind.active||residual>.05;if(hemoActive){phys.preload=clamp(v25.base.preload+v25.fx.preload,20,180);phys.contractility=clamp(v25.base.contractility+v25.fx.contractility,20,180);phys.vascularTone=clamp(v25.base.vascularTone+v25.fx.tone,30,180);setPhysInputs()}else{v25.fx.preload=0;v25.fx.contractility=0;v25.fx.tone=0;phys.preload=v25.base.preload;phys.contractility=v25.base.contractility;phys.vascularTone=v25.base.vascularTone;setPhysInputs()}
 }
-function v25PerfusionEt(){if($('rhythm').value==='Artefatto massaggio cardiaco 120/min')return 12;if(($('rhythm').value==='Fibrillazione ventricolare'||$('rhythm').value==='Tachicardia ventricolare senza polso'||$('rhythm').value==='PEA / attività elettrica'||$('rhythm').value==='Asistolia'))return 3;let co=+($('co').value)||0,rr=Math.max(1,+$('rr').value||18),perf=clamp(co/2.9,.25,1.55),ventData=typeof window.simVentCalc==='function'?window.simVentCalc():null,weight=clamp(+$('weight').value||25,1,100),baselineAlveolar=weight*.006*12,vent=ventData?.controlled?clamp(baselineAlveolar/Math.max(.1,ventData.alveolarMinute),.45,1.8):clamp(12/rr,.45,1.8);let rhythmFactor=$('rhythm').value==='Tachicardia ventricolare con polso'?clamp(.90-.12*clamp(((+$('hr').value||180)-120)/120,0,1),.78,.90):1;return clamp(v25.etRef*(.55+.45*perf)*Math.pow(vent,.28)*rhythmFactor,3,80)}
+// La CO2 espirata dipende dalla perfusione e dalla ventilazione alveolare.
+// Dopo induzione EV, in spontanea il Vt ridotto porta progressivamente
+// all'ipercapnia; VCV/PCV correggono il deficit di ventilazione.
+function v25PerfusionEt(){
+ const rhythm=$('rhythm').value;
+ if(rhythm==='Artefatto massaggio cardiaco 120/min')return 12;
+ if(['Fibrillazione ventricolare','Tachicardia ventricolare senza polso','PEA / attività elettrica','Asistolia'].includes(rhythm))return 3;
+ const co=+$('co').value||0,rr=Math.max(1,+$('rr').value||18);
+ const perf=clamp(co/2.9,.25,1.55);
+ const ventData=typeof window.simVentCalc==='function'?window.simVentCalc():null;
+ const weight=clamp(+$('weight').value||25,1,100);
+ const baselineAlveolar=weight*.006*12;
+ const ratio=ventData?baselineAlveolar/Math.max(.10,ventData.alveolarMinute):12/rr;
+ const ventilatoryDeficit=clamp(ratio,.45,2.8);
+ const exponent=ventData?.postInduction&&!ventData.controlled?.60:.28;
+ const rhythmFactor=rhythm==='Tachicardia ventricolare con polso'?
+  clamp(.90-.12*clamp(((+$('hr').value||180)-120)/120,0,1),.78,.90):1;
+ return clamp(v25.etRef*(.55+.45*perf)*Math.pow(ventilatoryDeficit,exponent)*rhythmFactor,3,80);
+}
+// L'ossigenazione post-induzione puo' ridursi modestamente in spontanea;
+// la FiO2 attenua il fenomeno. Non forza ipossiemia se si somministra O2.
+// Sono stime illustrative, non una predizione clinica della SpO2.
+function v25PostInductionOxygenTarget(){
+ const vent=typeof window.simVentCalc==='function'?window.simVentCalc():null;
+ if(!vent?.postInduction||patientModel!=='healthy'||caseState.active)return null;
+ const fio2=vent.intubated?vent.fio2:.21;
+ if(!vent.controlled)return clamp(95.1+6.2*Math.max(0,fio2-.21),94.5,98.7);
+ return clamp(97.8+2.5*Math.max(0,fio2-.21),97.8,99.5);
+}
 
 const inductionMarks=[30,60,120,300,600],inductionKeys=['hr','sap','dap','map','co','sv','svr'];
 function inductionCurrent(){
@@ -479,9 +509,25 @@ function simAdvancePhysics(seconds){
   v25.applying=true;
   v25InductionStep(step,simClock.virtual);if($('autoPhys').checked)v25TherapyStep(step,simClock.virtual);
   physiology();
-  const target=v25PerfusionEt();
-  v25.etEffective+=(target-v25.etEffective)*(1-Math.exp(-step/2.2));
-  if(!manualLocks.etco2)$('etco2').value=v25.etEffective.toFixed(1);
+  const target=v25PerfusionEt(),ventData=typeof window.simVentCalc==='function'?window.simVentCalc():null;
+  const postInductionSpont=Boolean(ventData?.postInduction&&!ventData.controlled);
+  // Aumento graduale della EtCO2 in spontanea (ordine di decine di secondi).
+  const etTau=postInductionSpont?26:ventData?.controlled?9:2.2;
+  v25.etEffective+=(target-v25.etEffective)*(1-Math.exp(-step/etTau));
+  const spontIntubated=Boolean(ventData?.intubated&&!ventData.controlled);
+  const cycle=60/Math.max(1,ventData?.rate||12);
+  const breathIndex=Math.floor((Number.isFinite(window.simWaveTimeSeconds)?window.simWaveTimeSeconds:0)/cycle);
+  const breathFactor=spontIntubated&&typeof window.simSpontCapBreathFactor==='function'?
+   window.simSpontCapBreathFactor(breathIndex):1;
+  if(!manualLocks.etco2)$('etco2').value=(v25.etEffective*breathFactor).toFixed(1);
+  const spoTarget=v25PostInductionOxygenTarget();
+  if(spoTarget!==null){
+   if(manualLocks.spo2)v25.oxygenEffective=+$('spo2').value||98;
+   else{
+    v25.oxygenEffective+=(spoTarget-v25.oxygenEffective)*(1-Math.exp(-step/18));
+    $('spo2').value=clamp(v25.oxygenEffective,80,100).toFixed(0);
+   }
+  }
   render();v25.applying=false;
   const sec=(simClock.virtual-v25.start)/1000;
   if(sec-v25.lastSample>=1){v25.lastSample=sec;v25Sample(sec)}
@@ -524,7 +570,7 @@ const studentStatusKey='recoverCaneStudentStatusV2891',studentHistoryKey='recove
 let studentLastStatusAt=0,studentLastHistoryAt=0;
 function simPublishStudentStatus(){
  if(document.body.classList.contains('student'))return;
- try{localStorage.setItem(studentStatusKey,JSON.stringify({paused:simClock.paused,anesthesiaPhase:v25.induction.phase,elapsed:(simClock.virtual-v25.start)/1000,sample:v25.history[v25.history.length-1]||null,events:v25.events.slice(-30),treatments:{infusions:{fluid:!!v25.inf.fluid,dob:!!v25.inf.dob,nor:!!v25.inf.nor},rates:{fluid:+$('v25FluidRate').value,dob:+$('v25DobRate').value,nor:+$('v25NorRate').value},mac:+$('mac').value,phase:v25.induction.phase}}))}
+ try{localStorage.setItem(studentStatusKey,JSON.stringify({paused:simClock.paused,anesthesiaPhase:v25.induction.phase,inductionStarted:v25.induction.startedAt>0,elapsed:(simClock.virtual-v25.start)/1000,sample:v25.history[v25.history.length-1]||null,events:v25.events.slice(-30),treatments:{infusions:{fluid:!!v25.inf.fluid,dob:!!v25.inf.dob,nor:!!v25.inf.nor},rates:{fluid:+$('v25FluidRate').value,dob:+$('v25DobRate').value,nor:+$('v25NorRate').value},mac:+$('mac').value,phase:v25.induction.phase}}))}
  catch(err){console.warn('Sincronizzazione studenti:',err)}
 }
 function simPublishStudentHistory(){
@@ -536,6 +582,7 @@ function simStudentApplyStatus(d){
  if(!d||!document.body.classList.contains('student'))return;
  if(Number.isFinite(d.elapsed))simClock.virtual=v25.start+Math.max(0,d.elapsed)*1000;
  if(d.anesthesiaPhase)v25.induction.phase=d.anesthesiaPhase;
+ if(typeof d.inductionStarted==='boolean')v25.induction.startedAt=d.inductionStarted?1:0;
  if(d.sample&&Number.isFinite(d.sample.t)){
   v25.history=v25.history.filter(x=>x.t<d.sample.t);
   v25.history.push(d.sample);
@@ -623,6 +670,7 @@ window.addEventListener('storage',e=>{
  }
  if(e.key==='recoverCaneState'&&document.body.classList.contains('student')){let d=JSON.parse(e.newValue);state=d.state;active=d.active;$('name').value=d.name;$('weight').value=d.weight;$('rhythm').value=d.rhythm;Object.entries(state).forEach(([k,v])=>{if($(k))$(k).value=v});document.querySelectorAll('[data-toggle]').forEach(x=>x.checked=active[x.dataset.toggle]);
 if(d.anesthesiaPhase)v25.induction.phase=d.anesthesiaPhase;
+if(typeof d.inductionStarted==='boolean')v25.induction.startedAt=d.inductionStarted?1:0;
 if(d.patient)for(const [id,k] of [['patientAge','age'],['patientBreed','breed'],['patientMorph','morph'],['patientBodyType','bodyType'],['patientBCS','bcs']]){if($(id)&&d.patient[k]!=null)$(id).value=d.patient[k]}
 if(d.vent&&typeof window.simVentApplySettings==='function')window.simVentApplySettings(d.vent);
 if(d.caseState&&d.caseState.active){caseState=d.caseState;$('studentCaseBanner').style.display='block';$('studentCaseMinute').textContent=caseState.minute;$('studentCasePresentation').textContent=d.casePresentation;$('studentCaseEvolution').textContent=d.caseEvolutionText}else{$('studentCaseBanner').style.display='none'}

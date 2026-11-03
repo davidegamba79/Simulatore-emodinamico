@@ -22,8 +22,9 @@
   const ie=clamp(n('ventIE',2),1,3),fio2=clamp(n('ventFio2',.5),.21,1);
   const ti=60/rate/(1+ie),te=60/rate-ti;
   const hold=controlled&&el('ventHoldEnabled')?.checked===true;
-  const holdSeconds=hold?clamp(n('ventHoldSeconds',.4),.1,Math.min(1.5,ti*.65)):0;
-  const flowTi=Math.max(.2,ti-holdSeconds);
+  const maxHold=Math.max(.1,Math.min(1.5,ti*.65,ti-.15));
+  const holdSeconds=hold?clamp(n('ventHoldSeconds',.4),.1,maxHold):0;
+  const flowTi=Math.max(.15,ti-holdSeconds);
   // Compliance basale del cane normopeso con meccanica respiratoria conservata:
   // 1,10 mL/(kg*cmH2O). Valore didattico ricalibrato, NON una soglia clinica.
   // Le variazioni per eta', BCS e morfotipo sono ipotesi semplificate.
@@ -40,7 +41,7 @@
   let vt=controlled?(mode==='VCV'?vtSet:crs*pinsp*(1-Math.exp(-flowTi/Math.max(.03,tau)))):7*weight;
   vt=clamp(vt,1,weight*22);
   const plateau=controlled?peep+vt/crs:null;
-  const flow=controlled?(vt/1000)/Math.max(.2,flowTi):0;
+  const flow=controlled?(vt/1000)/Math.max(.1,flowTi):0;
   const pip=controlled?(mode==='VCV'?plateau+raw*flow:peep+pinsp):null;
   const driving=controlled?plateau-peep:null;
   // In assenza di pausa inspiratoria la Pplat non e' misurata:
@@ -118,7 +119,7 @@
   const inspSeconds=phase*cycle,expSeconds=Math.max(0,phase*cycle-d.ti);
   const holdPhase=d.hold&&inspir&&inspSeconds>=d.flowTi;
   const activeSeconds=Math.min(inspSeconds,d.flowTi);
-  const inspX=clamp(activeSeconds/Math.max(.2,d.flowTi),0,1);
+  const inspX=clamp(activeSeconds/Math.max(.05,d.flowTi),0,1);
   const expX=clamp(expSeconds/Math.max(.1,d.te),0,1);
   const spontX=inspir?clamp(phase/insp,0,1):expX;
   const volume=d.controlled?

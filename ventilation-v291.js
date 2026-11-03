@@ -1,4 +1,4 @@
-/* V2.9.13 — spontanea post-induzione: FR circa 20, Vt ridotto, EtCO2 ipercapnica. */
+/* V2.9.14 — default ventilazione controllata Vt 10 mL/kg, PEEP 0 cmH2O. */
 (function(){
  'use strict';
  const el=id=>document.getElementById(id);
@@ -26,7 +26,7 @@
   const postInduction=typeof v25!=='undefined'&&v25.induction.startedAt>0&&
    ['induction','maintenance'].includes(v25.induction.phase);
   const controlled=intubated&&chosen!=='SPONT',mode=controlled?chosen:'SPONT';
-  const rate=clamp(n('ventRate',12),4,50),peep=controlled?clamp(n('ventPeep',3),0,18):0;
+  const rate=clamp(n('ventRate',12),4,50),peep=controlled?clamp(n('ventPeep',0),0,18):0;
   const ie=clamp(n('ventIE',2),1,3),fio2=clamp(n('ventFio2',.5),.21,1);
   // Il rapporto I:E selezionato riguarda il ventilatore. In spontanea
   // l'inspirazione e' piu' breve, coerente con il tracciato di riferimento.
@@ -46,7 +46,7 @@
   const crs=clamp(weight*1.10*ageFactor*bcsFactor*morphFactor*bodyFactor,.45,160);
   const raw=clamp(8*Math.pow(weight/25,-.28)*(morph==='brachy'?1.65:morph==='dolicho'?.9:1)*(bcs>=7?1.12:1),1.5,100);
   const tau=raw*crs/1000; // R (cmH2O/(L/s)) * C (L/cmH2O) = secondi
-  const vtSet=clamp(n('ventVtKg',8),4,15)*weight;
+  const vtSet=clamp(n('ventVtKg',10),4,15)*weight;
   const pinsp=clamp(n('ventPinsp',12),4,30);
   // Dopo una vera induzione EV la ventilazione spontanea e' depressa:
   // Vt medio inferiore (stima didattica), senza modificare VCV/PCV.
@@ -472,7 +472,7 @@
   }
   if(e.target.id==='patientBreed'&&e.type==='change'&&el('patientMorph'))el('patientMorph').value=breedMorph[el('patientBreed').value]||'meso';
   if(typeof physiology==='function')physiology();else refresh();
-  if(e.type==='change'&&typeof v25Event==='function'&&e.target.id.startsWith('vent'))v25Event('Ventilazione: '+(el('ventMode')?.value||'SPONT')+' · FR '+n('ventRate',12)+'/min · Vt '+n('ventVtKg',8)+' mL/kg · PEEP '+n('ventPeep',3)+' cmH₂O');
+  if(e.type==='change'&&typeof v25Event==='function'&&e.target.id.startsWith('vent'))v25Event('Ventilazione: '+(el('ventMode')?.value||'SPONT')+' · FR '+n('ventRate',12)+'/min · Vt '+n('ventVtKg',10)+' mL/kg · PEEP '+n('ventPeep',0)+' cmH₂O');
  }
  window.addEventListener('DOMContentLoaded',()=>{
   studentPanel();

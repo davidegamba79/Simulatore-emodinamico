@@ -1,4 +1,4 @@
-/* V2.9.23 — scale indipendenti bloccate e loop di confronto sincronizzati. */
+/* V2.9.24 — chiusura completa dei loop di riferimento P/V e F/V. */
 (function(){
  'use strict';
  const el=id=>document.getElementById(id);
@@ -717,17 +717,26 @@
   // separato dei due rami non deve lasciare il loop F/V aperto.
   // Rappresenta SOLO l'effettiva discontinuita' di commutazione,
   // senza aggiungere segmenti fittizi quando gli estremi coincidono.
-  const connectTransition=(from,to,color)=>{
+  const connectTransition=(from,to,color,dashed=false)=>{
    const a=toPoint(from),b=toPoint(to);
    if(Math.hypot(b[0]-a[0],b[1]-a[1])<.35)return;
-   ctx.strokeStyle=color;ctx.lineWidth=2.3;ctx.lineJoin='round';
+   ctx.strokeStyle=color;ctx.lineWidth=dashed?1.8:2.3;ctx.lineJoin='round';
+   ctx.setLineDash(dashed?[6,4]:[]);
    ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();
+   ctx.setLineDash([]);
   };
   // Ritaglia alla finestra degli assi fissi: niente curve sulle etichette.
   ctx.save();ctx.beginPath();ctx.rect(margin.left,margin.top,pw,ph);ctx.clip();
   if(loopView.reference){
-   drawLimb(loopView.reference.insp,'#b0b9c7',true);
-   drawLimb(loopView.reference.exp,'#b0b9c7',true);
+   const saved=loopView.reference;
+   // Anche il riferimento deve includere i due raccordi del ciclo:
+   // al cambio inspirazione/espirazione (flusso che passa a zero)
+   // e tra fine espirazione e respiro successivo.
+   // Disegnare soltanto i due rami lasciava aperto il loop F/V salvato.
+   drawLimb(saved.insp,'#b0b9c7',true);
+   connectTransition(saved.insp[saved.insp.length-1],saved.exp[0],'#b0b9c7',true);
+   drawLimb(saved.exp,'#b0b9c7',true);
+   connectTransition(saved.exp[saved.exp.length-1],saved.insp[0],'#b0b9c7',true);
   }
   drawLimb(inspPoints,'#50d9f7');
   connectTransition(inspPoints[inspPoints.length-1],expPoints[0],'#50d9f7');
@@ -736,15 +745,8 @@
   // a V=0 e Paw=PEEP (o flusso=0). Un eventuale scarto numerico
   // sub-pixel non produce un artefatto visibile.
   connectTransition(expPoints[expPoints.length-1],inspPoints[0],'#f6c966');
-  // Punto di inizio della pausa: stessa fisiologia delle onde temporali.
-  // Nei polmoni sani in PCV il ramo in pausa puo' essere quasi puntiforme
-  // perche' la pressione alveolare ha gia' raggiunto la Paw impostata.
-  if(d.controlled&&d.hold){
-   const pausePhase=d.flowTi/(60/d.rate);
-   const xy=toPoint(makePoint(pausePhase));
-   ctx.fillStyle='#a9eaff';ctx.strokeStyle='#102b39';ctx.lineWidth=1.3;
-   ctx.beginPath();ctx.arc(xy[0],xy[1],3.4,0,Math.PI*2);ctx.fill();ctx.stroke();
-  }
+  // Nessun marcatore grafico della pausa inspiratoria: la meccanica
+  // resta rappresentata dalla forma dei tracciati e dei loop.
   const phase=((seconds/(60/d.rate))%1+1)%1;
   const p={p:sample(d,'Pressure',phase),v:sample(d,'Volume',phase),f:sample(d,'Flow',phase)};
   const marker=toPoint(p);

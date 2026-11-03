@@ -1,4 +1,4 @@
-/* V2.9.17 — loop PCV e forme d'onda con rampa pressoria e riempimento RC. */
+/* V2.9.17 — loop PCV coerenti, pausa inspiratoria visibile e onde RC sincronizzate. */
 (function(){
  'use strict';
  const el=id=>document.getElementById(id);
@@ -84,7 +84,10 @@
   const maxHold=Math.max(.1,Math.min(1.5,ti*.65,ti-.15));
   const holdSeconds=hold?clamp(n('ventHoldSeconds',.4),.1,maxHold):0;
   const flowTi=Math.max(.15,ti-holdSeconds);
-  const pcvRiseTime=Math.min(.20,Math.max(.06,flowTi*.14));
+  // Il rise time del ventilatore NON dipende dalla durata della pausa:
+  // cambiando la pausa a I:E fisso si accorcia solo il tempo utile
+  // all'insufflazione; la rampa pressoria non accelera artificialmente.
+  const pcvRiseTime=Math.min(.20,Math.max(.06,ti*.09));
   // Compliance basale del cane normopeso con meccanica respiratoria conservata:
   // 1,10 mL/(kg*cmH2O). Valore didattico ricalibrato, NON una soglia clinica.
   // Le variazioni per eta', BCS e morfotipo sono ipotesi semplificate.
@@ -256,7 +259,7 @@
   const vals={ventPip:fmt(d.pip),ventPplat:fmt(d.plateauMeasured),ventDriving:fmt(d.drivingMeasured),ventVt:fmt(d.vt,0),ventMinute:fmt(d.minute,2),ventCstat:fmt(d.cstat),ventCdyn:fmt(d.cdyn),ventRaw:fmt(d.rawMeasured),ventMainPip:fmt(d.pip),ventMainVolumeValue:fmt(d.vt,0),ventMainFlowValue:fmt(d.controlled?d.mode==='VCV'?d.vt/1000/d.flowTi:d.pcvPeakFlow:d.vt/1000*Math.PI/(2*d.ti),2)};
   for(const [id,value] of Object.entries(vals))if(el(id))el(id).textContent=value;
   const status=el('ventStatus');
-  if(status)status.textContent=!d.intubated?'Paziente non intubato: tracciati Paw, flusso e volume non disponibili. Dopo l’intubazione si parte dalla respirazione spontanea.':d.controlled?d.mode+' attiva · PEEP '+fmt(d.peep,0)+' cmH₂O · I:E 1:'+d.ie+(d.hold?' · pausa inspiratoria '+fmt(d.holdSeconds,2)+' s':' · nessuna pausa inspiratoria'):'Paziente intubato · respirazione spontanea'+(d.postInduction?' con ipoventilazione post-induzione e possibile aumento dell’EtCO₂.':'')+' Seleziona VCV o PCV per attivare la ventilazione controllata.';
+  if(status)status.textContent=!d.intubated?'Paziente non intubato: tracciati Paw, flusso e volume non disponibili. Dopo l’intubazione si parte dalla respirazione spontanea.':d.controlled?d.mode+' attiva · PEEP '+fmt(d.peep,0)+' cmH₂O · I:E 1:'+d.ie+' · Ti '+fmt(d.ti,2)+' s'+(d.hold?' · insufflazione '+fmt(d.flowTi,2)+' s + pausa '+fmt(d.holdSeconds,2)+' s (evidenziata sulle onde)':' · nessuna pausa inspiratoria'):'Paziente intubato · respirazione spontanea'+(d.postInduction?' con ipoventilazione post-induzione e possibile aumento dell’EtCO₂.':'')+' Seleziona VCV o PCV per attivare la ventilazione controllata.';
   const warning=[];
   if(d.controlled&&d.vt/d.weight>12)warning.push('Vt elevato per il peso');
   if(d.controlled&&d.vt/d.weight<5)warning.push('Vt ridotto');
@@ -268,6 +271,7 @@
   if(interpret)interpret.textContent='Vt '+fmt(d.vt/d.weight,1)+' mL/kg · FiO₂ '+Math.round(d.fio2*100)+'% · Cdyn '+fmt(d.cdyn)+' mL/cmH₂O. '+
    (d.hold?'Cstat '+fmt(d.cstat)+' mL/cmH₂O (pausa inspiratoria); driving pressure = Pplat − PEEP = '+fmt(d.drivingMeasured)+' cmH₂O. ':'Cstat, Pplat e driving pressure richiedono la pausa inspiratoria. ')+
    (d.rawMeasured!==null?'Raw '+fmt(d.rawMeasured)+' cmH₂O/(L/s), ricavata da (PIP − Pplat)/flusso in VCV. ':d.mode==='PCV'?'Raw non misurabile con questa formula in PCV a flusso decelerante. ':'Raw misurabile in VCV con pausa inspiratoria. ')+
+   (d.mode==='PCV'&&d.hold?'In PCV la pausa interrompe il flusso senza allungare Ti; con costante di tempo breve, Vt e Pplat possono variare poco anche se la pausa è chiaramente visibile. ':'')+
    (d.controlled&&d.peep>0?'La PEEP modifica compliance, spazio morto, ossigenazione e ritorno venoso in funzione della reclutabilita\u0300. ':'')+
    (d.controlled&&d.peep>=10?'EtCO₂ in calo non esclude PaCO₂ elevata per aumento del gradiente PaCO₂–EtCO₂. ':'')+
    (warning.length?'Attenzione: '+warning.join(', ')+'. ':'')+'Stime del modello, non misurazioni cliniche.';
@@ -276,7 +280,16 @@
   if(el('ventPinsp'))el('ventPinsp').disabled=d.mode!=='PCV';
   if(el('ventPeep'))el('ventPeep').disabled=!d.controlled;
   if(el('ventHoldEnabled'))el('ventHoldEnabled').disabled=!d.controlled;
-  if(el('ventHoldSeconds'))el('ventHoldSeconds').disabled=!d.hold;
+  if(el('ventHoldSeconds')){
+   const input=el('ventHoldSeconds');
+   input.disabled=!d.hold;
+   // La pausa non puo' occupare tutto Ti: rendi visibile il massimo
+   // realmente applicabile, evitando che il campo mostri 1,5 s
+   // mentre il modello ne usa meno.
+   const maxAllowed=Math.max(.1,Math.min(1.5,d.ti*.65,d.ti-.15));
+   input.max=maxAllowed.toFixed(2);
+   if(d.hold&&Number(input.value)>maxAllowed+1e-6)input.value=d.holdSeconds.toFixed(2);
+  }
   const patient=el('studentPhenotype');
   if(patient)patient.textContent=fmt(d.age,1)+' anni · '+(el('patientBreed')?.value||'Meticcio')+' · BCS '+d.bcs+'/9';
   for(const prefix of ['studentVent']){
@@ -286,7 +299,7 @@
     const target=el(prefix+key.charAt(0).toUpperCase()+key.slice(1));if(target)target.textContent=value;
    }
    const headline=el(prefix+'Headline');
-   if(headline)headline.textContent=d.controlled?d.mode+' · FR '+d.rate+'/min · PEEP '+fmt(d.peep,0)+' cmH₂O · FiO₂ '+Math.round(d.fio2*100)+'%'+(d.hold?' · pausa '+fmt(d.holdSeconds,2)+' s':' · senza pausa'):(d.intubated?'Ventilazione spontanea · intubato':'Paziente non intubato · spontanea');
+   if(headline)headline.textContent=d.controlled?d.mode+' · FR '+d.rate+'/min · PEEP '+fmt(d.peep,0)+' cmH₂O · FiO₂ '+Math.round(d.fio2*100)+'%'+(d.hold?' · Ti '+fmt(d.ti,2)+' s · flusso '+fmt(d.flowTi,2)+' s · pausa '+fmt(d.holdSeconds,2)+' s':' · senza pausa'):(d.intubated?'Ventilazione spontanea · intubato':'Paziente non intubato · spontanea');
   }
   return d;
  }
@@ -441,6 +454,30 @@
    ...Array.from({length:160},(_,i)=>Math.abs(sample(d,'Flow',i/160))))*1.18:1;
   const max=type==='Pressure'?(spontaneousPressure?4:Math.max(15,(d.pip||5)*1.2)):type==='Volume'?Math.max(50,d.vt*1.2):flowMax;
   const speed=typeof window.simClinicalWavePixelsPerSecond==='function'?window.simClinicalWavePixelsPerSecond(type):12.5*96/25.4;
+  // Evidenzia la vera finestra di occlusione in tutti i tracciati:
+  // in PCV Paw e Vt possono cambiare pochissimo se il polmone ha gia'
+  // raggiunto l'equilibrio, ma la pausa deve comunque essere visibile.
+  if(d.controlled&&d.hold&&d.holdSeconds>0){
+   ctx.save();
+   for(let k=Math.floor(seconds/cycle)-1;k<=Math.ceil((seconds+w/speed)/cycle)+1;k++){
+    const from=(k*cycle+d.flowTi-seconds)*speed;
+    const to=(k*cycle+d.ti-seconds)*speed;
+    const x1=clamp(from,0,w),x2=clamp(to,0,w);
+    if(x2<=x1)continue;
+    ctx.fillStyle='rgba(93,179,207,.16)';
+    ctx.fillRect(x1,1,x2-x1,h-2);
+    ctx.strokeStyle='rgba(117,209,236,.55)';
+    ctx.setLineDash([2,3]);
+    ctx.beginPath();ctx.moveTo(x1,1);ctx.lineTo(x1,h-1);
+    ctx.moveTo(x2,1);ctx.lineTo(x2,h-1);ctx.stroke();
+    ctx.setLineDash([]);
+    if(type==='Pressure'&&x2-x1>14){
+     ctx.fillStyle='#a9eaff';ctx.font='9px system-ui,-apple-system,sans-serif';
+     ctx.fillText('P',x1+3,11);
+    }
+   }
+   ctx.restore();
+  }
   for(let x=0;x<w;x+=2){
    const phase=(((seconds+x/speed)/cycle)%1+1)%1,v=sample(d,type,phase);
    const y=type==='Flow'?h*.50-v/max*h*.38:spontaneousPressure?h*.50-v/max*h*.36:h*.90-v/max*h*.77;
@@ -524,6 +561,15 @@
   join(inspPoints[inspPoints.length-1],expPoints[0],'#50d9f7');
   drawLimb(expPoints,'#f6c966');
   join(expPoints[expPoints.length-1],inspPoints[0],'#f6c966');
+  // Punto di inizio della pausa: stessa fisiologia delle onde temporali.
+  // Nei polmoni sani in PCV il ramo in pausa puo' essere quasi puntiforme
+  // perche' la pressione alveolare ha gia' raggiunto la Paw impostata.
+  if(d.controlled&&d.hold){
+   const pausePhase=d.flowTi/(60/d.rate);
+   const xy=toPoint(makePoint(pausePhase));
+   ctx.fillStyle='#a9eaff';ctx.strokeStyle='#102b39';ctx.lineWidth=1.3;
+   ctx.beginPath();ctx.arc(xy[0],xy[1],3.4,0,Math.PI*2);ctx.fill();ctx.stroke();
+  }
   const phase=((seconds/(60/d.rate))%1+1)%1;
   const p={p:sample(d,'Pressure',phase),v:sample(d,'Volume',phase),f:sample(d,'Flow',phase)};
   const marker=toPoint(p);

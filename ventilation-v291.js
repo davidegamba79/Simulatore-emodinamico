@@ -253,6 +253,8 @@
   if(interpret)interpret.textContent='Vt '+fmt(d.vt/d.weight,1)+' mL/kg · FiO₂ '+Math.round(d.fio2*100)+'% · Cdyn '+fmt(d.cdyn)+' mL/cmH₂O. '+
    (d.hold?'Cstat '+fmt(d.cstat)+' mL/cmH₂O (pausa inspiratoria); driving pressure = Pplat − PEEP = '+fmt(d.drivingMeasured)+' cmH₂O. ':'Cstat, Pplat e driving pressure richiedono la pausa inspiratoria. ')+
    (d.rawMeasured!==null?'Raw '+fmt(d.rawMeasured)+' cmH₂O/(L/s), ricavata da (PIP − Pplat)/flusso in VCV. ':d.mode==='PCV'?'Raw non misurabile con questa formula in PCV a flusso decelerante. ':'Raw misurabile in VCV con pausa inspiratoria. ')+
+   (d.controlled&&d.peep>0?'La PEEP modifica compliance, spazio morto, ossigenazione e ritorno venoso in funzione della reclutabilita\u0300. ':'')+
+   (d.controlled&&d.peep>=10?'EtCO₂ in calo non esclude PaCO₂ elevata per aumento del gradiente PaCO₂–EtCO₂. ':'')+
    (warning.length?'Attenzione: '+warning.join(', ')+'. ':'')+'Stime del modello, non misurazioni cliniche.';
   if(el('ventMode'))el('ventMode').disabled=!d.intubated;
   if(el('ventVtKg'))el('ventVtKg').disabled=d.mode!=='VCV';

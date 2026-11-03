@@ -96,16 +96,14 @@ function pleth(q){if(E("rhythm")?.value==="Artefatto massaggio cardiaco 120/min"
 const tail=C((q-.65)/.35,0,1),fade=1-tail*tail*(3-2*tail);
 return (v+.08*G(q,.53,.075))*fade*C(Math.sqrt(co*pp/tone),.08,1.35)}
 function cap(q){let m=E("capnoPattern")?.value||"Normale";if(m.includes("Disconnessione"))return 0;let b=m.includes("Rebreathing")?.18:0,v=0;if(m.includes("Broncospasmo")){if(q<.07)v=0;else if(q<.42)v=C((q-.07)/.35,0,1)**1.8;else if(q<.69)v=.96+.06*(q-.42)/.27;else if(q<.82){let z=(q-.69)/.13;v=1.02*(1-z*z*(3-2*z))}}else{if(q<.08)v=0;else if(q<.14){let z=(q-.08)/.06;v=.94*(z*z*(3-2*z))}else if(q<.72){let z=(q-.14)/.58;v=.94+.09*z+.010*Math.sin(Math.PI*z)}else if(q<.78){let z=(q-.72)/.06;v=1.03*(1-(z*z*(3-2*z)))}else v=0;if(m.includes("Oscillazioni"))v+=.045*Math.sin(q*42)*C((q-.14)*4,0,1)*C((.78-q)*8,0,1)}return b+(1-b)*C(v,0,1.1)}
-// Oscillazione respiratoria sincronizzata con SPV (mmHg), solo con ventilazione controllata interpretabile.
-function respiratoryPulse(ts){
- if(typeof window.simVentValid!=='function'||!window.simVentValid())return 1;
- const pulse=Math.max(1,N('sap')-N('dap')),spv=C(N('spv'),0,35),rr=Math.max(1,N('rr')||12);
- return C(1+spv/(2*pulse)*Math.sin(2*Math.PI*ts*rr/60-.3),.7,1.3);
-}
+// Oscillazione respiratoria SPV calcolata una volta per frame, non per pixel.
 function draw(){
  if(wavePaused){R(draw);return;}
  const hr=Math.max(1,N("hr")||90),rr=Math.max(1,N("rr")||18),et=C(N("etco2")||38,3,80);
  const rh=E("rhythm")?.value||"Ritmo sinusale",av=rh.startsWith("Blocco AV "),timing=av?avTiming(rh,hr):null,now=performance.now()/1000-t0-wavePausedTotal;
+ const respActive=typeof window.simVentValid==='function'&&window.simVentValid();
+ const respPulse=Math.max(1,N('sap')-N('dap')),respSpv=C(N('spv'),0,35),respRate=Math.max(1,N('rr')||12);
+ const respiratoryPulse=ts=>respActive?C(1+respSpv/(2*respPulse)*Math.sin(2*Math.PI*ts*respRate/60-.3),.7,1.3):1;
  [["ecg","#39ef8b",6],["pleth","#3bd6ff",6],["capno","#ffd34e",12],["art","#ff5364",6]].forEach(([id,col,sec])=>{
   const c=E(id);if(!c||c.offsetParent===null)return;
   const [g,w,h]=fit(c);g.clearRect(0,0,w,h);g.strokeStyle=col;g.lineWidth=2;g.beginPath();

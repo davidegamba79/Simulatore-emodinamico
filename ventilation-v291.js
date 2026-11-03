@@ -182,8 +182,6 @@
   if(el('ventHoldSeconds'))el('ventHoldSeconds').disabled=!d.hold;
   const patient=el('studentPhenotype');
   if(patient)patient.textContent=fmt(d.age,1)+' anni · '+(el('patientBreed')?.value||'Meticcio')+' · BCS '+d.bcs+'/9';
-  const patientSummary=el('studentVentPatientSummary');
-  if(patientSummary)patientSummary.textContent=(el('name')?.value||'Paziente')+' · '+fmt(d.weight,1)+' kg · '+fmt(d.age,1)+' anni · '+(el('patientBreed')?.value||'Meticcio')+' · '+({meso:'mesocefalo',brachy:'brachicefalo',dolicho:'dolicocefalo'}[d.morph]||d.morph)+' · '+({meso:'mesomorfo',brachy:'brachimorfo',dolicho:'dolicomorfo'}[d.bodyType]||d.bodyType)+' · BCS '+d.bcs+'/9';
   for(const prefix of ['studentVent']){
    const root=el(prefix+'Readouts');
    if(!root)continue;
@@ -206,12 +204,17 @@
  };
  function studentPanel(){
   const panel=el('student-panel-ventilation');if(!panel)return;
-  const card=document.createElement('section');card.className='card';
-  card.innerHTML='<h2>Ventilazione · monitor di sola lettura</h2><div id="studentVentPatientSummary" class="status" style="margin-bottom:6px">Dati paziente in attesa</div><div id="studentVentHeadline" class="status">In attesa dei dati dalla console docente</div>'+
-   '<div class="vent-readouts" id="studentVentReadouts">'+
-   [['Pip','PIP','cmH₂O'],['Pplat','Pplat','cmH₂O'],['Driving','Driving P','cmH₂O'],['Vt','Vt','mL'],['Minute','V̇E','L/min'],['Cstat','Cstat','mL/cmH₂O'],['Cdyn','Cdyn','mL/cmH₂O'],['Raw','Raw','cmH₂O/(L/s)']].map(x=>'<div><small>'+x[1]+'</small><b id="studentVent'+x[0]+'">—</b><small>'+x[2]+'</small></div>').join('')+'</div>'+
-   '<small style="display:block;margin-top:10px;color:var(--muted)">I loop P/V e F/V sono accanto alle onde nel monitor superiore. Cstat e Pplat richiedono la pausa inspiratoria; Raw è ricavabile in VCV a flusso costante con pausa.</small>';
-  panel.append(card);
+  // I dati clinici ventilatori sono gia' presenti sotto le onde, accanto
+  // ai loop: non creare una seconda scheda con il riepilogo paziente.
+  const headline=document.createElement('div');
+  headline.id='studentVentHeadline';headline.className='status';
+  headline.textContent='In attesa dei dati dalla console docente';
+  const readouts=document.createElement('div');
+  readouts.id='studentVentReadouts';readouts.className='vent-readouts';
+  readouts.innerHTML=
+   [['Pip','PIP','cmH₂O'],['Pplat','Pplat','cmH₂O'],['Driving','Driving P','cmH₂O'],['Vt','Vt','mL'],['Minute','V̇E','L/min'],['Cstat','Cstat','mL/cmH₂O'],['Cdyn','Cdyn','mL/cmH₂O'],['Raw','Raw','cmH₂O/(L/s)']]
+   .map(x=>'<div><small>'+x[1]+'</small><b id="studentVent'+x[0]+'">—</b><small>'+x[2]+'</small></div>').join('');
+
   // Nella scheda studente i loop sono affiancati alle onde, uno sopra l'altro,
   // senza sottrarre spazio al riepilogo dei parametri ventilatori.
   const loops=document.createElement('section');loops.id='studentVentLoops';
@@ -227,8 +230,7 @@
   // sotto l'ultima onda della colonna sinistra, immediatamente sotto IBP.
   // La scheda ventilazione resta l'unica in cui questo riquadro compare.
   const waveColumn=layout?.querySelector('.student-vent-wave-column');
-  const readouts=el('studentVentReadouts'),headline=el('studentVentHeadline');
-  if(waveColumn&&readouts){
+  if(waveColumn){
    const metrics=document.createElement('section');
    metrics.id='studentVentMetrics';
    metrics.className='student-vent-metrics';

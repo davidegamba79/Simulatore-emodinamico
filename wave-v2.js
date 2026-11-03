@@ -1,4 +1,4 @@
-/* V2.8.28 expanded pressure-calibrated peripheral IBP contour */
+/* V2.9.4 — onde a scala temporale costante (pixel/secondo) e sincronizzate. */
 (()=>{const R=requestAnimationFrame.bind(window),E=i=>document.getElementById(i),N=i=>+(E(i)?.value||0),C=(v,a,b)=>Math.max(a,Math.min(b,v)),G=(x,m,s)=>Math.exp(-.5*((x-m)/s)**2),t0=performance.now()/1000;
 let wavePaused=false,wavePauseAt=0,wavePausedTotal=0;
 // Il tempo delle onde e' indipendente dalla velocita' della simulazione.
@@ -12,7 +12,17 @@ window.simWaveSetPaused=paused=>{
  else wavePausedTotal+=now-wavePauseAt;
  wavePaused=paused;
 };
-function fit(c){let d=devicePixelRatio||1,r=c.getBoundingClientRect();c.width=Math.floor(r.width*d);c.height=Math.floor(r.height*d);let g=c.getContext("2d");g.setTransform(d,0,0,d,0,0);return[g,r.width,r.height]}
+// La scala orizzontale e' indipendente dalla larghezza della finestra:
+ // 70 pixel equivalgono sempre a un secondo. Una finestra piu' ampia mostra piu' tempo.
+ const WAVE_PIXELS_PER_SECOND=70;
+ window.simWavePixelsPerSecond=WAVE_PIXELS_PER_SECOND;
+ function fit(c){
+  const r=c.getBoundingClientRect(),d=Math.min(2,window.devicePixelRatio||1);
+  const w=Math.max(1,Math.round(r.width*d)),h=Math.max(1,Math.round(r.height*d));
+  if(c.width!==w||c.height!==h){c.width=w;c.height=h}
+  const g=c.getContext("2d");g.setTransform(d,0,0,d,0,0);
+  return [g,r.width,r.height];
+ }
 function ecg(q,r){if(r.includes("Artefatto massaggio")){const cyc=Math.floor(window.__cprWaveTime||0),mod=.83+.17*Math.sin(cyc*1.71)+.09*Math.sin(cyc*2.93),shift=.025*Math.sin(cyc*1.13),noise=.022*Math.sin(2*Math.PI*(7*q+cyc*.37))+.017*Math.sin(2*Math.PI*(13*q+cyc*.19));return mod*(.40*G(q,.18+shift,.078)-.32*G(q,.31+shift,.09)+.25*G(q,.49-shift,.12)-.13*G(q,.68,.1))+noise;}if(r==="Asistolia")return .003*Math.sin(q*20);if(r.includes("Fibrillazione")){let t=q/Math.max(.001,(N("hr")||80)/60);let slow=.5+.5*Math.sin(t*1.13+.9*Math.sin(t*.37)),amp=.45+.8*slow;let s=.095*Math.sin(t*33+1.4*Math.sin(t*2.3))+.075*Math.sin(t*49+1.1*Math.sin(t*1.7))+.05*Math.sin(t*71+.8*Math.sin(t*3.1))+.028*Math.sin(t*113);return amp*s;}if(r.includes("Tachicardia ventricolare"))return .34*Math.sin(2*Math.PI*q)+.13*Math.sin(4*Math.PI*q);return .06*G(q,.12,.034)-.07*G(q,.255,.015)+.47*G(q,.286,.013)-.16*G(q,.319,.017)+.13*G(q,.57,.072)}
 
 
@@ -101,14 +111,15 @@ function draw(){
  if(wavePaused){R(draw);return;}
  const hr=Math.max(1,N("hr")||90),rr=Math.max(1,N("rr")||18),et=C(N("etco2")||38,3,80);
  const rh=E("rhythm")?.value||"Ritmo sinusale",av=rh.startsWith("Blocco AV "),timing=av?avTiming(rh,hr):null,now=performance.now()/1000-t0-wavePausedTotal;
+ window.simWaveTimeSeconds=now;
  const respActive=typeof window.simVentValid==='function'&&window.simVentValid();
  const respPulse=Math.max(1,N('sap')-N('dap')),respSpv=C(N('spv'),0,35),respRate=Math.max(1,N('rr')||12);
  const respiratoryPulse=ts=>respActive?C(1+respSpv/(2*respPulse)*Math.sin(2*Math.PI*ts*respRate/60-.3),.7,1.3):1;
- [["ecg","#39ef8b",6],["pleth","#3bd6ff",6],["capno","#ffd34e",12],["art","#ff5364",6]].forEach(([id,col,sec])=>{
+ [["ecg","#39ef8b"],["pleth","#3bd6ff"],["capno","#ffd34e"],["art","#ff5364"]].forEach(([id,col])=>{
   const c=E(id);if(!c||c.offsetParent===null)return;
   const [g,w,h]=fit(c);g.clearRect(0,0,w,h);g.strokeStyle=col;g.lineWidth=2;g.beginPath();
   for(let x=0;x<w;x++){
-   const ts=now+x/w*sec;let q,y;
+   const ts=now+x/WAVE_PIXELS_PER_SECOND;let q,y;
    if(id==="capno"){
     q=((ts/(60/rr))%1+1)%1;y=.86-cap(q)*C(et/40,.12,1.65)*.60;
    }else if(av){

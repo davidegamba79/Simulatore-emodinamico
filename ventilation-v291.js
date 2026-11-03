@@ -70,7 +70,7 @@
   // e funzioni esponenziali ripetute durante la pausa inspiratoria.
   const key=[d.mode,d.controlled,d.rate,d.ti,d.te,d.flowTi,d.tau,
    d.crs,d.raw,d.vt,d.pip,d.plateau,d.peep,d.pinsp,d.hold,d.holdSeconds,
-   d.pcvRiseTime,d.curveShape,d.expResistance,d.expValveR,d.weight].join('|');
+   d.pcvRiseTime,d.pcvFillEnd,d.curveShape,d.expResistance,d.expValveR,d.weight].join('|');
   if(key===loopPointsCacheKey&&loopPointsCacheValue)return loopPointsCacheValue;
   const N=180,phaseEnd=d.ti/(60/d.rate);
   const point=phase=>({
@@ -276,8 +276,21 @@
  // compliance cordale coincide con Crs; altrove emerge la curvatura.
  function elasticRecoil(d,volume){
   const v=Math.max(0,volume),u=clamp(v/Math.max(1,d.weight*10),0,2.2);
-  const nonlinear=1+d.curveShape*(u-1)+.10*Math.pow(Math.max(0,u-1),2);
+  const nonlinear=1+d.curveShape*(u-1)+.28*Math.pow(Math.max(0,u-1),2);
   return v/Math.max(.45,d.crs)*Math.max(.35,nonlinear);
+ }
+ // In PCV la pressione impostata determina il volume: risoluzione
+ // monotona della relazione elastica non lineare. Non e' un valore
+ // predittivo clinico, ma evita che una variazione di compliance
+ // cambi soltanto il picco senza modificare il Vt.
+ function pcvTidalVolume(d,drivingPressure,limit){
+  let low=0,high=limit;
+  for(let i=0;i<28;i++){
+   const mid=(low+high)/2;
+   if(elasticRecoil(d,mid)<drivingPressure)low=mid;
+   else high=mid;
+  }
+  return (low+high)/2;
  }
  function calc(){
   const weight=clamp(n('weight',25),1,100),age=clamp(n('patientAge',6),.1,22),bcs=clamp(n('patientBCS',5),1,9);
@@ -345,13 +358,16 @@
   // In spontanea post-intubazione: atti piu' frequenti ma superficiali.
   // Con FR 20 e Vt ~3,55 mL/kg la ventilazione alveolare e' ridotta:
   // EtCO2 media attesa circa 55 mmHg per il paziente di riferimento.
-  let vt=controlled?(mode==='VCV'?vtSet:crs*pinsp*pcvSmoothFill(flowTi,flowTi,tau,pcvRiseTime).fraction):
+  const pcvFillEnd=pcvSmoothFill(flowTi,flowTi,tau,pcvRiseTime).fraction;
+  let vt=controlled?(mode==='VCV'?vtSet:
+   pcvTidalVolume({crs,curveShape,weight},pinsp*pcvFillEnd,weight*22)):
    (postInduction?(intubated?3.55:5.3):7)*weight;
   vt=clamp(vt,1,weight*22);
   const pcvPeakFlow=mode==='PCV'?
-   crs*pinsp*pcvSmoothFill(pcvRiseTime,flowTi,tau,pcvRiseTime).rate/1000:0;
+   vt/1000*pcvSmoothFill(pcvRiseTime,flowTi,tau,pcvRiseTime).rate/
+   Math.max(.001,pcvFillEnd):0;
   const plateau=controlled?peep+elasticRecoil({crs,curveShape,weight},vt):null;
-  const vcvPeakFlow=mode==='VCV'?vt/1000*vcvFill(flowTi,flowTi).rate:0;
+  const vcvPeakFlow=mode==='VCV'?vt/1000*vcvFill(flowTi*.5,flowTi).rate:0;
   const flow=controlled?(mode==='VCV'?vcvPeakFlow:vt/1000/Math.max(.1,flowTi)):0;
   const pip=controlled?(mode==='VCV'?plateau+raw*vcvPeakFlow:peep+pinsp):null;
   const driving=controlled?plateau-peep:null;
@@ -391,7 +407,7 @@
   const pmean=controlled?peep+(plateau-peep)*ti/(ti+te)*.60:0;
   const preloadSensitivity=clamp(1+Math.max(0,100-(typeof phys!=='undefined'?phys.preload:100))*.012,1,1.9);
   const preloadFactor=controlled?clamp(1-.011*Math.max(0,pmean-2)*preloadSensitivity-.005*Math.max(0,(plateau||0)-19),.68,1):1;
-  return {mode,chosen,intubated,postInduction,controlled,rate,peep,ie,ti,te,flowTi,pcvRiseTime,pcvPeakFlow,vcvPeakFlow,pinsp,hold,holdSeconds,fio2,weight,age,bcs,morph,breed,bodyType,lungProfile,recruitment,overdistension,compliancePeepFactor,crs,raw,tau,curveShape,expResistance,expValveR,vt,pip,plateau,driving,plateauMeasured,drivingMeasured,cdyn,cstat,rawMeasured,minute,alveolarMinute,deadspaceMlKg,etco2Gradient,oxygenPeepEffect,pmean,preloadFactor};
+  return {mode,chosen,intubated,postInduction,controlled,rate,peep,ie,ti,te,flowTi,pcvRiseTime,pcvPeakFlow,pcvFillEnd,vcvPeakFlow,pinsp,hold,holdSeconds,fio2,weight,age,bcs,morph,breed,bodyType,lungProfile,recruitment,overdistension,compliancePeepFactor,crs,raw,tau,curveShape,expResistance,expValveR,vt,pip,plateau,driving,plateauMeasured,drivingMeasured,cdyn,cstat,rawMeasured,minute,alveolarMinute,deadspaceMlKg,etco2Gradient,oxygenPeepEffect,pmean,preloadFactor};
  }
  window.simVentCalc=calc;
  window.simVentValid=()=>{
@@ -495,7 +511,7 @@
   syncPatientCopies();
   // RR e' la frequenza del ventilatore (o spontanea, se non intubato).
   if(el('rr')&&Number(el('rr').value)!==d.rate)el('rr').value=d.rate;
-  const vals={ventPip:fmt(d.pip),ventPplat:fmt(d.plateauMeasured),ventDriving:fmt(d.drivingMeasured),ventVt:fmt(d.vt,0),ventMinute:fmt(d.minute,2),ventCstat:fmt(d.cstat),ventCdyn:fmt(d.cdyn),ventRaw:fmt(d.rawMeasured),ventMainPip:fmt(d.pip),ventMainVolumeValue:fmt(d.vt,0),ventMainFlowValue:fmt(d.controlled?d.mode==='VCV'?d.vcvPeakFlow:d.pcvPeakFlow:d.vt/1000*Math.PI/(2*d.ti),2)};
+  const vals={ventPip:fmt(d.pip),ventPplat:fmt(d.plateauMeasured),ventDriving:fmt(d.drivingMeasured),ventVt:fmt(d.vt,0),ventMinute:fmt(d.minute,2),ventCrs:fmt(d.crs),ventCstat:fmt(d.cstat),ventCdyn:fmt(d.cdyn),ventRaw:fmt(d.rawMeasured),ventMainPip:fmt(d.pip),ventMainVolumeValue:fmt(d.vt,0),ventMainFlowValue:fmt(d.controlled?d.mode==='VCV'?d.vcvPeakFlow:d.pcvPeakFlow:d.vt/1000*Math.PI/(2*d.ti),2)};
   for(const [id,value] of Object.entries(vals))if(el(id))el(id).textContent=value;
   const status=el('ventStatus');
   if(status)status.textContent=!d.intubated?'Paziente non intubato: tracciati Paw, flusso e volume non disponibili. Dopo l’intubazione si parte dalla respirazione spontanea.':d.controlled?d.mode+' attiva · PEEP '+fmt(d.peep,0)+' cmH₂O · I:E 1:'+d.ie+' · Ti '+fmt(d.ti,2)+' s'+(d.hold?' · insufflazione '+fmt(d.flowTi,2)+' s + pausa '+fmt(d.holdSeconds,2)+' s':' · nessuna pausa inspiratoria'):'Paziente intubato · respirazione spontanea'+(d.postInduction?' con ipoventilazione post-induzione e possibile aumento dell’EtCO₂.':'')+' Seleziona VCV o PCV per attivare la ventilazione controllata.';
@@ -534,7 +550,7 @@
   for(const prefix of ['studentVent']){
    const root=el(prefix+'Readouts');
    if(!root)continue;
-   for(const [key,value] of Object.entries({pip:fmt(d.pip),pplat:fmt(d.plateauMeasured),driving:fmt(d.drivingMeasured),vt:fmt(d.vt,0),minute:fmt(d.minute,2),cstat:fmt(d.cstat),cdyn:fmt(d.cdyn),raw:fmt(d.rawMeasured)})){
+   for(const [key,value] of Object.entries({pip:fmt(d.pip),pplat:fmt(d.plateauMeasured),driving:fmt(d.drivingMeasured),vt:fmt(d.vt,0),minute:fmt(d.minute,2),crs:fmt(d.crs),cstat:fmt(d.cstat),cdyn:fmt(d.cdyn),raw:fmt(d.rawMeasured)})){
     const target=el(prefix+key.charAt(0).toUpperCase()+key.slice(1));if(target)target.textContent=value;
    }
    const headline=el(prefix+'Headline');
@@ -565,7 +581,7 @@
   const readouts=document.createElement('div');
   readouts.id='studentVentReadouts';readouts.className='vent-readouts';
   readouts.innerHTML=
-   [['Pip','PIP','cmH₂O'],['Pplat','Pplat','cmH₂O'],['Driving','Driving P','cmH₂O'],['Vt','Vt','mL'],['Minute','V̇E','L/min'],['Cstat','Cstat','mL/cmH₂O'],['Cdyn','Cdyn','mL/cmH₂O'],['Raw','Raw','cmH₂O/(L/s)']]
+   [['Pip','PIP','cmH₂O'],['Pplat','Pplat','cmH₂O'],['Driving','Driving P','cmH₂O'],['Vt','Vt','mL'],['Minute','V̇E','L/min'],['Crs','Crs modellata','mL/cmH₂O'],['Cstat','Cstat','mL/cmH₂O'],['Cdyn','Cdyn','mL/cmH₂O'],['Raw','Raw','cmH₂O/(L/s)']]
    .map(x=>'<div><small>'+x[1]+'</small><b id="studentVent'+x[0]+'">—</b><small>'+x[2]+'</small></div>').join('');
 
   // Nella scheda studente i loop sono affiancati alle onde, uno sopra l'altro,
@@ -619,8 +635,8 @@
      // di due costanti RC; volume e flusso restano derivata/integrale
      // dello stesso modello, non un semplice effetto grafico.
      const fill=pcvSmoothFill(activeSeconds,d.flowTi,d.tau,d.pcvRiseTime);
-     volume=d.crs*d.pinsp*fill.fraction;
-     flow=holdPhase?0:d.crs*d.pinsp*fill.rate/1000;
+     volume=d.vt*fill.fraction/Math.max(.001,d.pcvFillEnd);
+     flow=holdPhase?0:d.vt*fill.rate/(1000*Math.max(.001,d.pcvFillEnd));
     }
     if(holdPhase)volume=d.vt;
     if(holdPhase){

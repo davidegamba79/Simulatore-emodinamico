@@ -478,6 +478,8 @@
    }
    ctx.restore();
   }
+  // I bordi tratteggiati della pausa non devono entrare nel tracciato.
+  ctx.beginPath();
   for(let x=0;x<w;x+=2){
    const phase=(((seconds+x/speed)/cycle)%1+1)%1,v=sample(d,type,phase);
    const y=type==='Flow'?h*.50-v/max*h*.38:spontaneousPressure?h*.50-v/max*h*.36:h*.90-v/max*h*.77;

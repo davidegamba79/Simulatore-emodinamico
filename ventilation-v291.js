@@ -1,4 +1,4 @@
-/* V2.9.28 — P/V con origine 0; parametri della pausa non distruttivi e reversibili. */
+/* V2.9.29 — Paw temporale con zero reale e morfologia riproducibile. */
 (function(){
  'use strict';
  const el=id=>document.getElementById(id);
@@ -732,10 +732,20 @@
  function drawTimeWave(canvas,d,type,color,seconds){
   const target=canvasContext(canvas);if(!target)return;
   const {ctx,w,h}=target;
-  ctx.strokeStyle='#23404d';ctx.lineWidth=1;ctx.beginPath();
   const spontaneousPressure=type==='Pressure'&&!d.controlled;
-  const baseline=spontaneousPressure?h*.50:type==='Flow'?h*.50:h*.88;
+  // La linea orizzontale e la trasformazione in pixel condividono
+  // la STESSA origine: Paw = 0 cmH2O (PEEP 0) e Vt = 0 mL.
+  // In precedenza la linea era a 88% dell'altezza, mentre il segnale
+  // a pressione zero era a 90%: sembrava partire sotto lo zero.
+  const baseline=spontaneousPressure||type==='Flow'?h*.50:h*.88;
+  ctx.strokeStyle='#23404d';ctx.lineWidth=1;ctx.beginPath();
   ctx.moveTo(0,baseline);ctx.lineTo(w,baseline);ctx.stroke();
+  if(type==='Pressure'){
+   // Il riferimento 0 e' un valore di Paw, non il bordo sinistro:
+   // il monitor continua a scorrere senza riavviare la fase respiratoria.
+   ctx.fillStyle='#78919e';ctx.font='9px system-ui,-apple-system,sans-serif';
+   ctx.textAlign='left';ctx.fillText('0',5,baseline-5);
+  }
   ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';ctx.beginPath();
   const cycle=60/d.rate;
   // Autoscale in base ai flussi inspiratorio ed espiratorio reali.
@@ -750,7 +760,8 @@
   ctx.beginPath();
   for(let x=0;x<w;x+=2){
    const phase=(((seconds+x/speed)/cycle)%1+1)%1,v=sample(d,type,phase);
-   const y=type==='Flow'?h*.50-v/max*h*.38:spontaneousPressure?h*.50-v/max*h*.36:h*.90-v/max*h*.77;
+   const y=type==='Flow'?baseline-v/max*h*.38:
+    spontaneousPressure?baseline-v/max*h*.36:baseline-v/max*h*.75;
    if(x===0)ctx.moveTo(x,clamp(y,2,h-2));else ctx.lineTo(x,clamp(y,2,h-2));
   }
   ctx.stroke();

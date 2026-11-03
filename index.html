@@ -6,12 +6,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Sim Emod. V2.9.1">
+<meta name="apple-mobile-web-app-title" content="Sim Emod. V2.9.2">
 <meta name="theme-color" content="#071016">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="stylesheet" href="./styles.css">
 <link rel="stylesheet" href="./styles-v2.css?v=2900">
-<title>Simulatore Emodinamico — V2.9.1</title>
+<title>Simulatore Emodinamico — V2.9.2</title>
 <style id="student-panel-2893">body.student #timeControls,body.student #premedPanel,body.student #inductionPanel{display:none!important}</style>
 <style id="therapy-layout-2861">
 /* Applied in the document to avoid stale stylesheet caching */
@@ -170,9 +170,14 @@ body.student .student-active-therapy{padding:9px 11px;margin-bottom:10px;backgro
 }
 </style>
 <style id="app-version-label">.app-version{display:inline-block;vertical-align:middle;margin:0 2px;padding:3px 7px;border:1px solid #3c766a;border-radius:7px;background:#12372f;color:#baf5d5;font-size:12px;font-weight:750;letter-spacing:.02em;white-space:nowrap}</style>
-<style id="ventilation-v291-styles">
+<style id="ventilation-v292-styles">
 #ventilationPanel .cols{gap:8px}
 #ventilationPanel input,#ventilationPanel select{padding:8px}
+#ventilationPanel .vent-hold-controls{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);align-items:center;gap:10px;margin-top:10px;padding:10px;background:#0b2028;border:1px solid #2c5361;border-radius:9px}
+#ventilationPanel .vent-hold-toggle{display:flex;align-items:center;gap:10px;min-height:44px;font-size:13px;font-weight:650}
+#ventilationPanel .vent-hold-toggle input{width:22px;height:22px;flex:0 0 22px;accent-color:#40c6a0}
+#ventilationPanel .vent-hold-controls label{min-width:0}
+@media(max-width:520px){#ventilationPanel .vent-hold-controls{grid-template-columns:1fr}}
 .vent-readouts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:10px}
 .vent-readouts>div{background:#081820;border:1px solid #24404c;border-radius:8px;padding:8px;min-width:0}
 .vent-readouts small{display:block;color:#a6bdc8;font-size:10px}
@@ -191,7 +196,7 @@ body.student #student-panel-ventilation .vent-wave-stack canvas{height:110px}
 <body>
 
 <header>
- <div><h1>SIMULATORE EMODINAMICO <span class="app-version">V2.9.1</span> — <span id="modeTitle">Console istruttore</span></h1><div class="badge" id="syncBadge">Monitor locale sincronizzato</div></div>
+ <div><h1>SIMULATORE EMODINAMICO <span class="app-version">V2.9.2</span> — <span id="modeTitle">Console istruttore</span></h1><div class="badge" id="syncBadge">Monitor locale sincronizzato</div></div>
  <div class="row">
   <button class="tiny instructor-only" id="studentBtn">Apri Monitor studenti</button>
   <button class="tiny" id="modeBtn">Modalità studenti</button>
@@ -208,6 +213,7 @@ body.student #student-panel-ventilation .vent-wave-stack canvas{height:110px}
   <label>Età (anni)<input id="patientAge" type="number" value="6" min="0.1" max="22" step="0.5"></label>
   <label>Razza<select id="patientBreed"><option>Meticcio</option><option>Labrador Retriever</option><option>Golden Retriever</option><option>Pastore tedesco</option><option>Bulldog francese</option><option>Bulldog inglese</option><option>Carlino</option><option>Boxer</option><option>Cavalier King Charles</option><option>Chihuahua</option><option>Bassotto</option><option>Levriero</option><option>Altro</option></select></label>
   <label>Conformazione cranio-facciale<select id="patientMorph"><option value="meso">Mesocefalo</option><option value="brachy">Brachicefalo</option><option value="dolicho">Dolicocefalo</option></select></label>
+  <label>Morfotipo corporeo<select id="patientBodyType"><option value="meso">Mesomorfo</option><option value="brachy">Brachimorfo</option><option value="dolicho">Dolicomorfo</option></select></label>
   <label>Body Condition Score (1–9)<input id="patientBCS" type="number" value="5" min="1" max="9" step="1"></label>
  </div><small style="display:block;color:var(--muted);margin-top:8px">Il profilo del paziente influenza la meccanica respiratoria simulata; non determina da solo la PIP.</small><div class="status" id="patientPresetStatus" style="margin-top:8px">Paziente sano · sveglio · non premedicato</div></section>
 
@@ -252,12 +258,17 @@ body.student #student-panel-ventilation .vent-wave-stack canvas{height:110px}
   <label>Frequenza respiratoria (/min)<input id="ventRate" type="number" min="4" max="50" step="1" value="12"></label>
   <label>Volume corrente Vt (mL/kg)<input id="ventVtKg" type="number" min="4" max="15" step=".5" value="8"></label>
   <label>PEEP (cmH₂O)<input id="ventPeep" type="number" min="0" max="18" step="1" value="3"></label>
-  <label>Pressione inspiratoria sopra PEEP (cmH₂O, PCV)<input id="ventPinsp" type="number" min="4" max="30" step="1" value="12"></label>
+  <label>Pressione inspiratoria sopra PEEP (cmH₂O, PCV)<input id="ventPinsp" type="number" min="4" max="30" step="1" value="8"></label>
   <label>Rapporto I:E<select id="ventIE"><option value="2">1:2</option><option value="3">1:3</option><option value="1">1:1</option></select></label>
   <label>FiO₂<select id="ventFio2"><option value=".21">21%</option><option value=".4">40%</option><option value=".5" selected>50%</option><option value=".6">60%</option><option value=".8">80%</option><option value="1">100%</option></select></label>
   <label>Compliance respiratoria relativa (%)<input id="ventCompliance" type="number" min="40" max="160" step="5" value="100"></label>
   <label>Resistenza vie aeree relativa (%)<input id="ventResistance" type="number" min="50" max="250" step="10" value="100"></label>
  </div>
+ <div class="vent-hold-controls">
+  <label class="vent-hold-toggle"><input id="ventHoldEnabled" type="checkbox"> Attiva pausa di fine inspirazione</label>
+  <label>Durata pausa (secondi)<input id="ventHoldSeconds" type="number" min="0.1" max="1.5" step="0.1" value="0.4" disabled></label>
+ </div>
+ <small style="display:block;color:var(--muted);margin-top:6px">Con la pausa il flusso inspiratorio si azzera e si misura la Pplat simulata; driving pressure = Pplat − PEEP. Senza pausa i due valori restano non misurati (—).</small>
  <div class="vent-readouts" aria-live="off">
   <div><small>PIP</small><b id="ventPip">—</b><small>cmH₂O</small></div>
   <div><small>Pplat</small><b id="ventPplat">—</b><small>cmH₂O</small></div>
@@ -380,9 +391,9 @@ body.student #student-panel-ventilation .vent-wave-stack canvas{height:110px}
 </div>
 </main>
 
-<script src="./app.js?v=2910"></script>
+<script src="./app.js?v=2920"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./wave-v2.js?v=2910"></script>
+<script src="./wave-v2.js?v=2920"></script>
 <script>
 window.addEventListener('DOMContentLoaded',()=>{
  const $p=id=>document.getElementById(id);
@@ -719,6 +730,6 @@ window.addEventListener('DOMContentLoaded',()=>{
  }catch(err){console.warn('Ripristino riepilogo terapie studenti:',err)}
 });
 </script>
-<script src="./ventilation-v291.js?v=2910"></script>
+<script src="./ventilation-v291.js?v=2920"></script>
 </body>
 </html>

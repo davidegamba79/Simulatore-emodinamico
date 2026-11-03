@@ -366,8 +366,10 @@
   const expPoints=Array.from({length:N+1},(_,i)=>
    makePoint(phaseEnd+(1-phaseEnd)*i/N));
   const points=inspPoints.concat(expPoints);
-  const pressureMin=kind==='PV'?Math.min(-4,d.controlled?0:-4):0;
-  const pressureMax=Math.max(14,(d.pip||8)*1.22);
+  // In spontanea la pressione oscilla intorno a zero: un asse -3/+3,5
+  // evita di comprimere il loop P/V nella parte sinistra del grafico.
+  const pressureMin=kind==='PV'?(d.controlled?-4:-3):0;
+  const pressureMax=kind==='PV'?(d.controlled?Math.max(14,(d.pip||8)*1.22):3.5):1;
   const volumeMax=Math.max(50,d.vt*1.2);
   const flowMax=Math.max(.15,...points.map(p=>Math.abs(p.f)))*1.2;
   const xmin=kind==='PV'?pressureMin:0,xmax=kind==='PV'?pressureMax:volumeMax;

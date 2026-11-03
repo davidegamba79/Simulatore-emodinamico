@@ -1,4 +1,4 @@
-/* V2.9.6 — compliance statica/dinamica, resistenze e loop proporzionali. Modello didattico. */
+/* V2.9.7 — valori ventilatori sotto l'onda IBP nel monitor studenti. Modello didattico. */
 (function(){
  'use strict';
  const el=id=>document.getElementById(id);
@@ -201,6 +201,23 @@
   const layout=el('studentVentLayout');
   if(layout)layout.append(loops);
   else panel.append(loops);
+  // Sposta i valori gia' sincronizzati (non li duplica) nello spazio
+  // sotto l'ultima onda della colonna sinistra, immediatamente sotto IBP.
+  // La scheda ventilazione resta l'unica in cui questo riquadro compare.
+  const waveColumn=layout?.querySelector('.student-vent-wave-column');
+  const readouts=el('studentVentReadouts'),headline=el('studentVentHeadline');
+  if(waveColumn&&readouts){
+   const metrics=document.createElement('section');
+   metrics.id='studentVentMetrics';
+   metrics.className='student-vent-metrics';
+   metrics.setAttribute('aria-label','Parametri ventilatori');
+   const title=document.createElement('h3');
+   title.textContent='Dati della ventilazione';
+   metrics.append(title);
+   if(headline)metrics.append(headline);
+   metrics.append(readouts);
+   waveColumn.append(metrics);
+  }
  }
  function sample(d,type,phase){
   // Il campione alla fase 1 rappresenta la FINE dell'espirazione,

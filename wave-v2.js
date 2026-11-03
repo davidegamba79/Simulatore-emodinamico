@@ -1,4 +1,4 @@
-/* V2.9.12 — capnografia spontanea variabile a ogni respiro, senza plateau prolungato. */
+/* V2.9.13 — capnografia spontanea di riferimento: FR 20, cupola breve e EtCO2 respiro per respiro. */
 (()=>{const R=requestAnimationFrame.bind(window),E=i=>document.getElementById(i),N=i=>+(E(i)?.value||0),C=(v,a,b)=>Math.max(a,Math.min(b,v)),G=(x,m,s)=>Math.exp(-.5*((x-m)/s)**2),t0=performance.now()/1000;
 let wavePaused=false,wavePauseAt=0,wavePausedTotal=0;
 // Il tempo delle onde e' indipendente dalla velocita' della simulazione.
@@ -113,31 +113,40 @@ function pleth(q){if(E("rhythm")?.value==="Artefatto massaggio cardiaco 120/min"
 // ciclo: senza la coda a zero, il modulo (%) provoca un salto verticale.
 const tail=C((q-.65)/.35,0,1),fade=1-tail*tail*(3-2*tail);
 return (v+.08*G(q,.53,.075))*fade*C(Math.sqrt(co*pp/tone),.08,1.35)}
-// Variabilita' deterministica di EtCO2 tra atti consecutivi: il numero
-// letto sul monitor e l'altezza delle singole onde usano lo stesso fattore.
-// Nessun Math.random() per pixel: ogni atto e' stabile durante lo scroll.
+// EtCO2 atto per atto, con escursione didattica 0,78–1,20.
+// Sequenza deterministica (anche sul monitor studenti), senza salti casuali
+// durante il disegno. Per EtCO2 media ~55: picchi circa 44–66 mmHg.
 function spontaneousBreathFactor(breath){
  const b=Number.isFinite(breath)?breath:0;
- return C(1+.050*Math.sin(b*2.399963+.4)+.028*Math.sin(b*1.113+2.1)+.012*Math.sin(b*3.23+.3),.90,1.10);
+ return C(1+.14*Math.sin(b*1.28+2.36+.015*b*b)+
+  .10*Math.sin(b*3.81+4.25+.022*b*b),.78,1.20);
 }
 window.simSpontCapBreathFactor=spontaneousBreathFactor;
-// Respiro spontaneo intubato: salita alveolare continua quasi fino al
-// picco di fine espirazione, senza un lungo plateau orizzontale.
-// Durata, curvatura e piccole oscillazioni cambiano a ogni respiro.
+// Profilo della figura di riferimento: salita ripida (fase II),
+// sommità arrotondata e lievemente irregolare, NON un plateau rettilineo;
+// discesa inspiratoria ripida e ritorno al basale. La durata della
+// espirazione e la curvatura variano leggermente fra atti.
 function spontaneousCap(q,vent,breath){
- const cycle=60/vent.rate;
- const inspirFraction=C(vent.ti/cycle,.20,.55);
+ const cycle=60/Math.max(1,vent.rate);
+ const inspirFraction=C(vent.ti/cycle,.12,.45);
  if(q<=inspirFraction)return 0;
  const exp=C((q-inspirFraction)/(1-inspirFraction),0,1);
- const onset=.018+.023*(.5+.5*Math.sin(breath*1.73+.5));
- const washout=.936+.023*Math.sin(breath*1.91+1.3);
- const u=C((exp-onset)/(washout-onset),0,1);
- const curvature=1.12+.28*(.5+.5*Math.sin(breath*1.41+.9));
- const progressive=Math.pow(u,curvature)*(1+.065*u);
- const ripple=(.022*Math.sin(exp*10.3+breath*.63)+.012*Math.sin(exp*22.7+breath*1.27))*u*(1-u);
- const drop=C((exp-washout)/(1-washout),0,1);
- const washoutFactor=1-drop*drop*(3-2*drop);
- return C((progressive+ripple)*washoutFactor,0,1.08);
+ const onset=.014+.014*Math.sin(breath*1.19+.3);
+ const riseEnd=.19+.020*Math.sin(breath*1.67+1.2);
+ const fallStart=.69+.035*Math.sin(breath*1.38+.4);
+ const fallEnd=.985+.012*Math.sin(breath*1.91+.8);
+ if(exp<=onset||exp>=fallEnd)return 0;
+ if(exp<riseEnd){
+  const z=C((exp-onset)/(riseEnd-onset),0,1);
+  return .90*(1-Math.pow(1-z,3));
+ }
+ if(exp<fallStart){
+  const z=C((exp-riseEnd)/(fallStart-riseEnd),0,1);
+  const crest=Math.pow(z,1+.25*Math.sin(breath*1.73+.7));
+  return .90+.10*Math.pow(Math.sin(Math.PI*crest),1.5);
+ }
+ const z=C((exp-fallStart)/(fallEnd-fallStart),0,1);
+ return .90*(1-z*z*(3-2*z));
 }
 function cap(q,vent,breath){let m=E("capnoPattern")?.value||"Normale";
  if(m==="Normale"&&vent?.intubated&&!vent.controlled)return spontaneousCap(q,vent,breath);if(m.includes("Disconnessione"))return 0;let b=m.includes("Rebreathing")?.18:0,v=0;if(m.includes("Broncospasmo")){if(q<.07)v=0;else if(q<.42)v=C((q-.07)/.35,0,1)**1.8;else if(q<.69)v=.96+.06*(q-.42)/.27;else if(q<.82){let z=(q-.69)/.13;v=1.02*(1-z*z*(3-2*z))}}else{if(q<.08)v=0;else if(q<.14){let z=(q-.08)/.06;v=.94*(z*z*(3-2*z))}else if(q<.72){let z=(q-.14)/.58;v=.94+.09*z+.010*Math.sin(Math.PI*z)}else if(q<.78){let z=(q-.72)/.06;v=1.03*(1-(z*z*(3-2*z)))}else v=0;if(m.includes("Oscillazioni"))v+=.045*Math.sin(q*42)*C((q-.14)*4,0,1)*C((.78-q)*8,0,1)}return b+(1-b)*C(v,0,1.1)}
@@ -159,8 +168,8 @@ function draw(){
    if(id==="capno"){
     const cycle=60/rr,phase=((ts/cycle)%1+1)%1;
     // L'espirazione inizia dopo la fase inspiratoria dei tracciati Paw/flow.
-    // La capnografia controllata mantiene la tipica fase III; in spontanea
-    // segue invece una salita progressiva e un plateau meno squadrato.
+    // In controllata rimane la fase III; in spontanea la fase II e' rapida
+    // e la sommita' e' una cupola, come nella traccia di riferimento.
     const tiFraction=vent?.intubated?C(vent.ti/cycle,.18,.65):1/3;
     q=vent?.controlled?((phase-tiFraction+.08+1)%1):phase;
     const breath=Math.floor(ts/cycle);
@@ -169,7 +178,11 @@ function draw(){
     // et e' il valore numerico dell'atto corrente: normalizziamo
     // rispetto al suo fattore, poi moduliamo ciascun atto disegnato.
     const amplitude=spontaneous?spontaneousBreathFactor(breath)/spontaneousBreathFactor(currentBreath):1;
-    y=.86-cap(q,vent,breath)*amplitude*C(et/40,.12,1.65)*.60;
+    // Scala separata per la spontanea: picchi 40–70 mmHg visibili
+    // senza saturazione/clipping in alto; la quota segue la EtCO2 reale.
+    y=spontaneous?
+     .91-cap(q,vent,breath)*amplitude*C(et/80,.04,1.05)*.80:
+     .86-cap(q,vent,breath)*C(et/40,.12,1.65)*.60;
    }else if(av){
     if(id==="ecg"){
      y=.58-avECG(ts,rh,hr)*.76;

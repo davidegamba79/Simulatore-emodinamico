@@ -1,4 +1,4 @@
-/* V2.9.13 — capnografia spontanea di riferimento: FR 20, cupola breve e EtCO2 respiro per respiro. */
+/* V2.9.25 — animazione robusta: pausa inspiratoria indipendente dalla pausa globale. */
 (()=>{const R=requestAnimationFrame.bind(window),E=i=>document.getElementById(i),N=i=>+(E(i)?.value||0),C=(v,a,b)=>Math.max(a,Math.min(b,v)),G=(x,m,s)=>Math.exp(-.5*((x-m)/s)**2),t0=performance.now()/1000;
 let wavePaused=false,wavePauseAt=0,wavePausedTotal=0;
 // Il tempo delle onde e' indipendente dalla velocita' della simulazione.
@@ -151,11 +151,23 @@ function spontaneousCap(q,vent,breath){
 function cap(q,vent,breath){let m=E("capnoPattern")?.value||"Normale";
  if(m==="Normale"&&vent?.intubated&&!vent.controlled)return spontaneousCap(q,vent,breath);if(m.includes("Disconnessione"))return 0;let b=m.includes("Rebreathing")?.18:0,v=0;if(m.includes("Broncospasmo")){if(q<.07)v=0;else if(q<.42)v=C((q-.07)/.35,0,1)**1.8;else if(q<.69)v=.96+.06*(q-.42)/.27;else if(q<.82){let z=(q-.69)/.13;v=1.02*(1-z*z*(3-2*z))}}else{if(q<.08)v=0;else if(q<.14){let z=(q-.08)/.06;v=.94*(z*z*(3-2*z))}else if(q<.72){let z=(q-.14)/.58;v=.94+.09*z+.010*Math.sin(Math.PI*z)}else if(q<.78){let z=(q-.72)/.06;v=1.03*(1-(z*z*(3-2*z)))}else v=0;if(m.includes("Oscillazioni"))v+=.045*Math.sin(q*42)*C((q-.14)*4,0,1)*C((.78-q)*8,0,1)}return b+(1-b)*C(v,0,1.1)}
 // Oscillazione respiratoria SPV calcolata una volta per frame, non per pixel.
+let waveDrawFailures=0;
 function draw(){
- if(wavePaused){R(draw);return;}
+ // Il prossimo frame viene sempre prenotato PRIMA del disegno.
+ // Un errore transitorio durante il cambio dei parametri ventilatori
+ // non deve arrestare definitivamente ECG, ART, SpO2 ed EtCO2.
+ R(draw);
+ try{
+  // Solo il comando Pausa/Play della simulazione puo' congelare le onde.
+  // La pausa di fine inspirazione modifica la meccanica respiratoria,
+  // ma non deve mai modificare questo stato.
+  if(typeof simClock!=='undefined'&&Boolean(simClock.paused)!==wavePaused)
+   window.simWaveSetPaused(Boolean(simClock.paused));
+  if(wavePaused)return;
  const hr=Math.max(1,N("hr")||90),rr=Math.max(1,N("rr")||18),et=C(N("etco2")||38,3,80);
  const rh=E("rhythm")?.value||"Ritmo sinusale",av=rh.startsWith("Blocco AV "),timing=av?avTiming(rh,hr):null,now=performance.now()/1000-t0-wavePausedTotal;
  window.simWaveTimeSeconds=now;
+ window.simWaveFrameTimestamp=performance.now();
  const vent=typeof window.simVentCalc==='function'?window.simVentCalc():null;
  const respActive=typeof window.simVentValid==='function'&&window.simVentValid();
  const respPulse=Math.max(1,N('sap')-N('dap')),respSpv=C(N('spv'),0,35),respRate=Math.max(1,N('rr')||12);
@@ -224,6 +236,11 @@ function draw(){
   g.stroke();
 
  });
- R(draw);
+ waveDrawFailures=0;
+ }catch(error){
+  waveDrawFailures++;
+  if(waveDrawFailures<=3||waveDrawFailures%300===0)
+   console.warn('Ripristino animazione onde dopo errore di disegno:',error);
+ }
 }
 R(draw)})();

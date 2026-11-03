@@ -435,6 +435,26 @@ body.student[data-student-tab="ventilation"][data-resp-intubated="false"] .stude
  body.student header .student-tabs-nav{flex-wrap:wrap}
  body.student header>.row{margin-left:auto}
 }
+
+/* V2.9.23 — controllo docente delle scale dei loop e confronto statico. */
+.vent-loop-actions{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin:8px 0}
+.vent-loop-actions button,.vent-loop-axis-grid button{min-height:35px}
+.vent-loop-ref-status{font-size:11px;color:#b6d1db;line-height:1.4;overflow-wrap:anywhere}
+.vent-loop-ref-key{color:#b0b9c7;font-size:11px;font-weight:650;white-space:normal}
+.vent-loop-ref-key[hidden]{display:none!important}
+.vent-loop-scale-panel{border:1px solid #294956;border-radius:9px;background:#0b1b25;margin:7px 0;padding:0 10px}
+.vent-loop-scale-panel>summary{padding:11px 3px;cursor:pointer;font-size:12px;font-weight:700;color:#d7eaf1;min-height:38px}
+.vent-loop-scale-panel p{margin:0 0 9px;font-size:11px;color:#a8c4d1;line-height:1.45}
+.vent-loop-axis-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding-bottom:10px}
+.vent-loop-axis-grid fieldset{border:1px solid #2d4b58;border-radius:8px;padding:8px;min-width:0}
+.vent-loop-axis-grid legend{font-size:12px;font-weight:700;color:#d7eaf1;padding:0 4px}
+.vent-loop-axis-inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:4px 0 10px}
+.vent-loop-axis-inputs label{font-size:11px;color:#b8d3df;display:flex;flex-direction:column;gap:4px;min-width:0}
+.vent-loop-axis-inputs input{box-sizing:border-box;width:100%;min-width:0;padding:7px 6px;font-size:13px;background:#081820;color:#eefaff;border:1px solid #365361;border-radius:6px}
+.vent-loop-message{font-size:11px;color:#91b5c5;line-height:1.4;margin:6px 0}
+.student-vent-loops .vent-loop-ref-status{margin-top:5px;font-size:10px}
+.student-vent-loops .vent-loop-ref-key{font-size:10px;margin-top:3px}
+@media(max-width:700px){.vent-loop-axis-grid{grid-template-columns:1fr}.vent-loop-actions{align-items:stretch}.vent-loop-actions button{flex:1 1 auto}}
 </style>
 </head>
 <body>
@@ -574,11 +594,41 @@ body.student[data-student-tab="ventilation"][data-resp-intubated="false"] .stude
 
  <section id="instructorVentLoops" class="card vent-loops instructor-only" aria-label="Spirometria: loop respiratori">
   <h3 style="font-size:14px;margin:12px 0 6px">Spirometria — loop respiratori</h3>
+  <div class="vent-loop-actions">
+   <button type="button" class="tiny" id="ventSaveLoop">Memorizza loop di riferimento</button>
+   <button type="button" class="tiny" id="ventClearLoop">Rimuovi riferimento</button>
+   <span class="vent-loop-ref-status" id="ventLoopRefStatus">Nessun loop di riferimento salvato</span>
+  </div>
+  <details class="vent-loop-scale-panel" id="ventLoopScalePanel">
+   <summary>Regolazione scale P/V e F/V · assi indipendenti e fissi</summary>
+   <p>Le scale sono adattate una sola volta, alla prima ventilazione controllata. In seguito cambiano soltanto da questi controlli, anche sul monitor studenti.</p>
+   <div class="vent-loop-axis-grid">
+    <fieldset><legend>Loop Pressione / Volume</legend>
+     <div class="vent-loop-axis-inputs">
+      <label>Pressione X min (cmH₂O)<input type="number" id="ventPvXMin" step="any"></label>
+      <label>Pressione X max (cmH₂O)<input type="number" id="ventPvXMax" step="any"></label>
+      <label>Volume Y min (mL)<input type="number" id="ventPvYMin" step="any"></label>
+      <label>Volume Y max (mL)<input type="number" id="ventPvYMax" step="any"></label>
+     </div>
+     <button type="button" class="tiny" id="ventPvFit">Adatta solo P/V</button>
+    </fieldset>
+    <fieldset><legend>Loop Flusso / Volume</legend>
+     <div class="vent-loop-axis-inputs">
+      <label>Volume X min (mL)<input type="number" id="ventFvXMin" step="any"></label>
+      <label>Volume X max (mL)<input type="number" id="ventFvXMax" step="any"></label>
+      <label>Flusso Y min (L/s)<input type="number" id="ventFvYMin" step="any"></label>
+      <label>Flusso Y max (L/s)<input type="number" id="ventFvYMax" step="any"></label>
+     </div>
+     <button type="button" class="tiny" id="ventFvFit">Adatta solo F/V</button>
+    </fieldset>
+   </div>
+  </details>
+  <div class="vent-loop-message" id="ventLoopMessage" role="status">Scale automatiche iniziali; poi fisse.</div>
   <div class="vent-loop-grid">
    <div class="vent-loop-card"><strong>Pressione / Volume</strong><canvas id="ventLoopPV" aria-label="Loop pressione volume, pressione sull'asse orizzontale e volume sull'asse verticale"></canvas></div>
    <div class="vent-loop-card"><strong>Flusso / Volume</strong><canvas id="ventLoopFV" aria-label="Loop flusso volume, volume sull'asse orizzontale e flusso sull'asse verticale"></canvas></div>
   </div>
-  <div class="vent-loop-legend"><span class="insp">● Inspirazione</span><span class="exp">● Espirazione</span><span>Modello didattico con assi e direzione dei loop spirometrici</span></div>
+  <div class="vent-loop-legend"><span class="insp">● Inspirazione attuale</span><span class="exp">● Espirazione attuale</span><span id="ventLoopRefKey" class="vent-loop-ref-key" hidden>┄┄ Riferimento memorizzato</span></div>
  </section>
 
 

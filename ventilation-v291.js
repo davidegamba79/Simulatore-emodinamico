@@ -1,10 +1,10 @@
-/* V2.9.5 — spirometria e onde ventilatorie alla velocita' clinica di 12,5 mm/s. Modello didattico. */
+/* V2.9.6 — compliance statica/dinamica, resistenze e loop proporzionali. Modello didattico. */
 (function(){
  'use strict';
  const el=id=>document.getElementById(id);
  const n=(id,defaultValue)=>{const x=Number(el(id)?.value);return Number.isFinite(x)&&el(id)?.value!==''?x:defaultValue};
  const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
- const ventIds=['ventMode','ventRate','ventVtKg','ventPeep','ventPinsp','ventIE','ventFio2','ventCompliance','ventResistance','ventHoldEnabled','ventHoldSeconds'];
+ const ventIds=['ventMode','ventRate','ventVtKg','ventPeep','ventPinsp','ventIE','ventFio2','ventHoldEnabled','ventHoldSeconds'];
  const fmt=(v,decimals=1)=>Number.isFinite(v)?v.toFixed(decimals).replace('.',','):'—';
  const breedMorph={
   'Bulldog francese':'brachy','Bulldog inglese':'brachy','Carlino':'brachy',
@@ -36,8 +36,8 @@
   const morphFactor=morph==='brachy'?.86:morph==='dolicho'?1.04:1;
   const bodyType=el('patientBodyType')?.value||'meso';
   const bodyFactor=bodyType==='brachy'?.93:bodyType==='dolicho'?1.05:1;
-  const crs=clamp(weight*1.10*ageFactor*bcsFactor*morphFactor*bodyFactor*clamp(n('ventCompliance',100)/100,.4,1.6),.45,160);
-  const raw=clamp(8*Math.pow(weight/25,-.28)*(morph==='brachy'?1.65:morph==='dolicho'?.9:1)*(bcs>=7?1.12:1)*clamp(n('ventResistance',100)/100,.5,2.5),1.5,100);
+  const crs=clamp(weight*1.10*ageFactor*bcsFactor*morphFactor*bodyFactor,.45,160);
+  const raw=clamp(8*Math.pow(weight/25,-.28)*(morph==='brachy'?1.65:morph==='dolicho'?.9:1)*(bcs>=7?1.12:1),1.5,100);
   const tau=raw*crs/1000; // R (cmH2O/(L/s)) * C (L/cmH2O) = secondi
   const vtSet=clamp(n('ventVtKg',8),4,15)*weight;
   const pinsp=clamp(n('ventPinsp',12),4,30);
@@ -50,11 +50,18 @@
   // In assenza di pausa inspiratoria la Pplat non e' misurata:
   // il modello usa comunque la componente elastica per la fisiologia.
   const plateauMeasured=hold?plateau:null,drivingMeasured=hold?driving:null;
+  // Cdyn = Vt / (PIP - PEEP), stima sotto ventilazione controllata.
+  // Cstat = Vt / (Pplat - PEEP) richiede una pausa inspiratoria.
+  // Raw = (PIP - Pplat) / flusso inspiratorio, applicabile qui
+  // solo in VCV a flusso costante e con pausa; non in PCV decelerante.
+  const cdyn=controlled&&pip>peep?vt/(pip-peep):null;
+  const cstat=hold&&plateau>peep?vt/(plateau-peep):null;
+  const rawMeasured=hold&&mode==='VCV'&&flow>0?(pip-plateau)/flow:null;
   const minute=vt/1000*rate,alveolarMinute=Math.max(.05,(vt-weight*2)/1000*rate);
   const pmean=controlled?peep+(plateau-peep)*ti/(ti+te)*.60:0;
   const preloadSensitivity=clamp(1+Math.max(0,100-(typeof phys!=='undefined'?phys.preload:100))*.012,1,1.9);
   const preloadFactor=controlled?clamp(1-.011*Math.max(0,pmean-2)*preloadSensitivity-.005*Math.max(0,(plateau||0)-19),.68,1):1;
-  return {mode,chosen,intubated,controlled,rate,peep,ie,ti,te,flowTi,hold,holdSeconds,fio2,weight,age,bcs,morph,bodyType,crs,raw,tau,vt,pip,plateau,driving,plateauMeasured,drivingMeasured,minute,alveolarMinute,pmean,preloadFactor};
+  return {mode,chosen,intubated,controlled,rate,peep,ie,ti,te,flowTi,hold,holdSeconds,fio2,weight,age,bcs,morph,bodyType,crs,raw,tau,vt,pip,plateau,driving,plateauMeasured,drivingMeasured,cdyn,cstat,rawMeasured,minute,alveolarMinute,pmean,preloadFactor};
  }
  window.simVentCalc=calc;
  window.simVentValid=()=>{
@@ -140,7 +147,7 @@
   syncPatientCopies();
   // RR e' la frequenza del ventilatore (o spontanea, se non intubato).
   if(el('rr')&&Number(el('rr').value)!==d.rate)el('rr').value=d.rate;
-  const vals={ventPip:fmt(d.pip),ventPplat:fmt(d.plateauMeasured),ventDriving:fmt(d.drivingMeasured),ventVt:fmt(d.vt,0),ventMinute:fmt(d.minute,2),ventCrs:fmt(d.crs),ventMainPip:fmt(d.pip),ventMainVolumeValue:fmt(d.vt,0),ventMainFlowValue:fmt(d.controlled?d.mode==='VCV'?d.vt/1000/d.flowTi:(d.pip-d.peep)/Math.max(1.5,d.raw):d.vt/1000/d.ti,2)};
+  const vals={ventPip:fmt(d.pip),ventPplat:fmt(d.plateauMeasured),ventDriving:fmt(d.drivingMeasured),ventVt:fmt(d.vt,0),ventMinute:fmt(d.minute,2),ventCstat:fmt(d.cstat),ventCdyn:fmt(d.cdyn),ventRaw:fmt(d.rawMeasured),ventMainPip:fmt(d.pip),ventMainVolumeValue:fmt(d.vt,0),ventMainFlowValue:fmt(d.controlled?d.mode==='VCV'?d.vt/1000/d.flowTi:(d.pip-d.peep)/Math.max(1.5,d.raw):d.vt/1000/d.ti,2)};
   for(const [id,value] of Object.entries(vals))if(el(id))el(id).textContent=value;
   const status=el('ventStatus');
   if(status)status.textContent=!d.intubated?'Paziente non intubato: respirazione spontanea nel modello. VCV/PCV saranno attive dopo l’intubazione.':d.controlled?d.mode+' attiva · PEEP '+fmt(d.peep,0)+' cmH₂O · I:E 1:'+d.ie+(d.hold?' · pausa inspiratoria '+fmt(d.holdSeconds,2)+' s':' · nessuna pausa inspiratoria'):'Paziente intubato · ventilazione spontanea.';
@@ -150,7 +157,10 @@
   if(d.controlled&&d.plateau>25)warning.push('pressione di plateau elevata');
   if(d.controlled&&d.pip>30)warning.push('PIP elevata');
   const interpret=el('ventInterpretation');
-  if(interpret)interpret.textContent='Crs stimata '+fmt(d.crs/d.weight,2)+' mL/kg/cmH₂O · R vie aeree '+fmt(d.raw)+' cmH₂O/(L/s) · Vt '+fmt(d.vt/d.weight,1)+' mL/kg · FiO₂ '+Math.round(d.fio2*100)+'%. '+(d.hold?'Pplat simulata in pausa di fine inspirazione: '+fmt(d.plateauMeasured)+' cmH₂O; driving pressure = Pplat − PEEP = '+fmt(d.drivingMeasured)+' cmH₂O. ':'Pplat e driving pressure non misurate: attiva la pausa inspiratoria. ')+(warning.length?'Attenzione: '+warning.join(', ')+'. ':'')+'Stime didattiche, non valori clinici di riferimento.';
+  if(interpret)interpret.textContent='Vt '+fmt(d.vt/d.weight,1)+' mL/kg · FiO₂ '+Math.round(d.fio2*100)+'% · Cdyn '+fmt(d.cdyn)+' mL/cmH₂O. '+
+   (d.hold?'Cstat '+fmt(d.cstat)+' mL/cmH₂O (pausa inspiratoria); driving pressure = Pplat − PEEP = '+fmt(d.drivingMeasured)+' cmH₂O. ':'Cstat, Pplat e driving pressure richiedono la pausa inspiratoria. ')+
+   (d.rawMeasured!==null?'Raw '+fmt(d.rawMeasured)+' cmH₂O/(L/s), ricavata da (PIP − Pplat)/flusso in VCV. ':d.mode==='PCV'?'Raw non misurabile con questa formula in PCV a flusso decelerante. ':'Raw misurabile in VCV con pausa inspiratoria. ')+
+   (warning.length?'Attenzione: '+warning.join(', ')+'. ':'')+'Stime del modello, non misurazioni cliniche.';
   if(el('ventVtKg'))el('ventVtKg').disabled=d.mode!=='VCV';
   if(el('ventPinsp'))el('ventPinsp').disabled=d.mode!=='PCV';
   if(el('ventPeep'))el('ventPeep').disabled=!d.controlled;
@@ -163,7 +173,7 @@
   for(const prefix of ['studentVent']){
    const root=el(prefix+'Readouts');
    if(!root)continue;
-   for(const [key,value] of Object.entries({pip:fmt(d.pip),pplat:fmt(d.plateauMeasured),driving:fmt(d.drivingMeasured),vt:fmt(d.vt,0),minute:fmt(d.minute,2),crs:fmt(d.crs)})){
+   for(const [key,value] of Object.entries({pip:fmt(d.pip),pplat:fmt(d.plateauMeasured),driving:fmt(d.drivingMeasured),vt:fmt(d.vt,0),minute:fmt(d.minute,2),cstat:fmt(d.cstat),cdyn:fmt(d.cdyn),raw:fmt(d.rawMeasured)})){
     const target=el(prefix+key.charAt(0).toUpperCase()+key.slice(1));if(target)target.textContent=value;
    }
    const headline=el(prefix+'Headline');
@@ -177,14 +187,20 @@
   const card=document.createElement('section');card.className='card';
   card.innerHTML='<h2>Ventilazione · monitor di sola lettura</h2><div id="studentVentPatientSummary" class="status" style="margin-bottom:6px">Dati paziente in attesa</div><div id="studentVentHeadline" class="status">In attesa dei dati dalla console docente</div>'+
    '<div class="vent-readouts" id="studentVentReadouts">'+
-   [['Pip','PIP','cmH₂O'],['Pplat','Pplat','cmH₂O'],['Driving','Driving P','cmH₂O'],['Vt','Vt','mL'],['Minute','V̇E','L/min'],['Crs','Crs','mL/cmH₂O']].map(x=>'<div><small>'+x[1]+'</small><b id="studentVent'+x[0]+'">—</b><small>'+x[2]+'</small></div>').join('')+'</div>'+
-   '<h3 style="font-size:14px;margin:12px 0 6px">Spirometria — loop respiratori</h3>'+
-   '<div class="vent-loop-grid">'+
+   [['Pip','PIP','cmH₂O'],['Pplat','Pplat','cmH₂O'],['Driving','Driving P','cmH₂O'],['Vt','Vt','mL'],['Minute','V̇E','L/min'],['Cstat','Cstat','mL/cmH₂O'],['Cdyn','Cdyn','mL/cmH₂O'],['Raw','Raw','cmH₂O/(L/s)']].map(x=>'<div><small>'+x[1]+'</small><b id="studentVent'+x[0]+'">—</b><small>'+x[2]+'</small></div>').join('')+'</div>'+
+   '<small style="display:block;margin-top:10px;color:var(--muted)">I loop P/V e F/V sono accanto alle onde nel monitor superiore. Cstat e Pplat richiedono la pausa inspiratoria; Raw è ricavabile in VCV a flusso costante con pausa.</small>';
+  panel.append(card);
+  // Nella scheda studente i loop sono affiancati alle onde, uno sopra l'altro,
+  // senza sottrarre spazio al riepilogo dei parametri ventilatori.
+  const loops=document.createElement('section');loops.id='studentVentLoops';
+  loops.className='student-vent-loops';loops.setAttribute('aria-label','Loop spirometrici');
+  loops.innerHTML='<div class="vent-loop-grid">'+
    '<div class="vent-loop-card"><strong>Pressione / Volume</strong><canvas id="studentVentLoopPV" aria-label="Loop pressione volume"></canvas></div>'+
    '<div class="vent-loop-card"><strong>Flusso / Volume</strong><canvas id="studentVentLoopFV" aria-label="Loop flusso volume"></canvas></div></div>'+
-   '<div class="vent-loop-legend"><span class="insp">● Inspirazione</span><span class="exp">● Espirazione</span></div>'+
-   '<small style="display:block;margin-top:10px;color:var(--muted)">Le onde Paw, flusso e volume sono nel monitor principale insieme a IBP, EtCO₂ e SpO₂. Pplat e driving pressure richiedono la pausa inspiratoria.</small>';
-  panel.append(card);
+   '<div class="vent-loop-legend"><span class="insp">● Inspirazione</span><span class="exp">● Espirazione</span></div>';
+  const layout=el('studentVentLayout');
+  if(layout)layout.append(loops);
+  else panel.append(loops);
  }
  function sample(d,type,phase){
   // Il campione alla fase 1 rappresenta la FINE dell'espirazione,
@@ -288,8 +304,14 @@
  function drawLoop(canvas,d,kind,seconds){
   const target=canvasContext(canvas);if(!target)return;
   const {ctx,w,h}=target;
+  // Sistema di coordinate fisso 340 × 240: ridimensionando la finestra
+  // cambia soltanto la scala uniforme, mai la forma del loop.
+  const baseW=340,baseH=240,scale=Math.min(w/baseW,h/baseH);
+  ctx.save();
+  ctx.translate((w-baseW*scale)/2,(h-baseH*scale)/2);
+  ctx.scale(scale,scale);
   const margin={left:47,right:12,top:19,bottom:37};
-  const pw=w-margin.left-margin.right,ph=h-margin.top-margin.bottom;
+  const pw=baseW-margin.left-margin.right,ph=baseH-margin.top-margin.bottom;
   const N=180,phaseEnd=d.ti/(60/d.rate);
   // Campionamento separato dei due rami, con entrambi gli estremi:
   // niente campioni mancanti all'inversione inspirazione/espirazione.
@@ -325,7 +347,7 @@
    ctx.strokeStyle='#66828c';ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(margin.left,y(0));ctx.lineTo(margin.left+pw,y(0));ctx.stroke();ctx.setLineDash([]);
   }
   ctx.fillStyle='#c2dce6';ctx.font='10px system-ui,-apple-system,sans-serif';ctx.textAlign='center';
-  ctx.fillText(kind==='PV'?'Pressione vie aeree (cmH₂O)':'Volume (mL)',margin.left+pw/2,h-4);
+  ctx.fillText(kind==='PV'?'Pressione vie aeree (cmH₂O)':'Volume (mL)',margin.left+pw/2,baseH-4);
   ctx.textAlign='left';ctx.fillText(kind==='PV'?'Volume (mL)':'Flusso (L/s)',margin.left,11);
   const toPoint=p=>kind==='PV'?[x(p.p),y(p.v)]:[x(p.v),y(p.f)];
   const drawLimb=(list,color)=>{
@@ -351,6 +373,7 @@
   const marker=toPoint(p);
   ctx.fillStyle='#ffffff';ctx.strokeStyle='#071016';ctx.lineWidth=1.5;
   ctx.beginPath();ctx.arc(marker[0],marker[1],3.7,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.restore();
  }
  let waveSeconds=0,lastNow=performance.now(),lastDraw=0;
  function draw(now){

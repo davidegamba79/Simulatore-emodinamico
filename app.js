@@ -11,6 +11,22 @@ co:3.00,ci:3.47,sv:32,svi:36.5,svr:2450,svri:2123,ppv:8,spv:4,dpdt:1.087,cce:0.3
 let patientModel='healthy';
 const hemoDefs=[['co','CO','L/min'],['ci','CI','L/min/m²'],['sv','SV','mL'],['svi','SVI','mL/m²'],['svr','SVR','dyn·s/cm⁵'],['svri','SVRI','dyn·s·m²/cm⁵'],['ppv','PPV','%'],['spv','SPV','mmHg'],['dpdt','dP/dtmax','mmHg/ms'],['cce','CCE',''],['ea','Ea','mmHg/mL'],['cpo','CPO','W']];
 $('toggles').innerHTML=keys.map(k=>`<div class="toggle"><span>${labels[k]}</span><input type="checkbox" data-toggle="${k}"></div>`).join('');
+ // Le onde aggiuntive condividono la stessa colonna delle altre selezioni.
+ // Spostiamo i controlli originali per conservarne ID, stato e listener.
+ for(const id of ['showVentPressure','showVentFlow']){
+  const input=$(id),label=input?.closest('label');
+  if(!input||!label)continue;
+  const title=id==='showVentPressure'?'Pressione vie aeree':'Flusso respiratorio';
+  const row=document.createElement('div');
+  row.className='toggle';
+  const caption=document.createElement('span');
+  caption.textContent=title;
+  row.append(caption,input);
+  $('toggles').appendChild(row);
+  label.remove();
+ }
+ document.querySelector('.resp-wave-controls')?.remove();
+
 $('hemoInputs').innerHTML=hemoDefs.map(([k,l,u])=>`<label>${l} ${u?`(${u})`:''}<input id="${k}" type="number" step="any" value="${state[k]}"></label>`).join('');
 $('hemoMetrics').innerHTML=hemoDefs.map(([k,l,u])=>`<div class="metric"><small>${l}</small><b id="m_${k}">${state[k]}</b><small>${u}</small></div>`).join('');
 

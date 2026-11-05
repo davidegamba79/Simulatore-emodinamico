@@ -11,3 +11,5 @@ iPad:
 
 Nota: il service worker consente l'uso offline dopo il primo caricamento.
 La sincronizzazione tra console e monitor studenti usa localStorage e funziona tra schede/finestre della stessa origine sullo stesso dispositivo.
+
+Nota di pubblicazione: aggiornamento tecnico GitHub Pages del 5 novembre 2026; nessuna modifica al simulatore.

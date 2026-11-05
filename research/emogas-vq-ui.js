@@ -6,7 +6,7 @@ window.addEventListener('DOMContentLoaded',function(){
  const KEY='simEmogasVQExperimental';
  const profiles={
   healthy:{label:'Polmone sano',shunt:.02,low:.04,dead:.25},
-  hypoventilation:{label:'Ipoventilazione',shunt:.02,low:.04,dead:.25},
+  hypoventilation:{label:'Ipoventilazione',shunt:.02,low:.04,dead:.25,ventFactor:.6},
   atelectasis:{label:'Atelettasia / shunt',shunt:.25,low:.18,dead:.25},
   bronchospasm:{label:'Broncospasmo',shunt:.05,low:.4,dead:.32},
   embolism:{label:'Spazio morto elevato',shunt:.02,low:.08,dead:.58},
@@ -43,10 +43,11 @@ window.addEventListener('DOMContentLoaded',function(){
  function data(){
   const vent=typeof window.simVentCalc==='function'?window.simVentCalc():null;
   const dead=Math.min(.85,Math.max(0,+$('egaDead').value/100));
+  const scenario=profiles[$('egaScenario').value]||profiles.healthy;
   const rr=vent?.rate||12,weight=vent?.weight||25;
   const minute=vent?.minute||Math.max(.1,rr*weight*.01);
   // Use the active ventilator's minute volume; dead-space control changes VA.
-  const actualVA=Math.max(.05,minute*(1-dead));
+  const actualVA=Math.max(.05,minute*(1-dead)*(scenario.ventFactor||1));
   // Metabolic production must not be recalibrated at every breath/sample:
   // otherwise changes in ventilation would cancel out PaCO2 responses.
   const metabolicCO2=clamp(105*Math.pow(weight/25,.8),15,650);

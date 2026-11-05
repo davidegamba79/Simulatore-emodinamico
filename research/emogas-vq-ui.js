@@ -46,12 +46,11 @@ window.addEventListener('DOMContentLoaded',function(){
   const dead=Math.min(.85,Math.max(0,+$('egaDead').value/100));
   const rr=vent?.rate||12,weight=vent?.weight||25;
   const minute=vent?.minute||Math.max(.1,rr*weight*.01);
-  const va=vent?.alveolarMinute||minute*(1-dead);
   // Use the active ventilator's minute volume; dead-space control changes VA.
   const actualVA=Math.max(.05,minute*(1-dead));
-  const et=Number.isFinite(state?.etco2)?state.etco2:33;
-  const baselineVA=Math.max(.05,minute*.75);
-  const metabolicCO2=clamp((et+3)*baselineVA/.863,15,650);
+  // Metabolic production must not be recalibrated at every breath/sample:
+  // otherwise changes in ventilation would cancel out PaCO2 responses.
+  const metabolicCO2=clamp(140*Math.pow(weight/25,.8),15,650);
   return window.EmogasVQ.calculate({
    fio2:vent?.intubated?vent.fio2:.21,
    alveolarVentilation:actualVA,metabolicCO2,

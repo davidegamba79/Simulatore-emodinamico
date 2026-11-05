@@ -89,9 +89,26 @@ window.addEventListener('DOMContentLoaded',function(){
   document.body.dataset.instructorTab='emogas';
  };
  nav?.querySelectorAll('button:not(:last-child)').forEach(b=>b.addEventListener('click',()=>{tab.hidden=true;btn.setAttribute('aria-selected','false')}));
+ let gasState=null;
  function sample(){
-  try{const result=data();const stamp=new Date().toLocaleTimeString('it-IT');draw(result,stamp);
-   localStorage.setItem(KEY,JSON.stringify({result,stamp}));
+  try{
+   const target=data();
+   const now=typeof window.simVirtualNow==='function'?window.simVirtualNow():performance.now();
+   if(!gasState||now<gasState.time){gasState={time:now,paCO2:target.paCO2,paO2:target.paO2}}
+   else{
+    const dt=Math.min(3600,Math.max(0,(now-gasState.time)/1000));
+    // Didactic response times; simulation clock (pause freezes the gases).
+    gasState.paCO2+=(target.paCO2-gasState.paCO2)*(1-Math.exp(-dt/65));
+    gasState.paO2+=(target.paO2-gasState.paO2)*(1-Math.exp(-dt/18));
+    gasState.time=now;
+   }
+   const result=window.EmogasVQ.calculate({
+    ...target.inputs,paCO2:gasState.paCO2,
+    // Keep the slowly equilibrating oxygen result distinct from its target.
+   });
+   const displayed={...result,paO2:+gasState.paO2.toFixed(1),saO2:+(100/(1+Math.pow(26.8/Math.max(1,gasState.paO2),2.7))).toFixed(1),pfRatio:+(gasState.paO2/target.inputs.fio2).toFixed(0),aaGradient:+Math.max(0,result.idealPAO2-gasState.paO2).toFixed(1)};
+   const stamp=new Date().toLocaleTimeString('it-IT');draw(displayed,stamp);
+   localStorage.setItem(KEY,JSON.stringify({result:displayed,stamp}));
   }catch(err){$('egaStatus').textContent='Errore modello: '+err.message;console.error(err)}
  }
  $('egaSample').onclick=sample;

@@ -31,3 +31,4 @@ Nessuna modifica ad app.js, ventilation-v291.js, wave-v2.js nella feature.
 7. Verificare la risposta a cambiamenti di massa corporea, FiO2 e ventilazione minuto su piu' simulazioni.
 
 NON usare i risultati per decisioni cliniche reali.
+\n## Modifiche successive\n- La scheda studenti Emogas riapre il contenitore delle schede anche dopo Ventilazione.\n- PaCO2 e PaO2 nel pannello Emogas hanno un primo filtro dinamico sull'orologio virtuale; la pausa congela l'evoluzione, il riavvolgimento reimposta lo stato. Le costanti 65 s e 18 s sono puramente didattiche.\n- Il preset di ipoventilazione applica un fattore 0,6 alla ventilazione alveolare del solo modulo EGA; NON modifica i controlli del ventilatore né le onde.\n- Non è stato eseguito un test end-to-end con Safari su iPad e display esteso: pubblicazione ancora bloccata.\n

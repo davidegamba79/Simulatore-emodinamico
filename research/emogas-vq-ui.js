@@ -103,7 +103,12 @@ window.addEventListener('DOMContentLoaded',function(){
     gasState.time=now;
    }
    const result=window.EmogasVQ.calculate({
-    ...target.inputs,paCO2:gasState.paCO2,
+    fio2:target.inputs.fio2,barometricPressure:target.inputs.pb,
+    paCO2:gasState.paCO2,bicarbonate:target.hco3,hb:target.inputs.hb,
+    cardiacOutput:target.inputs.q,metabolicO2:target.inputs.vo2,
+    alveolarVentilation:target.inputs.va,metabolicCO2:target.inputs.vco2,
+    shunt:target.inputs.shunt,lowVQFraction:target.inputs.low,
+    respiratoryQuotient:target.inputs.rq
     // Keep the slowly equilibrating oxygen result distinct from its target.
    });
    const displayed={...result,paO2:+gasState.paO2.toFixed(1),saO2:+(100/(1+Math.pow(26.8/Math.max(1,gasState.paO2),2.7))).toFixed(1),pfRatio:+(gasState.paO2/target.inputs.fio2).toFixed(0),aaGradient:+Math.max(0,result.idealPAO2-gasState.paO2).toFixed(1)};

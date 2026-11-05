@@ -14,20 +14,29 @@
  function calculate(input={}){
   const fio2=clamp(+input.fio2||.21,.21,1);
   const pb=clamp(+input.barometricPressure||760,400,800);
-  const paco2=clamp(+input.paCO2||40,10,120);
+  const dead=clamp(input.deadSpaceFraction==null?.25:+input.deadSpaceFraction,0,.85);
+  const va=clamp(input.minuteVentilation!=null?
+    +input.minuteVentilation*(1-dead):(+input.alveolarVentilation||3),.05,30);
+  // 0.863 converts metabolic VCO2 (mL/min) / VA (L/min) to mmHg.
+  // A supplied PaCO2 takes precedence for isolated gas-exchange experiments.
+  const vco2=clamp(+input.metabolicCO2||140,15,650);
+  const paco2=clamp(input.paCO2!=null?+input.paCO2:.863*vco2/va,10,120);
   const hco3=clamp(+input.bicarbonate||24,4,60);
   const hb=clamp(+input.hb||14,3,25);
   const q=clamp(+input.cardiacOutput||3,.1,30);
-  const va=clamp(+input.alveolarVentilation||3,.05,30);
+  
   const shunt=clamp(+input.shunt||0,0,.8);
   const low=clamp(+input.lowVQFraction||0,0,1-shunt);
-  const dead=clamp(+input.deadSpaceFraction||0,0,.85);
+  
   const rq=clamp(+input.respiratoryQuotient||.8,.6,1.2);
   const pio2=fio2*(pb-47);
   const idealPAO2=clamp(pio2-paco2/rq,1,700);
   // Three perfused units: normal, low V/Q, and true shunt.
   // Mixed venous oxygen is a simplified delivery-dependent approximation.
-  const cvO2=content(clamp(idealPAO2-45,15,65),hb);
+  // Approximate mixed venous content using Fick's principle.
+  // VO2 = 10 * Q(L/min) * (CaO2-CvO2), in mL/min.
+  const vo2=clamp(+input.metabolicO2||180,20,800);
+  const cvO2=clamp(content(idealPAO2,hb)-vo2/(10*q),.5,content(idealPAO2,hb));
   const normalO2=content(idealPAO2,hb);
   const lowPAO2=clamp(idealPAO2*(.22+.28*clamp(va/q,0,2)),8,idealPAO2);
   const lowO2=content(lowPAO2,hb);
@@ -41,10 +50,12 @@
    pfRatio:+(pao2/fio2).toFixed(0),
    aaGradient:+Math.max(0,idealPAO2-pao2).toFixed(1),
    idealPAO2:+idealPAO2.toFixed(1),
-   estimatedEtCO2:+Math.max(0,paco2*(1-dead)-2).toFixed(1),
+   // EtCO2 is a separate dynamic state in the simulator; do not replace it
+   // with a simple function of physiological dead space.
+   paEtGradient:null,
    compartments:Object.freeze({normal:1-shunt-low,lowVQ:low,shunt}),
-   inputs:Object.freeze({fio2,pb,q,va,shunt,low,dead,rq,hb}),
-   warning:'Modello didattico esplorativo: venoso misto, V/Q e gradiente EtCO2 semplificati; non validato clinicamente.'
+   inputs:Object.freeze({fio2,pb,q,va,vco2,vo2,shunt,low,dead,rq,hb}),
+   warning:'Modello didattico esplorativo: V/Q, equilibrio venoso e acido-base semplificati; PaCO2 stazionaria, non validato clinicamente.'
   });
  }
  root.EmogasVQ=Object.freeze({calculate});

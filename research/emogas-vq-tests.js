@@ -19,7 +19,12 @@
   lowVQHypoxemia:low.paO2<normal.paO2,
   deadSpaceHypercapnia:dead.paCO2>deadControl.paCO2,
   fio2Response:highFi.paO2>normal.paO2,
-  noFalseEtCO2:normal.paEtGradient===null
+  noFalseEtCO2:normal.paEtGradient===null,
+  increasedVentilationLowersCO2:calc({...base,alveolarVentilation:4}).paCO2<normal.paCO2,
+  reducedCOLowersShuntPaO2:calc({...base,shunt:.25,cardiacOutput:1}).paO2<calc({...base,shunt:.25,cardiacOutput:5}).paO2,
+  bicarbonateControlsPH:calc({...base,bicarbonate:16}).ph<normal.ph,
+  normalCompartmentsSum:Math.abs(Object.values(normal.compartments).reduce((a,b)=>a+b,0)-1)<1e-9,
+  extremeValuesFinite:Object.values(calc({...base,shunt:1,lowVQFraction:1,fio2:1,cardiacOutput:.1})).filter(v=>typeof v==='number').every(Number.isFinite)
  };
  const rows={normal,hypoventilation:hypo,shunt,lowVQ:low,deadSpace:dead,highFiO2:highFi};
  console.table(Object.entries(rows).map(([scenario,x])=>({scenario,

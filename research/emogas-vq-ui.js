@@ -116,6 +116,62 @@ window.addEventListener('DOMContentLoaded',function(){
    localStorage.setItem(KEY,JSON.stringify({result:displayed,stamp}));
   }catch(err){$('egaStatus').textContent='Errore modello: '+err.message;console.error(err)}
  }
+ // Two synchronized copies of the pulmonary scenario controls, one in each instructor tab.
+ // Only the Emogas panel owns the underlying model values and arterial sampling.
+ const sourceRow=$('egaScenario')?.closest('.row');
+ if(sourceRow){
+  const labels=Array.from(sourceRow.querySelectorAll('label'));
+  const scenarioLabels=labels.slice(0,4);
+  const metabolicLabels=labels.slice(4);
+  const scenarioBox=document.createElement('section');
+  scenarioBox.id='egaPulmonaryScenario';
+  const scenarioTitle=document.createElement('h3');
+  scenarioTitle.textContent='Scenario clinico polmonare';
+  scenarioTitle.style.cssText='font-size:14px;margin:12px 0 8px';
+  sourceRow.before(scenarioBox);
+  scenarioBox.append(scenarioTitle,sourceRow);
+  metabolicLabels.forEach(label=>sourceRow.removeChild(label));
+  const metabolicRow=document.createElement('div');
+  metabolicRow.className='row';
+  metabolicRow.style.cssText='flex-wrap:wrap;gap:8px;margin:8px 0';
+  metabolicLabels.forEach(label=>metabolicRow.append(label));
+  scenarioBox.after(metabolicRow);
+  const ventBox=document.createElement('section');
+  ventBox.className='card';
+  ventBox.id='egaPulmonaryScenarioVent';
+  const ventTitle=document.createElement('h3');
+  ventTitle.textContent='Scenario clinico polmonare';
+  ventTitle.style.cssText='font-size:14px;margin:0 0 8px';
+  const ventRow=document.createElement('div');
+  ventRow.className='row';
+  ventRow.style.cssText='flex-wrap:wrap;gap:8px';
+  const ids=['egaScenario','egaShunt','egaLow','egaDead'];
+  scenarioLabels.forEach((label,i)=>{
+   const copy=label.cloneNode(true);
+   const control=copy.querySelector('select,input');
+   if(control)control.id=ids[i]+'Vent';
+   ventRow.append(copy);
+  });
+  ventBox.append(ventTitle,ventRow);
+  instructor.prepend(ventBox);
+  let syncing=false;
+  function mirror(from,to){
+   if(syncing)return;
+   syncing=true;
+   to.value=from.value;
+   if(from.id==='egaScenarioVent')$('egaScenario').dispatchEvent(new Event('change',{bubbles:true}));
+   ids.forEach(id=>{const v=$(id+'Vent'),m=$(id);if(v&&m)v.value=m.value});
+   syncing=false;
+  }
+  ids.forEach(id=>{
+   const original=$(id),duplicate=$(id+'Vent');
+   if(!original||!duplicate)return;
+   original.addEventListener('input',()=>mirror(original,duplicate));
+   original.addEventListener('change',()=>mirror(original,duplicate));
+   duplicate.addEventListener('input',()=>mirror(duplicate,original));
+   duplicate.addEventListener('change',()=>mirror(duplicate,original));
+  });
+ }
  $('egaSample').onclick=sample;
  $('egaScenario').onchange=()=>{
   const p=profiles[$('egaScenario').value];

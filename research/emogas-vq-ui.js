@@ -1,5 +1,5 @@
 /* Modulo sperimentale EGA/VQ: non modifica il motore emodinamico. */
-(function(){
+window.addEventListener('DOMContentLoaded',function(){
  'use strict';
  const $=id=>document.getElementById(id);
  const student=document.body.classList.contains('student');

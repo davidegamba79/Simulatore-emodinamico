@@ -6,13 +6,24 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Sim Emod. V2.9.34">
+<meta name="apple-mobile-web-app-title" content="Sim Anestesia V3.0">
 <meta name="theme-color" content="#071016">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="stylesheet" href="./styles.css">
 <link rel="stylesheet" href="./styles-v2.css?v=2900">
-<title>Simulatore Emodinamico — V2.9.34</title>
-<style id="student-panel-2893">body.student #timeControls,body.student #premedPanel,body.student #inductionPanel{display:none!important}</style>
+<title>SIMULATORE ANESTESIA — V3.0</title>
+<style id="student-panel-2893">body.student #timeControls,body.student #premedPanel,body.student #inductionPanel{display:none!important}
+/* Fentanil: tre indicatori affiancati anche su iPad. */
+body:not(.student) #fentanylPanel .fentanyl-stats{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px;align-items:start}
+body:not(.student) #fentanylPanel .fentanyl-stats>div{min-width:0;font-size:12px}
+body:not(.student) #fentanylPanel .fentanyl-stats b{display:block;overflow-wrap:anywhere;font-size:14px}
+/* Il pannello trend appartiene esclusivamente alla scheda Trend. */
+body:not(.student):not([data-instructor-tab="trends"]) #trendV25{display:none!important}
+
+body:not(.student) #fentanylPanel>.cols:first-of-type{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px}
+body:not(.student) #fentanylPanel>.cols:first-of-type label{display:block;min-width:0}
+body:not(.student) #fentanylPanel #fentTarget,body:not(.student) #fentanylPanel #fentBolus{box-sizing:border-box;width:100%!important;min-width:0;height:40px;min-height:40px;font:inherit}
+</style>
 <style id="therapy-layout-2861">
 /* Applied in the document to avoid stale stylesheet caching */
 #therapyV25{container-type:normal!important}
@@ -195,8 +206,8 @@ body.student #student-panel-ventilation .vent-wave-stack canvas{height:110px}
 
 <style id="vent-monitor-spirometry-296">
 /* Onde respiratorie nel monitor principale, con vista dedicata per la ventilazione. */
-.instructor-tab-nav{grid-template-columns:minmax(0,.95fr) minmax(0,1.13fr) minmax(0,1.65fr) minmax(0,.88fr) minmax(0,.77fr)}
-.instructor-tab-nav button{box-sizing:border-box;max-width:100%;width:100%;min-width:0;white-space:nowrap!important;overflow:hidden;display:flex;align-items:center;justify-content:center;line-height:1.1;font-size:11px;padding:7px 1px;letter-spacing:-.035em}
+.instructor-tab-nav{grid-template-columns:repeat(3,minmax(0,1fr))}
+.instructor-tab-nav button{box-sizing:border-box;max-width:100%;width:100%;min-width:0;white-space:nowrap!important;overflow:hidden;display:flex;align-items:center;justify-content:center;line-height:1.1;font-size:11px;padding:7px 3px;letter-spacing:0}
 @media(max-width:520px){.instructor-tab-nav button{font-size:10px;padding:6px 0}}
 .monitor .resp-wave{display:none!important}
 body:not(.student)[data-instructor-tab="ventilation"] .monitor .resp-wave,
@@ -221,7 +232,7 @@ body:not(.student) .resp-wave-controls{margin-top:12px;margin-bottom:0}
 .resp-wave[data-resp-type="pressure"] .wlabel,.resp-wave[data-resp-type="pressure"] .values{color:#ffd34e}
 .resp-wave[data-resp-type="flow"] .wlabel,.resp-wave[data-resp-type="flow"] .values{color:#ff9a3c}
 .resp-wave[data-resp-type="volume"] .wlabel,.resp-wave[data-resp-type="volume"] .values{color:#bd895a}
-/* V2.9.34 — dati paziente della ventilazione richiudibili come i salti temporali. */
+/* V3.0 — dati paziente della ventilazione richiudibili come i salti temporali. */
 details.vent-patient-card{padding:0;overflow:hidden}
 .vent-patient-card .vent-patient-summary{
  cursor:pointer;min-height:44px;padding:9px 12px;display:flex;align-items:center;
@@ -245,7 +256,7 @@ body.student[data-student-tab="ventilation"] .student-fixed-monitor{max-height:6
 body:not(.student)[data-instructor-tab="ventilation"] .monitor .wave{height:67px!important;min-height:67px!important}
 @media(max-width:720px){.vent-loop-grid{grid-template-columns:1fr}}
 @media(max-height:800px){body.student[data-student-tab="ventilation"] .student-fixed-monitor .wave{height:48px!important;min-height:48px!important}}
-/* V2.9.34: EtCO₂ bianca su ogni monitor, docente e studenti. */
+/* V3.0: EtCO₂ bianca su ogni monitor, docente e studenti. */
 .monitor .wave[data-key="capno"] .wlabel,
 .monitor .wave[data-key="capno"] .values{color:#f8fbff!important}
 /* Scala geometrica invariata: i canvas spirometrici conservano un rapporto 17:12. */
@@ -266,7 +277,7 @@ body.student .student-vent-loops .vent-loop-card{padding:6px}
 body.student .student-vent-loops .vent-loop-card strong{font-size:11px;margin-bottom:2px}
 body.student .student-vent-loops .vent-loop-card canvas{aspect-ratio:17 / 12;height:auto!important}
 body.student .student-vent-loops .vent-loop-legend{margin-top:5px;font-size:10px}
-/* V2.9.34: i dati ventilatori riempiono lo spazio sotto IBP,
+/* V3.0: i dati ventilatori riempiono lo spazio sotto IBP,
    affiancati ai due loop; nessun riquadro nelle altre schede. */
 body.student .student-vent-metrics{display:none;min-width:0}
 body.student[data-student-tab="ventilation"] .student-vent-metrics{
@@ -304,7 +315,7 @@ body.student[data-student-tab="ventilation"] .student-vent-wave-column .wave[dat
  body.student[data-student-tab="ventilation"] .student-vent-layout{grid-template-columns:1fr}
  body.student[data-student-tab="ventilation"] .student-vent-loops .vent-loop-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
-/* V2.9.34 — nella scheda Ventilazione gli emodinamici scorrono
+/* V3.0 — nella scheda Ventilazione gli emodinamici scorrono
    nel proprio riquadro: le onde e i loop non vengono mai scrollati via
    o coperti quando si consultano i valori PRAM. */
 body.student[data-student-tab="ventilation"] .student-fixed-monitor{
@@ -351,7 +362,7 @@ body.student[data-student-tab="ventilation"] .student-fixed-monitor>.hemo-wrap h
   grid-template-columns:repeat(2,minmax(0,1fr));
  }
 }
-/* V2.9.34 — nessuna misura delle vie aeree prima dell'intubazione.
+/* V3.0 — nessuna misura delle vie aeree prima dell'intubazione.
    Se l'utente ha attivato le onde opzionali, questa regola ha comunque priorita'. */
 body[data-resp-intubated="false"] .monitor .wave.resp-wave[data-resp-type]:not([hidden]){
  display:none!important
@@ -389,7 +400,7 @@ body.student[data-student-tab="ventilation"] .student-fixed-monitor>.hemo-wrap{
  }
 }
 
-/* V2.9.34 — navigazione studenti in testata, a fianco del titolo. */
+/* V3.0 — navigazione studenti in testata, a fianco del titolo. */
 body:not(.student) header .student-tabs-nav{display:none!important}
 body.student header{
  padding:8px 12px;gap:8px;min-height:54px
@@ -436,7 +447,7 @@ body.student[data-student-tab="ventilation"][data-resp-intubated="false"] .stude
  body.student header>.row{margin-left:auto}
 }
 
-/* V2.9.34 — controllo docente delle scale dei loop e confronto statico. */
+/* V3.0 — controllo docente delle scale dei loop e confronto statico. */
 .vent-loop-actions{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin:8px 0}
 .vent-loop-actions button,.vent-loop-axis-grid button{min-height:35px}
 .vent-loop-ref-status{font-size:11px;color:#b6d1db;line-height:1.4;overflow-wrap:anywhere}
@@ -458,7 +469,7 @@ body.student[data-student-tab="ventilation"][data-resp-intubated="false"] .stude
 </style>
 
 <style id="instructor-trend-tab-2933">
-/* V2.9.34 — ripristina tutte le cinque schede e la vista originale nelle altre sezioni.
+/* V3.0 — ripristina tutte le cinque schede e la vista originale nelle altre sezioni.
    SOLO nella scheda Trend: onde e PRAM in alto, grafici grandi e scorrevoli sotto. */
 body:not(.student) .instructor-fixed-monitor,
 body:not(.student) .instructor-monitor-scroll{display:contents}
@@ -534,6 +545,8 @@ body.student #trendV25 .trend-head{gap:12px;flex-wrap:wrap}
 <style id="instructor-anesthesia-layout-2934">
 /* MAC nel monitor principale sotto PRAM; visibile solo nella scheda Anestesia. */
 body:not(.student) #instructorInhaledCard{display:none!important;min-width:0}
+body:not(.student) #fentanylPanel{display:none!important;min-width:0}
+body:not(.student)[data-instructor-tab="anesthesia"] #fentanylPanel{display:block!important}
 body:not(.student)[data-instructor-tab="anesthesia"] #instructorInhaledCard{
  display:block!important;margin:0!important;padding:10px 12px;
 }
@@ -544,14 +557,48 @@ body:not(.student)[data-instructor-tab="anesthesia"] #instructorInhaledCard inpu
  width:100%;min-height:32px;touch-action:pan-y;
 }
 </style>
+<style id="student-pv-v30">
+body.student.student-pv-active #studentVentLayout{display:grid!important;grid-template-columns:minmax(0,1.4fr) minmax(260px,1fr)!important;align-items:stretch;gap:9px}
+body.student .student-pv-side{min-width:0;background:#0a1820;border:1px solid #294653;border-radius:9px;padding:8px;overflow:hidden}
+body.student .student-pv-side[hidden]{display:none!important}
+body.student .student-pv-side h3{margin:0 0 6px;font-size:13px;color:#e4f2f8}
+body.student #studentPvCanvas{display:block;width:100%;height:clamp(210px,27vh,330px);background:#081923;border:1px solid #244351;border-radius:7px}
+body.student .student-pv-legend{display:flex;flex-wrap:wrap;gap:5px 10px;font-size:10px;margin-top:6px}
+body.student #studentPvReadings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-top:7px}
+body.student #studentPvReadings div{font-size:11px;color:#d5e7ee;background:#0c202a;border-radius:5px;padding:5px}
+body.student #studentPvReadings small{display:block;color:#a4bbc7;font-size:9px}
+@media(max-width:760px){body.student.student-pv-active #studentVentLayout{grid-template-columns:1fr!important}body.student #studentPvCanvas{height:220px}}
+</style>
+
+<style id="hide-clinical-case-narrative-v3">
+/* Keep case controls and JS state, but remove instructor/student narrative panels. */
+#caseInstructor, #caseFeedback, #studentCaseBanner { display: none !important; }
+</style>
+
+<style id="therapy-clocks-v30">
+.therapy-clock{display:block;margin-top:5px;font-size:12px;font-variant-numeric:tabular-nums;color:#a9dce9;font-weight:600;white-space:nowrap}
+#studentTherapyClocks{display:none;padding:9px 12px;margin:6px 0;background:#0b2029;border:1px solid #294653;border-radius:8px}
+#studentTherapyClocks .clock-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+#studentTherapyClocks .clock-item{font-size:12px;color:#b9d6e1}
+#studentTherapyClocks .clock-item b{display:block;color:#eff9fd;font-size:14px;font-variant-numeric:tabular-nums;margin-top:3px}
+body.student[data-student-tab="meds"] #studentTherapyClocks{display:block}
+@media(max-width:720px){#studentTherapyClocks .clock-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+<style id="v30-dose-update-style">.v30-confirm-rate{font-size:11px;padding:6px 8px;margin-top:5px;background:#174e62;color:#e5f8ff;border:1px solid #4d9cba;border-radius:6px;cursor:pointer}.v30-confirm-rate:disabled{opacity:.4;cursor:default}</style>
+<style id="v30-infusion-layout-fix">
+/* Separate grid areas: the former shared action area overlaid both buttons. */
+#therapyV25 .therapy:has(.v30-confirm-rate){grid-template-areas:"drug dose" "drug action" "drug confirm" "clock clock"!important;min-height:128px!important;align-content:start!important}
+#therapyV25 .therapy:has(.v30-confirm-rate)>button:not(.v30-confirm-rate){grid-area:action!important;position:relative!important;z-index:2!important}
+#therapyV25 .therapy>.v30-confirm-rate{grid-area:confirm!important;width:100%!important;margin:0!important;min-height:30px!important;position:relative!important;z-index:1!important}
+#therapyV25 .therapy>.therapy-clock{grid-area:clock!important;display:block!important;margin:2px 0 0!important;white-space:normal!important}
+</style>
 </head>
 <body>
 
 <header>
- <div><h1>SIMULATORE EMODINAMICO <span class="app-version">V2.9.34</span> — <span id="modeTitle">Console istruttore</span></h1><div class="badge" id="syncBadge">Monitor locale sincronizzato</div></div>
+ <div><h1>SIMULATORE ANESTESIA <span class="app-version">V3.0</span> — <span id="modeTitle">Console istruttore</span></h1><div class="badge" id="syncBadge">Monitor locale sincronizzato</div></div>
  <div class="row">
   <button class="tiny instructor-only" id="studentBtn">Apri Monitor studenti</button>
-  <button class="tiny" id="modeBtn">Modalità studenti</button>
   <button class="tiny" id="fullBtn">Schermo intero</button>
  </div>
 </header>
@@ -567,7 +614,7 @@ body:not(.student)[data-instructor-tab="anesthesia"] #instructorInhaledCard inpu
   <label>Conformazione cranio-facciale<select id="patientMorph"><option value="meso">Mesocefalo</option><option value="brachy">Brachicefalo</option><option value="dolicho">Dolicocefalo</option></select></label>
   <label>Morfotipo corporeo<select id="patientBodyType"><option value="meso">Mesomorfo</option><option value="brachy">Brachimorfo</option><option value="dolicho">Dolicomorfo</option></select></label>
   <label>Body Condition Score (1–9)<input id="patientBCS" type="number" value="5" min="1" max="9" step="1"></label>
- </div><small style="display:block;color:var(--muted);margin-top:8px">Il profilo del paziente modifica compliance, resistenze e curvatura dei loop respiratori. Razza e morfotipo rappresentano archetipi didattici, non previsioni cliniche individuali. Età, BCS e conformazione influenzano anche la risposta dell’EtCO₂.</small><div class="status" id="patientPresetStatus" style="margin-top:8px">Paziente sano · sveglio · non premedicato</div></section>
+ </div><div class="status" id="patientPresetStatus" style="margin-top:8px">Paziente sano · sveglio · non premedicato</div></section>
 
  <section class="card"><h2>Monitoraggio attivo — istruttore</h2>
   <div id="toggles"></div><div class="row" style="margin-top:9px"><button id="allOn">Tutto ON</button><button id="allOff">Tutto OFF</button></div>
@@ -604,9 +651,9 @@ body:not(.student)[data-instructor-tab="anesthesia"] #instructorInhaledCard inpu
     <option value="myocardial">Caso C — depressione miocardica</option>
     <option value="arrest">Caso D — arresto cardiaco / PEA</option>
   </select></label>
-  <div class="row" style="margin-top:9px"><button class="primary" id="startCase">Avvia caso</button><button id="advanceCase">+ 1 minuto</button><button class="danger" id="endCase">Termina caso</button></div>
-  <div id="caseInstructor" class="status" style="margin-top:9px">Nessun caso clinico attivo.</div>
-  <div id="caseFeedback" class="status" style="margin-top:8px">Gestisci il caso utilizzando i controlli del simulatore.</div>
+  <div class="row" style="margin-top:9px"><button class="primary" id="startCase">Avvia caso</button><button class="danger" id="endCase">Termina caso</button></div>
+  <div id="caseInstructor" hidden style="display:none!important"></div>
+  <div id="caseFeedback" hidden style="display:none!important"></div>
  </section>
 <section class="card" id="ventilationPanel"><h2>Ventilazione e meccanica respiratoria</h2>
  <div class="status" id="ventStatus">La ventilazione controllata diventa disponibile dopo l'intubazione o con il preset Paziente anestetizzato.</div>
@@ -634,41 +681,39 @@ body:not(.student)[data-instructor-tab="anesthesia"] #instructorInhaledCard inpu
   <div><small>Compliance statica (Cstat)</small><b id="ventCstat">—</b><small>mL/cmH₂O</small></div>
   <div><small>Compliance dinamica (Cdyn)</small><b id="ventCdyn">—</b><small>mL/cmH₂O</small></div>
   <div><small>Resistenza vie aeree (Raw)</small><b id="ventRaw">—</b><small>cmH₂O/(L/s)</small></div>
+  <div><small>Auto-PEEP stimata</small><b id="ventAutoPeep">—</b><small>cmH₂O</small></div>
+  <div><small>Volume intrappolato stimato</small><b id="ventTrappedVolume">—</b><small>mL</small></div>
+  <div><small>Costante espiratoria τE</small><b id="ventTauE">—</b><small>s</small></div>
  </div>
 
  </section>
 <section class="card"><h2>Anestesia inalatoria</h2>
-  <div class="status">1,0 MAC = baseline del paziente anestetizzato. La variazione del MAC modifica progressivamente tono vascolare e contrattilità; FC, pressione, CO, EtCO₂ e onde reagiscono attraverso il motore fisiologico.</div>
+  
   <label style="margin-top:10px">MAC <input id="mac" type="range" min="0.6" max="2" value="1" step="0.1"><span id="macOut">1,0</span></label><div class="status" id="anesthesiaPhaseStatus" style="margin-top:8px">Fase anestetizzata: MAC attivo.</div>
  </section>
-<section class="card"><h2>Motore fisiologico — emodinamica</h2>
-  <div class="status">Modalità dinamica: precarico, contrattilità e tono vascolare modificano simultaneamente curva ART e parametri emodinamici.</div>
-  <div class="cols" style="margin-top:10px">
+<section class="card" id="fentanylPanel"><h2>Fentanil EV — schema CCCP</h2><div class="cols"><label>Cp target (ng/mL)<input id="fentTarget" type="number" inputmode="decimal" min="0.6" max="2.0" step="0.1" value="1.0"></label><label>Bolo aggiuntivo (µg/kg)<input id="fentBolus" type="number" inputmode="decimal" min="0.1" max="20" step="0.1" value="1.0"></label></div><div class="row" style="margin-top:8px"><button id="fentStart" type="button">Avvia TCI + bolo iniziale</button><button id="fentStop" type="button" disabled>Interrompi TCI</button><button id="fentBolusGive" type="button">Somministra bolo</button><span class="therapy-clock" id="fentBolusClock" aria-live="off">Pronto · 00:00 / 00:30</span></div><div class="status" id="fentState" style="margin-top:8px">TCI non attiva</div><div class="fentanyl-stats" style="margin-top:8px"><div>Velocità attuale<br><b id="fentRate">0 µg/kg/h</b></div><div>Tempo TCI<br><b id="fentElapsed">—</b></div><div>Dose cumulativa<br><b id="fentTotal">0 µg/kg</b></div></div><div class="status" id="fentLog" style="margin-top:8px">Nessuna somministrazione.</div></section><section class="card physiology-engine-card"><h2>Motore fisiologico — emodinamica</h2>
+  <div class="cols">
    <label>Precarico <input id="preload" type="range" min="20" max="180" value="100"><span id="preloadOut">100%</span></label>
    <label>Contrattilità <input id="contractility" type="range" min="20" max="180" value="100"><span id="contractilityOut">100%</span></label>
-   <label>Tono vascolare / SVR <input id="vascularTone" type="range" min="30" max="180" value="100"><span id="vascularToneOut">100%</span></label>
+   <label>Tono vascolare / SVR <input id="vascularTone" type="range" min="20" max="180" value="100" data-logical-min="30" oninput="if(Number(this.value)<30)this.value=30"><span id="vascularToneOut">100%</span></label>
    <label>Compliance arteriosa <input id="compliance" type="range" min="40" max="160" value="100"><span id="complianceOut">100%</span></label>
   </div>
-  <label style="margin-top:9px"><span><input id="autoPhys" type="checkbox" checked style="width:auto"> Aggiornamento automatico da terapie (senza spunta: regolazione manuale degli slider)</span></label>
  </section>
 
 
  <section class="card"><h2>Interventi / trend</h2>
    <div id="eventLog" class="status" style="max-height:150px;overflow:auto">Nessun intervento.</div>
  </section>
-<section class="card"><h2>Preset manuali</h2><div class="status" style="margin-bottom:8px">Il simulatore si avvia con <b>Paziente sano</b>. Seleziona un preset prima di somministrare farmaci; per ripartire da zero ricarica la pagina.</div><div class="preset" id="presets"></div></section>
+<section class="card"><h2>Preset manuali</h2><div class="preset" id="presets"></div></section>
 
 
 </aside>
 
 <section class="monitor">
  <div class="student-only card" style="padding:8px 12px"><b id="studentPatient">Paziente Cane</b> · <span id="studentWeight">25</span> kg · <span id="studentPhenotype">6 anni · Meticcio · BCS 5/9</span></div>
- <div class="student-only case-banner" id="studentCaseBanner" style="display:none">
-   <div><b>CASO CLINICO</b> · minuto <span id="studentCaseMinute">0</span></div>
-   <div id="studentCasePresentation" style="margin-top:5px"></div>
-   <div id="studentCaseEvolution" style="margin-top:5px;color:var(--muted)">Valutare il paziente e richiedere il monitoraggio ritenuto necessario.</div>
- </div>
+ <div id="studentCaseBanner" hidden style="display:none!important"><span id="studentCaseMinute"></span><span id="studentCasePresentation"></span><span id="studentCaseEvolution"></span></div>
 
+ <div class="student-only" id="studentTherapyClocks"><b>Tempi terapie · tempo simulato</b><div class="clock-grid"><div class="clock-item">Fluid challenge<b id="studentClockBolus">Pronto · 00:00 / 00:30</b></div><div class="clock-item">Cristalloidi<b id="studentClockFluid">Non attiva · 00:00</b></div><div class="clock-item">Dobutamina<b id="studentClockDob">Non attiva · 00:00</b></div><div class="clock-item">Noradrenalina<b id="studentClockNor">Non attiva · 00:00</b></div></div></div>
  <div class="wave" data-key="ecg"><span class="wlabel green">ECG</span><div class="values green"><span class="big" id="vhr">90</span><br>bpm</div><canvas id="ecg"></canvas></div>
  <div class="wave" id="awakeCapnoNotice" style="display:none;min-height:70px;align-items:center;padding:15px;color:#e9c46a;border:1px solid #24414d;border-radius:8px">Paziente non intubato — capnografia non disponibile durante premedicazione e induzione</div><div class="wave" data-key="capno"><span class="wlabel yellow">EtCO₂</span><div class="values yellow"><span class="big" id="vet">38</span> mmHg<br><span id="vrr">18</span> /min</div><canvas id="capno"></canvas></div>
  <div class="wave" data-key="art"><span class="wlabel red">ART — pressione invasiva</span><div class="values red"><span class="big" id="vart">118/68</span><br>MAP <span id="vmap">85</span> mmHg</div><canvas id="art"></canvas></div>
@@ -685,11 +730,13 @@ body:not(.student)[data-instructor-tab="anesthesia"] #instructorInhaledCard inpu
   <div class="vent-loop-actions">
    <button type="button" class="tiny" id="ventSaveLoop">Memorizza loop di riferimento</button>
    <button type="button" class="tiny" id="ventClearLoop">Rimuovi riferimento</button>
+   <button type="button" class="tiny" id="ventPvFit">Adatta solo P/V</button>
+   <button type="button" class="tiny" id="ventFvFit">Adatta solo F/V</button>
    <span class="vent-loop-ref-status" id="ventLoopRefStatus">Nessun loop di riferimento salvato</span>
   </div>
   <details class="vent-loop-scale-panel" id="ventLoopScalePanel">
    <summary>Regolazione scale P/V e F/V · assi indipendenti e fissi</summary>
-   <p>Le scale sono adattate una sola volta, alla prima ventilazione controllata. In seguito cambiano soltanto da questi controlli, anche sul monitor studenti.</p>
+   
    <div class="vent-loop-axis-grid">
     <fieldset><legend>Loop Pressione / Volume</legend>
      <div class="vent-loop-axis-inputs">
@@ -720,8 +767,8 @@ body:not(.student)[data-instructor-tab="anesthesia"] #instructorInhaledCard inpu
  </section>
 
 
-<div class="card" id="timeControls" style="margin-bottom:8px"><h2>Tempo simulato</h2><div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><label>Velocità <select id="simSpeed"><option value="1">1× reale</option><option value="5">5×</option><option value="20">20×</option><option value="60">60×</option></select></label><button type="button" id="simPause">Pausa</button><button type="button" id="simBack10">−10 min</button><button type="button" id="simBack5">−5 min</button><button type="button" id="simBack1">−1 min</button><button type="button" id="simAdvance1">+1 min</button><button type="button" id="simAdvance5">+5 min</button><button type="button" id="simAdvance10">+10 min</button><strong id="simTimeReadout">00:00</strong></div><small style="color:var(--muted)">Pausa congela anche ECG, pletismografia, capnografia e pressione arteriosa per la discussione didattica. I salti temporali aggiornano emodinamica e trend.</small></div>
-<section class="card" id="premedPanel"><h2>Premedicazione anestesiologica — cane</h2><div class="premed-form"><label>Farmaco<select id="premedDrug"><option>Acepromazina</option><option>Dexmedetomidina</option><option>Midazolam</option><option>Metadone</option><option>Butorfanolo</option><option>Ketamina</option></select></label><label>Dosaggio (inserimento manuale)<input id="premedDose" type="number" min="0" step="any" placeholder="Dose"></label><label>Unità<select id="premedUnit"><option>mg/kg</option><option>µg/kg</option></select></label><label>Via<input id="premedRoute" value="IM" readonly aria-label="Via intramuscolare" title="Premedicazione standardizzata esclusivamente IM"></label><button type="button" id="premedAdd">Aggiungi alla combinazione</button></div><div id="premedCombination" class="status" style="margin-top:8px">Nessun farmaco nella combinazione.</div><div class="row" style="margin-top:8px"><button type="button" id="premedGive">Somministra combinazione</button><button type="button" id="premedClear">Svuota combinazione</button></div><div class="status" id="premedElapsed" style="margin-top:8px">Tempo dalla premedicazione: —</div><div class="status" id="premedStatus" style="margin-top:8px">Nessuna somministrazione registrata.</div><small style="color:var(--muted)">Modulo iniziale: registra dosi e tempi nei trend. Effetti emodinamici didattici progressivi: non costituiscono una previsione clinica validata.</small></section>
+<div class="card" id="timeControls" style="margin-bottom:8px"><h2>Tempo simulato</h2><div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><label>Velocità <select id="simSpeed"><option value="1">1× reale</option><option value="5">5×</option><option value="20">20×</option><option value="60">60×</option></select></label><button type="button" id="simPause">Pausa</button><div class="sim-time-jumps" aria-label="Salti temporali"><button type="button" id="simBack1">−1 min</button><button type="button" id="simBack5">−5 min</button><button type="button" id="simBack10">−10 min</button><button type="button" id="simAdvance1">+1 min</button><button type="button" id="simAdvance5">+5 min</button><button type="button" id="simAdvance10">+10 min</button></div><strong id="simTimeReadout">00:00</strong></div></div>
+<section class="card" id="premedPanel"><h2>Premedicazione anestesiologica — cane</h2><div class="premed-form"><label>Farmaco<select id="premedDrug"><option>Acepromazina</option><option>Dexmedetomidina</option><option>Midazolam</option><option>Metadone</option><option>Butorfanolo</option><option>Ketamina</option></select></label><label>Dosaggio (inserimento manuale)<input id="premedDose" type="number" min="0" step="any" placeholder="Dose"></label><label>Unità<select id="premedUnit"><option>mg/kg</option><option>µg/kg</option></select></label><label>Via<input id="premedRoute" value="IM" readonly aria-label="Via intramuscolare" title="Premedicazione standardizzata esclusivamente IM"></label><button type="button" id="premedAdd">Aggiungi alla combinazione</button></div><div id="premedCombination" class="status" style="margin-top:8px">Nessun farmaco nella combinazione.</div><div class="row" style="margin-top:8px"><button type="button" id="premedGive">Somministra combinazione</button><button type="button" id="premedClear">Svuota combinazione</button></div><div class="status" id="premedElapsed" style="margin-top:8px">Tempo dalla premedicazione: —</div><div class="status" id="premedStatus" style="margin-top:8px">Nessuna somministrazione registrata.</div></section>
  <section class="card" id="inductionPanel"><h2>Induzione anestesiologica EV — cane</h2>
   <div class="premed-form">
    <label>Induttore<select id="inductionDrug"><option>Propofol</option><option>Alfaxalone</option></select></label>
@@ -744,16 +791,16 @@ body:not(.student)[data-instructor-tab="anesthesia"] #instructorInhaledCard inpu
    </div>
    <small style="color:var(--muted)">FC in bpm; pressioni in mmHg; CO in L/min; SV in mL; SVR in dyn·s/cm⁵. Campioni ai tempi indicati dal tempo virtuale.</small>
    <div id="inductionReportExtrema" class="status" style="margin-top:8px">MAP minima, SVR minima e FC massima: —</div>
-   <button type="button" id="inductionExportCsv" disabled style="margin-top:8px">Esporta report CSV</button>
+   
    <small style="display:block;color:var(--muted);margin-top:6px">Valori prodotti dal modello didattico, non dati clinici validati. Per confrontare gli induttori, verificare che i valori preinduzione siano equivalenti.</small>
   </div>
  </section>
  <section class="card" id="therapyV25"><h2>Terapie dinamiche</h2>
   <div class="therapy-grid">
-   <div class="therapy"><div><b>Fluid challenge</b><small>2 mL/kg in 30 secondi</small></div><button id="v25FluidBolus">Somministra</button></div>
-   <div class="therapy"><div><b>Cristalloidi</b><small>Infusione continua</small></div><label>mL/kg/h<input id="v25FluidRate" type="number" min="0" max="50" step="1" value="2"></label><button id="v25FluidBtn">Avvia</button></div>
-   <div class="therapy"><div><b>Dobutamina</b><small>Infusione continua</small></div><label>µg/kg/min<input id="v25DobRate" type="number" min="0" max="30" step=".5" value="5"></label><button id="v25DobBtn">Avvia</button></div>
-   <div class="therapy"><div><b>Noradrenalina</b><small>Infusione continua</small></div><label>µg/kg/min<input id="v25NorRate" type="number" min="0" max="2" step=".01" value=".10"></label><button id="v25NorBtn">Avvia</button></div>
+   <div class="therapy"><div><b>Fluid challenge</b><small>2 mL/kg in 30 secondi</small></div><button id="v25FluidBolus">Somministra</button><span class="therapy-clock" id="clock-v25FluidBolus">Pronto · 00:00 / 00:30</span></div>
+   <div class="therapy"><div><b>Cristalloidi</b><small>Infusione continua</small></div><label>mL/kg/h<input id="v25FluidRate" type="number" min="0" max="50" step="1" value="2"></label><button id="v25FluidBtn">Avvia</button><button type="button" id="v30Confirm-fluid" class="v30-confirm-rate" disabled>Conferma dose</button><span class="therapy-clock" id="clock-v25FluidBtn">Non attiva · 00:00</span></div>
+   <div class="therapy"><div><b>Dobutamina</b><small>Infusione continua</small></div><label>µg/kg/min<input id="v25DobRate" type="number" min="0" max="30" step=".5" value="5"></label><button id="v25DobBtn">Avvia</button><button type="button" id="v30Confirm-dob" class="v30-confirm-rate" disabled>Conferma dose</button><span class="therapy-clock" id="clock-v25DobBtn">Non attiva · 00:00</span></div>
+   <div class="therapy"><div><b>Noradrenalina</b><small>Infusione continua</small></div><label>µg/kg/min<input id="v25NorRate" type="number" min="0" max="2" step=".01" value=".10"></label><button id="v25NorBtn">Avvia</button><button type="button" id="v30Confirm-nor" class="v30-confirm-rate" disabled>Conferma dose</button><span class="therapy-clock" id="clock-v25NorBtn">Non attiva · 00:00</span></div>
    <div class="therapy"><div><b>Efedrina</b><small>Bolo EV · risposta transitoria (simulazione)</small></div><label>µg/kg<input id="v25EphDose" type="number" min="25" max="100" step="5" value="50"></label><button id="v25EphBtn">Somministra</button></div>
    <div class="therapy"><div><b>Atropina</b><small>Bolo</small></div><label>µg/kg<input id="v25AtDose" type="number" min="0" max="100" step="1" value="20"></label><button id="v25AtBtn">Somministra</button></div>
   </div><div id="v25TherapyStatus" class="status" style="margin-top:8px">Nessuna terapia attiva.</div>
@@ -781,9 +828,9 @@ body:not(.student)[data-instructor-tab="anesthesia"] #instructorInhaledCard inpu
 </div>
 </main>
 
-<script src="./app.js?v=29340"></script>
+<script src="./app.js?v=300-no-csv"></script>
 <script src="./ui-v2.4.js"></script>
-<script src="./wave-v2.js?v=29340"></script>
+<script src="./wave-v2.js?v=29352"></script>
 <script>
 window.addEventListener('DOMContentLoaded',()=>{
  const $p=id=>document.getElementById(id);
@@ -803,6 +850,19 @@ window.addEventListener('DOMContentLoaded',()=>{
    const factor=Math.min(1,x.dose/p.ref)*(1-Math.exp(-age/onset))*Math.exp(-Math.max(0,age-onset)/(p.minutes*60));
    tone+=p.tone*factor;hr+=p.hr*factor;contractility+=p.contractility*factor});
   return {tone:Math.max(-55,Math.min(65,tone)),hr:Math.max(-65,Math.min(45,hr)),contractility:Math.max(-45,Math.min(45,contractility)),active:administrations.some(x=>(now-x.at)<profile[x.drug].minutes*60*5000)};
+ };
+ // Interazioni del fentanil distinte per meccanismo; coefficienti didattici, non PK/PD validati.
+ window.premedFentanylInteraction=()=>{const now=window.simVirtualNow?window.simVirtualNow():performance.now();let mu=0,vagal=0,pressor=0,sedation=0;
+  administrations.forEach(x=>{if(x.drug==='Butorfanolo')return;const p=profile[x.drug];if(!p)return;const age=(now-x.at)/1000;if(age<0)return;
+   const onset=x.route==='EV'?15:180;
+   const effect=Math.min(1,Math.max(0,x.dose/p.ref))*(1-Math.exp(-age/onset))*Math.exp(-Math.max(0,age-onset)/(p.minutes*60));
+   if(x.drug==='Metadone'){mu+=.18*effect;vagal+=.10*effect;}
+   if(x.drug==='Dexmedetomidina'){sedation+=.20*effect;vagal+=.06*effect;}
+   if(x.drug==='Acepromazina')sedation+=.22*effect;
+   if(x.drug==='Midazolam')sedation+=.16*effect;
+   if(x.drug==='Ketamina')pressor+=.12*effect;
+  });
+  return {mu:Math.min(.18,mu),vagal:Math.min(.16,vagal),sedation:Math.min(.4,sedation),pressor:Math.min(.12,pressor)};
  };
  window.premedDexEffect=()=>{const now=window.simVirtualNow?window.simVirtualNow():performance.now();return Math.min(1,administrations.filter(x=>x.drug==='Dexmedetomidina').reduce((sum,x)=>{const age=Math.max(0,(now-x.at)/1000),onset=x.route==='EV'?15:180;return sum+Math.min(1,x.dose/3)*(1-Math.exp(-age/onset))*Math.exp(-Math.max(0,age-onset)/3000)},0))};
  // Fase sveglia fino a 20:00 dalla prima somministrazione IM, valutata sul tempo virtuale.
@@ -889,6 +949,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   if(!['Propofol','Alfaxalone'].includes(drug)||!Number.isFinite(dose)||dose<.1||dose>12||!Number.isFinite(seconds)||seconds<10||seconds>300||!Number.isInteger(minutes)||minutes<1||minutes>30){$p('inductionStatus').textContent='Verificare dose (0,1–12 mg/kg), somministrazione (10–300 s) e finestra (1–30 min).';return}
   v25.induction={phase:'induction',startedAt:window.simVirtualNow(),drug,dose,administrationSeconds:seconds,windowMinutes:minutes,premedicated:administrations.length>0,
    pk:{central:0,fast:0,slow:0,ce:0,cv:0},effects:{preload:0,tone:0,contractility:0,hr:0,active:false},apneaRisk:'—'};
+  window.simAirwayIntubated=false;
   inductionStartReport();
   $p('inductionStart').disabled=true;
   if(typeof v25Event==='function')v25Event('Induzione EV: '+drug+' '+dose+' mg/kg in '+seconds+' s; finestra '+minutes+' min');
@@ -903,7 +964,6 @@ window.addEventListener('DOMContentLoaded',()=>{
   if(typeof v25Event==='function')v25Event('Intubazione eseguita — respirazione spontanea; selezionare VCV/PCV per ventilazione controllata');
   showPremedElapsed();showInductionStatus();
  };
- $p('inductionExportCsv').onclick=inductionExportCsv;
  setInterval(showInductionStatus,250);showInductionStatus();inductionRenderReport();
 
 });
@@ -933,7 +993,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   {id:'patient',label:'Paziente'},
   {id:'anesthesia',label:'Anestesia'},
   {id:'ventilation',label:'Ventilazione'},
-  {id:'therapy',label:'Terapie'},
+  {id:'therapy',label:'Emodinamica'},
   {id:'trends',label:'Trend'}
  ];
  const panels={};
@@ -965,6 +1025,49 @@ window.addEventListener('DOMContentLoaded',()=>{
   const el=findCard(title);if(el)inner.append(el);
  }
  panels.patient.append(advanced);
+ // Vista speculare del motore fisiologico nella scheda Emodinamica:
+ // i controlli originali restano nella scheda Paziente; il duplicato
+ // inoltra gli eventi agli stessi input, senza creare un secondo motore.
+ const physiologyCard=findCard('Motore fisiologico — emodinamica');
+ if(physiologyCard){
+  const mirror=physiologyCard.cloneNode(true);
+  mirror.id='hemoPhysiologyMirror';
+  const originals=Array.from(physiologyCard.querySelectorAll('input'));
+  const mirrors=Array.from(mirror.querySelectorAll('input'));
+  const originalOutputs=Array.from(physiologyCard.querySelectorAll('span[id]'));
+  const mirrorOutputs=Array.from(mirror.querySelectorAll('span[id]'));
+  mirror.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));
+  const syncPhysiologyMirror=()=>{
+   mirrors.forEach((input,i)=>{
+    const source=originals[i];if(!source)return;
+    if(input.type==='checkbox')input.checked=source.checked;
+    else input.value=source.value;
+    input.disabled=source.disabled;
+   });
+   mirrorOutputs.forEach((el,i)=>{if(originalOutputs[i])el.textContent=originalOutputs[i].textContent});
+  };
+  mirrors.forEach((input,i)=>{
+   const source=originals[i];if(!source)return;
+   const forward=type=>{
+    if(input.type==='checkbox')source.checked=input.checked;
+    else source.value=input.value;
+    // Un solo motore: il controllo originale riceve l'evento ed esegue physiology().
+    source.dispatchEvent(new Event(type,{bubbles:true}));
+    syncPhysiologyMirror();
+   };
+   input.addEventListener('input',()=>forward('input'));
+   input.addEventListener('change',()=>forward('change'));
+  });
+  originals.forEach(input=>{
+   input.addEventListener('input',syncPhysiologyMirror);
+   input.addEventListener('change',syncPhysiologyMirror);
+  });
+  // Aggiornamento anche dopo cambiamenti indotti da farmaci/preset, senza
+  // polling che sovrascriva la digitazione sul monitor docente (Safari/iPad).
+  window.addEventListener('sim:physiology-updated',syncPhysiologyMirror);
+  panels.therapy.prepend(mirror);
+  syncPhysiologyMirror();
+ }
  add('premedPanel','anesthesia');add('inductionPanel','anesthesia');
  const inhaledCard=findCard('Anestesia inalatoria');
  add('ventilationPanel','ventilation');
@@ -982,6 +1085,8 @@ window.addEventListener('DOMContentLoaded',()=>{
  if(inhaledCard){
   inhaledCard.id='instructorInhaledCard';
   clinical.append(inhaledCard);
+  const fentanylCard=get('fentanylPanel');
+  if(fentanylCard)clinical.append(fentanylCard);
  }
  const trend=get('trendV25');if(trend){scroll.append(trend);trend.hidden=true}
  // Tempo sempre accessibile, indipendentemente dalla scheda selezionata.
@@ -991,10 +1096,11 @@ window.addEventListener('DOMContentLoaded',()=>{
   const row=time.querySelector('div[style*="display:flex"]');
   if(row){
    row.classList.add('time-primary');
-   const jumpButtons=['simBack10','simBack5','simBack1','simAdvance1','simAdvance5','simAdvance10'];
+   const jumpGrid=time.querySelector('.sim-time-jumps');
    const details=document.createElement('details');details.className='time-jumps';
-   details.innerHTML='<summary>Salti temporali e avanzamento rapido</summary><div></div>';
-   for(const id of jumpButtons){const b=get(id);if(b)details.querySelector('div').append(b)}
+   details.open=true;
+   details.innerHTML='<summary>Salti temporali e avanzamento rapido</summary>';
+   if(jumpGrid)details.append(jumpGrid);
    time.append(details);
   }
  }
@@ -1008,14 +1114,14 @@ window.addEventListener('DOMContentLoaded',()=>{
   document.body.dataset.instructorTab=id;
   // I trend occupano il monitor principale SOLO quando la scheda Trend e' selezionata.
   // Nelle altre schede il layout del monitor torna quello precedente.
-  if(trend)trend.hidden=id!=='trends';
+  if(trend){trend.hidden=id!=='trends';trend.style.display=id==='trends'?'':'none';}
   if(id==='trends'){
    scroll.scrollTop=0;
    requestAnimationFrame(()=>{if(typeof v25Draw==='function')v25Draw()});
   }
   // Le onde del monitor seguono la scheda attiva; il monitor resta visibile.
  }
- activate('anesthesia');
+ activate('patient');
  const refresh=()=>{
   const read=id=>get(id)?.textContent.trim()||'—';
   get('quickHr').textContent=read('vhr');
@@ -1054,12 +1160,18 @@ window.addEventListener('DOMContentLoaded',()=>{
   fixed.insertBefore(ventLayout,waveNodes[0]);ventLayout.append(waveColumn);
   for(const wave of waveNodes)waveColumn.append(wave);
  }
+ // The LV PV loop is placed beside the live waveforms only on the
+ // Hemodynamics student tab; all student controls remain read-only.
+ const pvSide=document.createElement('aside');
+ pvSide.id='studentPvSide';pvSide.className='student-pv-side';pvSide.hidden=true;
+ pvSide.innerHTML='<h3>Ventricolo sinistro — loop P/V</h3><canvas id="studentPvCanvas" aria-label="Loop pressione volume sincronizzato con la console docente"></canvas><div class="student-pv-legend"><span style="color:#3dd5bb">● Riempimento</span> <span style="color:#f3c969">● Contrazione</span> <span style="color:#60b8ff">● Eiezione</span> <span style="color:#d19afa">● Rilasciamento</span> <span style="color:#ff5757">– – Ea</span> <span style="color:#ffad70">– – ESPVR</span></div><div id="studentPvReadings"></div>';
+ document.getElementById('studentVentLayout')?.append(pvSide);
  const shell=document.createElement('section');shell.className='student-tabs-shell';
  const nav=document.createElement('nav');nav.className='student-tabs-nav';nav.setAttribute('role','tablist');nav.setAttribute('aria-label','Visualizzazioni monitor studenti');
  // Navigazione accanto a «Monitor studenti» nell'intestazione, non piu' sotto i tracciati.
  header?.querySelector('h1')?.after(nav);
  const panels={};
- for(const [key,title] of [['trends','Trend'],['meds','Farmaci e terapie'],['ventilation','Ventilazione']]){
+ for(const [key,title] of [['trends','Trend'],['meds','Emodinamica'],['ventilation','Ventilazione']]){
   const b=document.createElement('button');b.type='button';b.id='student-tab-'+key;b.textContent=title;
   b.setAttribute('role','tab');b.setAttribute('aria-controls','student-panel-'+key);nav.append(b);
   const panel=document.createElement('div');panel.className='student-tab-panel';panel.id='student-panel-'+key;
@@ -1088,6 +1200,8 @@ window.addEventListener('DOMContentLoaded',()=>{
   }
   document.body.dataset.studentTab=key;
   shell.hidden=key==='ventilation';
+  pvSide.hidden=key!=='meds';
+  document.body.classList.toggle('student-pv-active',key==='meds');
   if(key==='trends'&&typeof v25Draw==='function')requestAnimationFrame(()=>v25Draw());
  }
  selectTab('trends');
@@ -1153,6 +1267,119 @@ window.addEventListener('DOMContentLoaded',()=>{
  }catch(err){console.warn('Ripristino riepilogo terapie studenti:',err)}
 });
 </script>
-<script src="./ventilation-v291.js?v=29340"></script>
-</body>
+<script src="./ventilation-v291.js?v=29361"></script>
+<!-- Solo ramo sperimentale: modulo EGA/VQ, nessuna modifica al motore principale -->
+<script src="./research/emogas-vq-prototype.js?v=6"></script>
+<script src="./research/emogas-vq-ui.js?v=30"></script>
+<script src="./research/lv-pv-teaching.js?v=14"></script>
+<style id="physiology-number-v30">
+ .physiology-percent-editor{display:flex;align-items:center;gap:5px;margin-top:5px}
+ .physiology-percent-editor input[type="number"]{width:76px;max-width:100%;box-sizing:border-box;padding:5px 6px;background:#081923;color:#e5f5fa;border:1px solid #34566a;border-radius:5px;font-size:13px}
+ .physiology-percent-editor .percent-unit{font-size:12px;color:#a9c2ce}
+ /* Layout compatto, applicato sia all'originale sia alla copia emodinamica. */
+ .physiology-engine-card{padding:9px 11px!important}
+ .physiology-engine-card h2{margin:0 0 7px!important;font-size:14px}
+ .physiology-engine-card .cols{display:grid!important;grid-template-columns:minmax(0,1fr) 92px!important;gap:5px 8px!important;align-items:center;margin:0!important}
+ .physiology-engine-card .cols>label{display:flex!important;flex-direction:column;gap:2px;min-width:0;margin:0!important;font-size:12px;line-height:1.15}
+ .physiology-engine-card .cols>label input[type="range"]{width:100%;margin:0!important}
+ .physiology-engine-card .cols>label>span{display:none!important}
+ /* Il cursore SVR mantiene il range fisiologico 30–180%, ma a 100%
+    la manopola si allinea visivamente agli altri slider. */
+ /* Scale visuali centrate su 100: SVR resta limitato logicamente a 30. */
+ .physiology-engine-card .physiology-percent-editor{margin:0;gap:4px}
+ .physiology-engine-card .physiology-percent-editor input[type="number"]{width:65px;padding:4px 5px;font-size:13px}
+ @media(max-width:420px){.physiology-engine-card .cols{grid-template-columns:minmax(0,1fr) 82px!important;gap:5px!important}.physiology-engine-card .physiology-percent-editor input[type="number"]{width:57px}}
+</style>
+<script id="physiology-number-v30-script">
+(()=>{
+ const keys=['preload','contractility','vascularTone','compliance'];
+ const root=document;
+ const original=id=>root.getElementById(id);
+ const mirror=root.getElementById('hemoPhysiologyMirror');
+ function install(range){
+  if(!range||range.dataset.numberEditorInstalled)return;
+  range.dataset.numberEditorInstalled='1';
+  const editor=document.createElement('div');editor.className='physiology-percent-editor';
+  const number=document.createElement('input');
+  number.type='number';number.min=range.dataset.logicalMin||range.min;number.max=range.max;number.step='1';
+  number.value=range.value;number.setAttribute('aria-label','Valore percentuale '+range.closest('label')?.textContent.trim());
+  const unit=document.createElement('span');unit.className='percent-unit';unit.textContent='%';
+  editor.append(number,unit);
+  // Non inserire il campo numerico dentro la <label> dello slider:
+  // su Safari/iPad il click sulla label puo' riportare il focus al cursore,
+  // impedendo di digitare nel campo.
+  const sliderLabel=range.closest('label');
+  if(sliderLabel)sliderLabel.insertAdjacentElement('afterend',editor);
+  else range.insertAdjacentElement('afterend',editor);
+  // Non sovrascrivere il valore mentre l'utente sta digitando.
+  // Il focus puo' variare su Safari durante l'apertura della tastiera.
+  let editing=false;
+  const sync=(force=false)=>{
+   // Lo spostamento dello slider prevale sempre, anche se il campo numerico
+   // era stato compilato o ha ancora il focus (Safari/iPad).
+   if(force){editing=false;if(document.activeElement===number)number.blur();}
+   if(force||(!editing&&document.activeElement!==number))number.value=range.value;
+   number.disabled=range.disabled;
+  };
+  number.addEventListener('pointerdown',()=>{editing=true});
+  number.addEventListener('focus',()=>{editing=true});
+  number.addEventListener('input',()=>{editing=true});
+  const apply=()=>{
+   const n=Number(number.value);
+   if(number.value.trim()===''||!Number.isFinite(n))return;
+   const min=Number(range.dataset.logicalMin||range.min),max=Number(range.max);
+   const value=Math.round(Math.max(min,Math.min(max,n)));
+   range.value=String(value);
+   range.dispatchEvent(new Event('input',{bubbles:true}));
+   range.dispatchEvent(new Event('change',{bubbles:true}));
+   number.value=range.value;
+  };
+  number.addEventListener('blur',()=>{if(editing)apply();editing=false;sync()});
+  number.addEventListener('change',()=>{if(editing)apply()});
+  number.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();apply();editing=false;number.blur()}});
+  range.addEventListener('pointerdown',()=>sync(true));
+  range.addEventListener('touchstart',()=>sync(true),{passive:true});
+  range.addEventListener('input',()=>sync(true));
+  range.addEventListener('change',()=>sync(true));
+  // Aggiornamento farmacologico senza interrompere una digitazione in corso.
+  window.addEventListener('sim:physiology-updated',()=>sync(false));
+  sync();
+ }
+ // Il duplicato conserva l'ordine dei quattro slider originali.
+ // Associazione per posizione, senza ricercare ripetutamente l'intero DOM.
+ const mirrorRanges=mirror
+  ? Array.from(mirror.querySelectorAll('input[type="range"]'))
+  : [];
+ keys.forEach((key,index)=>{
+  const primary=original(key),duplicate=mirrorRanges[index];
+  if(primary)primary.dataset.physKey=key;
+  if(duplicate)duplicate.dataset.physKey=key;
+  install(primary);
+  install(duplicate);
+ });
+})();
+</script>
+
+<style id="instructor-clean-copy-v30">
+/* Solo docente: nasconde testo esplicativo, non stati dinamici o comandi. */
+body:not(.student) #ventilationPanel > .status:not([id]),
+body:not(.student) .controls > section.card > small[style*="display:block"],
+body:not(.student) #inductionPanel > small,
+body:not(.student) #premedPanel > small {display:none!important}
+</style>
+<style id="vent-loop-quick-scale-v30">
+body:not(.student) #instructorVentLoops .vent-loop-actions{display:flex!important;flex-wrap:wrap;align-items:center;gap:6px!important}
+body:not(.student) #instructorVentLoops .vent-loop-actions button{min-height:34px;white-space:nowrap}
+body:not(.student) #instructorVentLoops .vent-loop-ref-status{flex-basis:100%;font-size:11px}
+</style>
+<style id="sim-time-jumps-grid-v30">
+body:not(.student) #timeControls .time-jumps .sim-time-jumps{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;min-width:210px;width:100%}
+body:not(.student) #timeControls .time-jumps .sim-time-jumps button{min-width:0;min-height:36px;padding:6px 8px;white-space:nowrap}
+@media(max-width:550px){body:not(.student) #timeControls .sim-time-jumps{width:100%}}
+</style>
+<style id="instructor-hide-duplicate-vitals-v30">
+/* I valori FC, MAP, CO e SVR restano nel monitor; non duplicarli nella barra docente. */
+body:not(.student) .instructor-console-top .quick-values{display:none!important}
+</style>
+<script src="./fentanyl-cccp.js?v=7"></script></body>
 </html>

@@ -19,17 +19,39 @@
  // e NON soglie cliniche o predizioni di gas ematici.
  const lungProfiles=Object.freeze({
   healthy:Object.freeze({
-   compliance:1,recruitability:.04,overdistension:.16,overdistStart:8,
+   compliance:1,recruitability:.04,overdistension:.24,overdistStart:6,
    extraDeadspace:0,deadspaceRecruit:.09,deadspaceOverdist:.24,
    etGradient:1.6,oxygenDeficit:0,oxygenRecruit:.24,oxygenOverdist:.70
   }),
   atelectasis:Object.freeze({
-   compliance:.67,recruitability:.43,overdistension:.14,overdistStart:12,
+   compliance:.67,recruitability:.43,overdistension:.23,overdistStart:9,
    extraDeadspace:.48,deadspaceRecruit:.47,deadspaceOverdist:.20,
    etGradient:1.2,oxygenDeficit:6.8,oxygenRecruit:5.5,oxygenOverdist:1.6
   }),
+  hypoventilation:Object.freeze({
+   compliance:1,recruitability:.04,overdistension:.24,overdistStart:6,
+   extraDeadspace:0,deadspaceRecruit:.09,deadspaceOverdist:.24,
+   etGradient:1.6,oxygenDeficit:0,oxygenRecruit:.24,oxygenOverdist:.70
+  }),
+  bronchospasm:Object.freeze({
+   compliance:.94,recruitability:.04,overdistension:.26,overdistStart:7,
+   extraDeadspace:.65,deadspaceRecruit:.05,deadspaceOverdist:.30,
+   etGradient:2.8,oxygenDeficit:2.5,oxygenRecruit:.30,oxygenOverdist:.9,
+   resistanceMultiplier:3.0,expiratoryMultiplier:2.2
+  }),
+  embolism:Object.freeze({
+   compliance:.96,recruitability:.03,overdistension:.27,overdistStart:6,
+   extraDeadspace:2.1,deadspaceRecruit:.03,deadspaceOverdist:.3,
+   etGradient:7,oxygenDeficit:3,oxygenRecruit:.12,oxygenOverdist:.8
+  }),
+  edema:Object.freeze({
+   compliance:.48,recruitability:.25,overdistension:.30,overdistStart:9,
+   extraDeadspace:.65,deadspaceRecruit:.22,deadspaceOverdist:.3,
+   etGradient:3,oxygenDeficit:7,oxygenRecruit:3.5,oxygenOverdist:1.3,
+   resistanceMultiplier:1.3,expiratoryMultiplier:1.15
+  }),
   poorly_recruitable:Object.freeze({
-   compliance:.55,recruitability:.10,overdistension:.28,overdistStart:7,
+   compliance:.55,recruitability:.10,overdistension:.34,overdistStart:6,
    extraDeadspace:.40,deadspaceRecruit:.10,deadspaceOverdist:.45,
    etGradient:2.8,oxygenDeficit:5.0,oxygenRecruit:1.2,oxygenOverdist:2.0
   })
@@ -70,7 +92,7 @@
   // e funzioni esponenziali ripetute durante la pausa inspiratoria.
   const key=[d.mode,d.controlled,d.rate,d.ti,d.te,d.flowTi,d.tau,
    d.crs,d.raw,d.vt,d.pip,d.plateau,d.peep,d.pinsp,d.hold,d.holdSeconds,
-   d.pcvRiseTime,d.pcvFillEnd,d.curveShape,d.expResistance,d.expValveR,d.weight].join('|');
+   d.pcvRiseTime,d.pcvFillEnd,d.curveShape,d.expResistance,d.expValveR,d.weight,d.trappedVolume].join('|');
   if(key===loopPointsCacheKey&&loopPointsCacheValue)return loopPointsCacheValue;
   const N=180,phaseEnd=d.ti/(60/d.rate);
   const point=phase=>({
@@ -306,7 +328,7 @@
   const morph=el('patientMorph')?.value||'meso';
   const breed=el('patientBreed')?.value||'Meticcio';
   const chosen=el('ventMode')?.value||'SPONT';
-  const intubated=typeof v25!=='undefined'&&v25.induction.phase==='maintenance';
+  const intubated=typeof window.simAirwayIntubated==='boolean'?window.simAirwayIntubated:(typeof v25!=='undefined'&&v25.induction.phase==='maintenance');
   const postInduction=typeof v25!=='undefined'&&v25.induction.startedAt>0&&
    ['induction','maintenance'].includes(v25.induction.phase);
   const controlled=intubated&&chosen!=='SPONT',mode=controlled?chosen:'SPONT';
@@ -317,8 +339,15 @@
   const lung=lungProfiles[lungProfile];
   // Reclutamento cresce e si satura con la PEEP; la sovradistensione
   // compare oltre una soglia dipendente dalla reclutabilita' polmonare.
-  const recruitment=controlled?1-Math.exp(-peep/3.8):0;
-  const overdistension=controlled?Math.pow(Math.max(0,peep-lung.overdistStart)/8,2):0;
+  // Bilancio scenario-specifico: reclutamento saturabile e sovradistensione
+  // progressiva. La PEEP intrinseca, quando presente, contribuisce alla
+  // pressione alveolare nel bilancio meccanico (calcolata più sotto).
+  // Queste curve sono didattiche e non soglie terapeutiche validate.
+  const recruitment=controlled?1-Math.exp(-peep/
+   (lungProfile==='atelectasis'?4.8:lungProfile==='edema'?5.2:3.8)):0;
+  const overdistension=controlled?
+   Math.pow(Math.max(0,peep-lung.overdistStart)/
+    (lungProfile==='atelectasis'?5.0:lungProfile==='edema'?5.5:6.0),2):0;
   // Il rapporto I:E selezionato riguarda il ventilatore. In spontanea
   // l'inspirazione e' piu' breve, coerente con il tracciato di riferimento.
   const cycle=60/rate,ti=controlled?cycle/(1+ie):cycle*.22,te=cycle-ti;
@@ -348,7 +377,7 @@
   const raw=clamp(8*Math.pow(weight/25,-.28)*
    (morph==='brachy'?2.0:morph==='dolicho'?.78:1)*
    (bodyType==='brachy'?1.15:bodyType==='dolicho'?.90:1)*
-   (bcs>=7?1.12:1),1.5,100);
+   (bcs>=7?1.12:1)*(lung.resistanceMultiplier||1),1.5,100);
   const tau=raw*crs/1000;
   const curveShape=clamp(
    (morph==='brachy'?.18:morph==='dolicho'?-.10:0)+
@@ -358,8 +387,12 @@
   const expResistance=clamp(
    (morph==='brachy'?1.40:morph==='dolicho'?.80:1)*
    (bodyType==='brachy'?1.25:bodyType==='dolicho'?.83:1)*
-   (bcs>=7?1.08:1),.55,2.5);
+   (bcs>=7?1.08:1)*(lung.expiratoryMultiplier||1),.55,5);
   const expValveR=clamp(raw*.30*expResistance,1.1,12); // R (cmH2O/(L/s)) * C (L/cmH2O) = secondi
+  const tauE=Math.max(.12,tau*(1.35+.32*expResistance));
+  const valveTime=clamp(.065+.025*expResistance+.08*tau,.07,.22);
+  const endEffective=te-valveTime*(1-Math.exp(-te/valveTime));
+  const expTail=Math.exp(-endEffective/tauE);
   const vtSet=clamp(n('ventVtKg',10),4,15)*weight;
   const pinsp=clamp(n('ventPinsp',12),4,30);
   // Dopo una vera induzione EV la ventilazione spontanea e' depressa:
@@ -375,7 +408,12 @@
   const pcvPeakFlow=mode==='PCV'?
    vt/1000*pcvSmoothFill(pcvRiseTime,flowTi,tau,pcvRiseTime).rate/
    Math.max(.001,pcvFillEnd):0;
-  const plateau=controlled?peep+elasticRecoil({crs,curveShape,weight},vt):null;
+  // Only obstructive scenarios accumulate end-expiratory gas.
+  const trapping=controlled&&lungProfile==='bronchospasm'?
+   clamp((expTail-.04)/.96,0,.90):0;
+  const trappedVolume=trapping>0?Math.min(vt*3,vt*trapping/Math.max(.1,1-trapping)):0;
+  const autoPeep=trappedVolume/Math.max(.45,crs);
+  const plateau=controlled?peep+elasticRecoil({crs,curveShape,weight},vt)+autoPeep:null;
   const vcvPeakFlow=mode==='VCV'?vt/1000*vcvFill(flowTi*.5,flowTi).rate:0;
   const flow=controlled?(mode==='VCV'?vcvPeakFlow:vt/1000/Math.max(.1,flowTi)):0;
   const pip=controlled?(mode==='VCV'?plateau+raw*vcvPeakFlow:peep+pinsp):null;
@@ -413,10 +451,26 @@
   const oxygenPeepEffect=controlled?
    -lung.oxygenDeficit+lung.oxygenRecruit*recruitment-
     lung.oxygenOverdist*overdistension:0;
-  const pmean=controlled?peep+(plateau-peep)*ti/(ti+te)*.60:0;
+  // PEEP totale: pressione esterna e componente intrinseca contribuiscono
+  // entrambe alla pressione di fine espirazione. La trasmissione pleurica
+  // dipende dal profilo polmonare e non equivale alla pressione alveolare.
+  const totalPeep=controlled?peep+autoPeep:0;
+  const pmean=controlled?totalPeep+Math.max(0,plateau-totalPeep)*ti/(ti+te)*.60:0;
   const preloadSensitivity=clamp(1+Math.max(0,100-(typeof phys!=='undefined'?phys.preload:100))*.012,1,1.9);
-  const preloadFactor=controlled?clamp(1-.011*Math.max(0,pmean-2)*preloadSensitivity-.005*Math.max(0,(plateau||0)-19),.68,1):1;
-  return {mode,chosen,intubated,postInduction,controlled,rate,peep,ie,ti,te,flowTi,pcvRiseTime,pcvPeakFlow,pcvFillEnd,vcvPeakFlow,pinsp,hold,holdSeconds,fio2,weight,age,bcs,morph,breed,bodyType,lungProfile,recruitment,overdistension,compliancePeepFactor,crs,raw,tau,curveShape,expResistance,expValveR,vt,pip,plateau,driving,plateauMeasured,drivingMeasured,cdyn,cstat,rawMeasured,minute,alveolarMinute,deadspaceMlKg,etco2Gradient,oxygenPeepEffect,pmean,preloadFactor};
+  // Effetto emodinamico didattico: la quota reclutante puo' migliorare
+  // l'ossigenazione, ma la pressione trasmessa riduce il ritorno venoso;
+  // la sovradistensione aumenta inoltre il carico ventricolare destro.
+  // Nell'ostruzione, l'auto-PEEP aggiunge pressione alveolare anche
+  // quando la PEEP impostata e' nulla.
+  const pleuralTransmission=lungProfile==='edema'?.68:
+   lungProfile==='atelectasis'?.58:lungProfile==='bronchospasm'?.38:.48;
+  const transmittedPressure=pmean*pleuralTransmission;
+  const rvAfterloadPenalty=.022*Math.max(0,overdistension)+
+   (lungProfile==='embolism'?.008*Math.max(0,totalPeep-4):0);
+  const preloadFactor=controlled?clamp(
+   1-.020*Math.max(0,transmittedPressure-1)*preloadSensitivity-
+   rvAfterloadPenalty-.003*Math.max(0,(plateau||0)-19),.60,1):1;
+  return {tauE,valveTime,expTail,trappedVolume,autoPeep,trapping,mode,chosen,intubated,postInduction,controlled,rate,peep,ie,ti,te,flowTi,pcvRiseTime,pcvPeakFlow,pcvFillEnd,vcvPeakFlow,pinsp,hold,holdSeconds,fio2,weight,age,bcs,morph,breed,bodyType,lungProfile,recruitment,overdistension,compliancePeepFactor,crs,raw,tau,curveShape,expResistance,expValveR,vt,pip,plateau,driving,plateauMeasured,drivingMeasured,cdyn,cstat,rawMeasured,minute,alveolarMinute,deadspaceMlKg,etco2Gradient,oxygenPeepEffect,totalPeep,transmittedPressure,pmean,preloadFactor};
  }
  window.simVentCalc=calc;
  window.simVentValid=()=>{
@@ -517,10 +571,11 @@
   // I tracciati Paw, flusso, volume e i loop richiedono un tubo
   // endotracheale; la condizione e' condivisa con il monitor studenti.
   document.body.dataset.respIntubated=String(d.intubated);
+   if(typeof window.simAirwaySyncControl==='function')window.simAirwaySyncControl();
   syncPatientCopies();
   // RR e' la frequenza del ventilatore (o spontanea, se non intubato).
   if(el('rr')&&Number(el('rr').value)!==d.rate)el('rr').value=d.rate;
-  const vals={ventPip:fmt(d.pip),ventPplat:fmt(d.plateauMeasured),ventDriving:fmt(d.drivingMeasured),ventVt:fmt(d.vt,0),ventMinute:fmt(d.minute,2),ventCrs:fmt(d.crs),ventCstat:fmt(d.cstat),ventCdyn:fmt(d.cdyn),ventRaw:fmt(d.rawMeasured),ventMainPip:fmt(d.pip),ventMainVolumeValue:fmt(d.vt,0),ventMainFlowValue:fmt(d.controlled?d.mode==='VCV'?d.vcvPeakFlow:d.pcvPeakFlow:d.vt/1000*Math.PI/(2*d.ti),2)};
+  const vals={ventPip:fmt(d.pip),ventPplat:fmt(d.plateauMeasured),ventDriving:fmt(d.drivingMeasured),ventVt:fmt(d.vt,0),ventMinute:fmt(d.minute,2),ventCrs:fmt(d.crs),ventCstat:fmt(d.cstat),ventCdyn:fmt(d.cdyn),ventRaw:fmt(d.rawMeasured),ventAutoPeep:fmt(d.controlled?d.autoPeep:null),ventTrappedVolume:fmt(d.controlled?d.trappedVolume:null,0),ventTauE:fmt(d.controlled?d.tauE:null,2),ventMainPip:fmt(d.pip),ventMainVolumeValue:fmt(d.vt,0),ventMainFlowValue:fmt(d.controlled?d.mode==='VCV'?d.vcvPeakFlow:d.pcvPeakFlow:d.vt/1000*Math.PI/(2*d.ti),2)};
   for(const [id,value] of Object.entries(vals))if(el(id))el(id).textContent=value;
   const status=el('ventStatus');
   if(status)status.textContent=!d.intubated?'Paziente non intubato: tracciati Paw, flusso e volume non disponibili. Dopo l’intubazione si parte dalla respirazione spontanea.':d.controlled?d.mode+' attiva · PEEP '+fmt(d.peep,0)+' cmH₂O · I:E 1:'+d.ie+' · Ti '+fmt(d.ti,2)+' s'+(d.hold?' · insufflazione '+fmt(d.flowTi,2)+' s + pausa '+fmt(d.holdSeconds,2)+' s':' · nessuna pausa inspiratoria'):'Paziente intubato · respirazione spontanea'+(d.postInduction?' con ipoventilazione post-induzione e possibile aumento dell’EtCO₂.':'')+' Seleziona VCV o PCV per attivare la ventilazione controllata.';
@@ -561,6 +616,7 @@
  // Richiamato nel momento esatto dell'intubazione, prima di pubblicare
  // lo stato alla finestra studenti: nessuna VCV/PCV implicita.
  window.simVentOnIntubation=()=>{
+  window.simAirwayIntubated=true;
   const mode=el('ventMode'),rate=el('ventRate');
   if(mode)mode.value='SPONT';
   // La FR dell'esempio (5 respiri in 15 s) e' ~20/min.
@@ -652,7 +708,7 @@
     }else{
      pressure=d.mode==='PCV'?
       d.peep+d.pinsp*Math.min(1,t/d.pcvRiseTime):
-      d.peep+elasticRecoil(d,volume)+d.raw*flow;
+      d.peep+elasticRecoil(d,volume)+d.autoPeep+d.raw*flow;
     }
    }else{
     // Il ventilatore scarica Paw rapidamente verso la PEEP, mentre
@@ -660,16 +716,24 @@
     // lievemente piu' lenta. Paw NON e' la pressione alveolare:
     // il polmone continua a svuotarsi a Paw pressoche' costante (PEEP).
     // Volume e flusso restano derivata/integrale della stessa funzione.
-    const valveTime=clamp(.065+.025*d.expResistance+.08*d.tau,.07,.22);
+    const valveTime=d.valveTime;
     const pressureReleaseTime=clamp(.075+.12*d.tau+.012*d.expResistance,.075,.22);
-    const tauE=Math.max(.12,d.tau*(1.35+.32*d.expResistance));
+    const tauE=d.tauE;
     const effective=expSeconds-valveTime*(1-Math.exp(-expSeconds/valveTime));
     const endEffective=d.te-valveTime*(1-Math.exp(-d.te/valveTime));
     const tail=Math.exp(-endEffective/tauE);
     const decay=Math.exp(-effective/tauE),den=Math.max(.00001,1-tail);
+    // Volume relativo al livello tele-espiratorio: il ciclo si chiude
+    // a zero, senza un salto artificiale fra due respiri. Il flusso
+    // e' la derivata ESATTA del medesimo volume espiratorio.
+    // In presenza di intrappolamento, il flusso al termine di Te
+    // resta negativo: e' interrotto dal respiro successivo, non
+    // azzerato artificialmente. Il volume intrappolato assoluto
+    // e l'auto-PEEP sono rappresentati separatamente nei parametri.
     volume=d.vt*clamp((decay-tail)/den,0,1);
-    flow=expSeconds>=d.te?0:
-     -d.vt/1000*decay*(1-Math.exp(-expSeconds/valveTime))/(tauE*den);
+    const expiratoryRate=-(d.vt/1000)*decay*
+     (1-Math.exp(-expSeconds/valveTime))/(tauE*den);
+    flow=(d.trappedVolume>0||expSeconds<d.te)?expiratoryRate:0;
     // All'inizio dell'espirazione la pressione e' quella realmente
     // raggiunta a fine inspirazione, anche se c'e' stata una pausa.
     const release=d.hold?
@@ -913,6 +977,23 @@
   if(e.type==='change'&&typeof v25Event==='function'&&e.target.id.startsWith('vent'))v25Event('Ventilazione: '+(el('ventMode')?.value||'SPONT')+' · FR '+n('ventRate',12)+'/min · Vt '+n('ventVtKg',10)+' mL/kg · PEEP '+n('ventPeep',0)+' cmH₂O');
  }
  window.addEventListener('DOMContentLoaded',()=>{
+  // Independent instructor airway control; never infer extubation from phase changes.
+  const modeField=el('ventMode');
+  if(modeField&&!el('simAirwayControl')){
+   const label=document.createElement('label');
+   label.id='simAirwayControl';
+   label.style.cssText='display:flex;align-items:center;gap:8px;padding:8px;border:1px solid #35505c;border-radius:8px;margin-bottom:8px';
+   const checkbox=document.createElement('input');
+   checkbox.type='checkbox';checkbox.id='simAirwayCheckbox';checkbox.style.width='auto';
+   const text=document.createElement('span');text.textContent='Paziente intubato (controllo istruttore)';
+   label.append(checkbox,text);
+   const parent=modeField.closest('label');
+   if(parent?.parentNode)parent.parentNode.insertBefore(label,parent);
+   const update=()=>{checkbox.checked=Boolean(window.simAirwayIntubated);label.style.display=document.body.classList.contains('student')?'none':'flex'};
+   checkbox.addEventListener('change',()=>{if(typeof window.simSetAirwayIntubated==='function')window.simSetAirwayIntubated(checkbox.checked,'controllo vie aeree');else window.simAirwayIntubated=checkbox.checked;refresh()});
+   window.simAirwaySyncControl=update;
+   update();
+  }
   studentPanel();
   previousVentMode=el('ventMode')?.value||'SPONT';
   createPatientMirror();

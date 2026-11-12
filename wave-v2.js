@@ -72,16 +72,16 @@ function avECG(t,r,hr){
  return P-.12*p(c.qrsOffset-.053,c.cycle,.027)+.68*p(c.qrsOffset,c.cycle,.033)
   -.25*p(c.qrsOffset+.065,c.cycle,.034)+.15*p(c.qrsOffset+.26,c.cycle,.092);
 }
-function art(q){if(E("rhythm")?.value==="Artefatto massaggio cardiaco 120/min")return .85*G(q,.22,.105)+.22*G(q,.4,.17);if((E("rhythm")?.value==="Fibrillazione ventricolare"||E("rhythm")?.value==="Tachicardia ventricolare senza polso"||E("rhythm")?.value==="PEA / attività elettrica"||E("rhythm")?.value==="Asistolia"))return 0;let pp=C((N("sap")-N("dap"))/60,.12,1.75),sv=C(N("sv")/36,.35,1.8),con=C((window.macEffectiveContractility||N("contractility"))/100,.2,1.9),dp=C((N("dpdt")||.8)/.8,.4,2.2),tone=C((window.macEffectiveTone||N("vascularTone"))/100,.3,2.1),comp=C(N("compliance")/100,.4,1.8);
+function art(q){if(E("rhythm")?.value==="Artefatto massaggio cardiaco 120/min")return .85*G(q,.22,.105)+.22*G(q,.4,.17);if((E("rhythm")?.value==="Fibrillazione ventricolare"||E("rhythm")?.value==="Tachicardia ventricolare senza polso"||E("rhythm")?.value==="PEA / attività elettrica"||E("rhythm")?.value==="Asistolia"))return 0;const synced=document.body.classList.contains("student")?window.simStudentWaveShape:null;let pp=C((N("sap")-N("dap"))/60,.12,1.75),sv=C(N("sv")/36,.35,1.8),con=C((synced?.contractility??window.macEffectiveContractility??N("contractility"))/100,.2,1.9),dp=C((N("dpdt")||.8)/.8,.4,2.2),tone=C((synced?.tone??window.macEffectiveTone??N("vascularTone"))/100,.3,2.1),comp=C(N("compliance")/100,.4,1.8);
 // Baseline retains V2.8.22/V2.8.24 peripheral contour.
 // Norepinephrine alone adds a concave systolic downslope, prominent systolic
 // peak and near-horizontal post-dicrotic runoff as peripheral resistance rises.
-let norFx=(typeof v25!=="undefined"&&v25.fx)?Math.max(0,v25.fx.tone||0):0;
-let norActive=typeof v25!=="undefined"&&v25.inf&&v25.inf.nor;
+let norFx=synced?Math.max(0,synced.norFx||0):((typeof v25!=="undefined"&&v25.fx)?Math.max(0,v25.fx.tone||0):0);
+let norActive=synced?!!synced.norActive:(typeof v25!=="undefined"&&v25.inf&&v25.inf.nor);
 let nor=C((norActive||norFx>2?norFx:0)/30,0,1);
  // Canine dexmedetomidine: high peripheral resistance prolongs arterial
  // runoff. Preserve the norepinephrine-specific contour independently.
- const dex=typeof window.premedDexEffect==='function'?window.premedDexEffect():0;
+ const dex=synced?Number(synced.dex||0):(typeof window.premedDexEffect==='function'?window.premedDexEffect():0);
  const dexTone=C((tone-1)/.7,0,1)*C(dex,0,1);
 let onset=.085,rise=C(.072/Math.pow(con*dp,.10),.055,.092);
 let z=C((q-onset)/rise,0,1),up=z*z*(3-2*z);
@@ -148,8 +148,56 @@ function spontaneousCap(q,vent,breath){
  const z=C((exp-fallStart)/(fallEnd-fallStart),0,1);
  return .90*(1-z*z*(3-2*z));
 }
+// Integrated pulmonary teaching scenarios: preserve manual capnography patterns
+// and use the same lung profile on instructor and student displays.
+function pulmonaryCap(q,vent){
+ const key=vent?.lungProfile||window.simVentLungProfile||'healthy';
+ if(key==='healthy'||key==='hypoventilation')return null;
+ const obstruction=key==='bronchospasm';
+ const slope=obstruction?1:key==='edema'?.38:key==='atelectasis'?.23:key==='embolism'?.13:0;
+ if(!slope)return null;
+ // q maps the actual controlled expiratory interval to 0.08..0.83.
+ const x=C((q-.08)/.75,0,1);
+ const te=vent?.te||3;
+ const resistance=vent?.raw||8;
+ const severity=obstruction?C((resistance-8)/25,.55,1.25):1;
+ const limitedExpiration=obstruction?C(2.5/Math.max(.4,te),.65,1.7):1;
+ const k=C(slope*severity*limitedExpiration,0,1.5);
+ const onset=.025,fall=.955;
+ if(x<=onset||x>=1)return 0;
+ if(obstruction){
+  // Continuous shark-fin phase II/III, with a rounded apical transition.
+  // Preserve a rising alveolar phase: only the last 9% of expiration is
+  // eased towards the peak; the inspiratory downstroke remains rapid.
+  const z=C((x-onset)/(fall-onset),0,1);
+  const exponent=C(1.15+.48*k,1.25,2.05);
+  const roundStart=.91;
+  let ascending;
+  if(z<roundStart)ascending=Math.pow(z,exponent);
+  else{
+   const t=(z-roundStart)/(1-roundStart);
+   const y0=Math.pow(roundStart,exponent);
+   const m0=exponent*Math.pow(roundStart,exponent-1)*(1-roundStart);
+   // Cubic Hermite: continuous value/slope at the join, zero slope at peak.
+   ascending=(2*t*t*t-3*t*t+1)*y0+
+    (t*t*t-2*t*t+t)*m0+(-2*t*t*t+3*t*t);
+  }
+  if(x<fall)return C(1.03*ascending,0,1.03);
+  const wash=C((x-fall)/(1-fall),0,1);
+  return 1.03*(1-wash*wash*(3-2*wash));
+ }
+ if(x<fall){
+  const z=C((x-onset)/(fall-onset),0,1);
+  const rise=.19;
+  const base=z<rise?Math.pow(z/rise,1.05):1;
+  const ramp=z<rise?0:(z-rise)/(1-rise);
+  return C((1-k*.50)*base+k*.50*Math.pow(z,.80)+k*.22*ramp,0,1.03);
+ }
+ const z=C((x-fall)/(1-fall),0,1);
+ return (1-z*z*(3-2*z));
+}
 function cap(q,vent,breath){let m=E("capnoPattern")?.value||"Normale";
- if(m==="Normale"&&vent?.intubated&&!vent.controlled)return spontaneousCap(q,vent,breath);if(m.includes("Disconnessione"))return 0;let b=m.includes("Rebreathing")?.18:0,v=0;if(m.includes("Broncospasmo")){if(q<.07)v=0;else if(q<.42)v=C((q-.07)/.35,0,1)**1.8;else if(q<.69)v=.96+.06*(q-.42)/.27;else if(q<.82){let z=(q-.69)/.13;v=1.02*(1-z*z*(3-2*z))}}else{if(q<.08)v=0;else if(q<.14){let z=(q-.08)/.06;v=.94*(z*z*(3-2*z))}else if(q<.72){let z=(q-.14)/.58;v=.94+.09*z+.010*Math.sin(Math.PI*z)}else if(q<.78){let z=(q-.72)/.06;v=1.03*(1-(z*z*(3-2*z)))}else v=0;if(m.includes("Oscillazioni"))v+=.045*Math.sin(q*42)*C((q-.14)*4,0,1)*C((.78-q)*8,0,1)}return b+(1-b)*C(v,0,1.1)}
+ if(m==="Normale"&&vent?.controlled){const pathological=pulmonaryCap(q,vent);if(pathological!==null)return pathological;}if(m==="Normale"&&vent?.intubated&&!vent.controlled)return spontaneousCap(q,vent,breath);if(m.includes("Disconnessione"))return 0;let b=m.includes("Rebreathing")?.18:0,v=0;if(m.includes("Broncospasmo")){if(q<.07)v=0;else if(q<.42)v=C((q-.07)/.35,0,1)**1.8;else if(q<.69)v=.96+.06*(q-.42)/.27;else if(q<.82){let z=(q-.69)/.13;v=1.02*(1-z*z*(3-2*z))}}else{if(q<.08)v=0;else if(q<.14){let z=(q-.08)/.06;v=.94*(z*z*(3-2*z))}else if(q<.72){let z=(q-.14)/.58;v=.94+.09*z+.010*Math.sin(Math.PI*z)}else if(q<.78){let z=(q-.72)/.06;v=1.03*(1-(z*z*(3-2*z)))}else v=0;if(m.includes("Oscillazioni"))v+=.045*Math.sin(q*42)*C((q-.14)*4,0,1)*C((.78-q)*8,0,1)}return b+(1-b)*C(v,0,1.1)}
 // Oscillazione respiratoria SPV calcolata una volta per frame, non per pixel.
 let waveDrawFailures=0;
 function draw(){
@@ -165,13 +213,55 @@ function draw(){
    window.simWaveSetPaused(Boolean(simClock.paused));
   if(wavePaused)return;
  const hr=Math.max(1,N("hr")||90),rr=Math.max(1,N("rr")||18),et=C(N("etco2")||38,3,80);
- const rh=E("rhythm")?.value||"Ritmo sinusale",av=rh.startsWith("Blocco AV "),timing=av?avTiming(rh,hr):null,now=performance.now()/1000-t0-wavePausedTotal;
+ const rh=E("rhythm")?.value||"Ritmo sinusale",av=rh.startsWith("Blocco AV "),timing=av?avTiming(rh,hr):null;
+ const clock= document.body.classList.contains('student')?window.simStudentWaveClock:null;
+ const now=clock&&Number.isFinite(clock.time)&&Number.isFinite(clock.sentAt)?clock.time+Math.max(0,(Date.now()-clock.sentAt)/1000):performance.now()/1000-t0-wavePausedTotal;
  window.simWaveTimeSeconds=now;
  window.simWaveFrameTimestamp=performance.now();
  const vent=typeof window.simVentCalc==='function'?window.simVentCalc():null;
  const respActive=typeof window.simVentValid==='function'&&window.simVentValid();
- const respPulse=Math.max(1,N('sap')-N('dap')),respSpv=C(N('spv'),0,35),respRate=Math.max(1,N('rr')||12);
- const respiratoryPulse=ts=>respActive?C(1+respSpv/(2*respPulse)*Math.sin(2*Math.PI*ts*respRate/60-.3),.7,1.3):1;
+ const respPulse=Math.max(1,N('sap')-N('dap')),respSpv=C(N('spv'),0,35),respPpv=C(N('ppv'),0,35);
+ const respRate=Math.max(1,vent?.controlled?(vent.rate||N('rr')||12):(N('rr')||12));
+ // Sample respiratory modulation once per cardiac beat, not per pixel.
+ // PPV varies pulse pressure, SPV varies systolic pressure.
+ const respiratoryBeat=beatStart=>{
+  if(!respActive||!vent?.controlled)return {pulse:1,dia:0};
+  const swing=Math.sin(2*Math.PI*beatStart*respRate/60-.3);
+  const pulseFactor=1+C(respPpv/200,0,.175)*swing;
+  const systolicOffset=C(respSpv/2,0,17.5)*swing;
+  return {pulse:pulseFactor,dia:systolicOffset-respPulse*(pulseFactor-1)};
+ };
+ const beatPressure=(beatStart,shape,sap,dap)=>{
+  const m=respiratoryBeat(beatStart);
+  return dap+m.dia+(sap-dap)*m.pulse*shape;
+ };
+ // Normalize the pressure contour so the respiratory systolic swing is
+ // calibrated to the displayed SPV, independent of contour morphology.
+ let contourPeak=1;
+ {
+  contourPeak=0;
+  for(let j=0;j<=100;j++)contourPeak=Math.max(contourPeak,art(j/100));
+  contourPeak=Math.max(.05,contourPeak);
+ }
+ // Pixel-calibrated pressure excursions: the same 27 mmHg pulse
+ // occupies the same number of CSS pixels in teacher and student views,
+ // even though their canvas heights differ. Diastolic pressure shifts the
+ // baseline vertically; SAP-DAP controls the pulse amplitude.
+ const artY=(pressure,height)=>{
+  const dap=Math.max(0,N('dap'));
+  const baseline=.73*height-(dap-60)*.28;
+  const pixelY=baseline-(pressure-dap)*.48;
+  return C(pixelY/Math.max(1,height),.035,.965);
+ };
+ // Pleth amplitude is more sensitive to respiratory pulse modulation than
+ // the pressure pulse contour. Use the identical beat/respiratory phase as ART,
+ // but amplify the visual modulation for teaching (not a calibrated PVI).
+ // Numeric SpO2 is deliberately unaffected.
+ const plethBeatAmplitude=beatStart=>{
+  if(!respActive||!vent?.controlled)return 1;
+  const swing=Math.sin(2*Math.PI*beatStart*respRate/60-.3);
+  return C(1+C(respPpv/200,0,.175)*2.5*swing,.55,1.45);
+ };
  [["ecg","#39ef8b"],["pleth","#3bd6ff"],["capno","#f8fbff"],["art","#ff5364"]].forEach(([id,col])=>{
   const c=E(id);if(!c||c.offsetParent===null)return;
   const [g,w,h]=fit(c);g.clearRect(0,0,w,h);g.strokeStyle=col;g.lineWidth=2;g.beginPath();
@@ -212,11 +302,11 @@ function draw(){
      q=phase/.75;
      if(id==="art"){
       const sap=N("sap"),dap=N("dap"),pulse=Math.max(1,sap-dap);
-      const shape=q<=1?art(q)/C(pulse/60,.12,1.75):0;
-      const pressure=dap+pulse*shape*respiratoryPulse(ts);
-      y=.93-(pressure-30)/(145-30)*.91;
+      const shape=q<=1?art(q)/contourPeak:0;
+      const pressure=beatPressure(ts-phase-delay,shape,sap,dap);
+      y=artY(pressure,h);
      }else{
-      y=.84-(q<=1?pleth(q):0)*.48*respiratoryPulse(ts);
+      y=.84-(q<=1?pleth(q):0)*.48*plethBeatAmplitude(ts-phase-delay);
      }
     }
    }else{
@@ -226,10 +316,10 @@ function draw(){
      if(rh.includes("Artefatto massaggio"))window.__cprWaveTime=Math.floor((ts-delay)*2);
      y=.58-ecg(q,rh)*.76;
     }else if(id==="art"){
-     const sap=N("sap"),dap=N("dap"),pulse=Math.max(1,sap-dap),shape=art(q)/C(pulse/60,.12,1.75);
-     const pressure=rh==="Artefatto massaggio cardiaco 120/min"?15+40*shape:(rh==="Fibrillazione ventricolare"||rh==="Tachicardia ventricolare senza polso"||rh==="PEA / attività elettrica"||rh==="Asistolia")?0:dap+pulse*shape*respiratoryPulse(ts);
-     y=.93-(pressure-30)/(145-30)*.91;
-    }else y=.84-pleth(q)*.48*respiratoryPulse(ts);
+     const sap=N("sap"),dap=N("dap"),pulse=Math.max(1,sap-dap),shape=art(q)/contourPeak;
+     const pressure=rh==="Artefatto massaggio cardiaco 120/min"?15+40*shape:(rh==="Fibrillazione ventricolare"||rh==="Tachicardia ventricolare senza polso"||rh==="PEA / attività elettrica"||rh==="Asistolia")?0:beatPressure(ts-q*(60/rate)-delay,shape,sap,dap);
+     y=artY(pressure,h);
+    }else y=.84-pleth(q)*.48*plethBeatAmplitude(ts-q*(60/rate)-delay);
    }
    x?g.lineTo(x,C(y,.035,.965)*h):g.moveTo(x,C(y,.035,.965)*h);
   }
